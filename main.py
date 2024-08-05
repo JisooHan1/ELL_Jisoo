@@ -6,13 +6,27 @@ from models import load_model
 
 import argparse
 from torch.utils.tensorboard import SummaryWriter
+import sys
 
-def train(net, trainloader, criterion, optimizer, num_epoch, writer):
+# check gpu
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+    print("GPU Available... Using GPU")
+else:
+    print("GPU is not available... Using CPU")
+    device = torch.device("cpu")
+
+
+# train
+def train(net, trainloader, criterion, optimizer, num_epoch, writer, device):
+    net.train() # using dropout & batch normalization
     for epoch in range(num_epoch):
         running_loss = 0.0
 
         for i, data in enumerate(trainloader, 0):
             inputs, labels = data
+            inputs = inputs.to(device)
+            labels = labels.to(device)
 
             optimizer.zero_grad()
 
@@ -32,14 +46,17 @@ def train(net, trainloader, criterion, optimizer, num_epoch, writer):
         writer.add_scalar('Loss/train_epoch', running_loss, epoch)
     print('Finished Training')
 
-def test(net, testloader, criterion, num_epoch, writer):
-    net.eval()
+# train
+def test(net, testloader, criterion, num_epoch, writer, device):
+    net.eval() # not using dropout & batch normalization
     correct = 0
     total = 0
     test_loss = 0.0
     with torch.no_grad():
         for data in testloader:
             images, labels = data
+            images = images.to(device)
+            labels = labels.to(device)
             outputs = net(images)
 
             loss = criterion(outputs, labels)
@@ -54,6 +71,7 @@ def test(net, testloader, criterion, num_epoch, writer):
     writer.add_scalar('Loss/test', test_loss / len(testloader), num_epoch)
     writer.add_scalar('Accuracy/test', accuracy, num_epoch)
 
+# main
 def main():
     # Parsing command 정의
     parser = argparse.ArgumentParser(description="Executes deep learning using CCN")
@@ -76,8 +94,8 @@ def main():
     optimizer = optim.Adam(net.parameters(), lr=1e-3)
 
     writer = SummaryWriter(log_dir='logs')
-    train(net, trainloader, criterion, optimizer, num_epoch, writer)
-    test(net, testloader, criterion, num_epoch, writer)
+    train(net, trainloader, criterion, optimizer, num_epoch, writer, device)
+    test(net, testloader, criterion, num_epoch, writer, device)
 
 if __name__ == "__main__":
     main()
