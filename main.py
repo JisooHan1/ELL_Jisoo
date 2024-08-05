@@ -84,6 +84,7 @@ def main():
     # Parsing 변수 정의
     trainset, testset = load_dataset(args.dataset)
     net = load_model(args.model, load_dataset.input_channels)
+    net.to(device)
     num_epoch = args.num_epochs
     batch_size = args.batch_size
 
