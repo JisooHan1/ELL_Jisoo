@@ -3,44 +3,59 @@ import torchvision.transforms as transforms
 
 def load_dataset(name):
 
-    if name in ["CIFAR10","STL10"]:
-        load_dataset.input_channels = 3
+    dataset_config = {
 
-    elif name in ["MNIST"]:
-        load_dataset.input_channels = 1
+        "CIFAR10" : {
+            "dataset" : torchvision.datasets.CIFAR10,
+            "image size" : 32,
+            "input channel" : 3,
+            "train option" : {"train": True},
+            "test option" : {"train": False}
+        },
 
-    mean = (0.5,)*load_dataset.input_channels
+        "STL10" : {
+            "dataset" : torchvision.datasets.STL10,
+            "image size" : 96,
+            "input channel" : 3,
+            "train option" : {"split": 'train'},
+            "test option" : {"split": 'test'}
+        },
+
+        "MNIST" : {
+            "dataset" : torchvision.datasets.MNIST,
+            "image size" : 32,
+            "input channel" : 1,
+            "train option" : {"train": True},
+            "test option" : {"train": False}
+        }
+    }
+
+    if name not in dataset_config:
+        raise ValueError("Invalid dataset name")
+    config = dataset_config[name]
+    load_dataset.input_channels = config["input channel"]
+    load_dataset.image_size = config["image size"]
+    mean = (0.5,)*config["input channel"]
     std = mean
 
-    train_transform_pars = [
-            transforms.ToTensor(),
-            transforms.RandomResizedCrop(32),
-            transforms.Normalize(mean, std)]
-
-    test_transform_pars = [
+    # transform parameter definition
+    transform_pars = [
         transforms.ToTensor(),
-        transforms.Resize(32),
         transforms.Normalize(mean, std)]
 
-    if name == "CIFAR10":
-        train_transform_pars.extend([transforms.RandomHorizontalFlip()])
-        dataset = torchvision.datasets.CIFAR10
+    # train/test set config
+    train_transform_pars = transform_pars + [
+        transforms.RandomResizedCrop(config["image size"])]
+    test_transform_pars = transform_pars + [
+        transforms.Resize(config["image size"])]
 
-    elif name == "STL10":
-        train_transform_pars.extend([transforms.RandomHorizontalFlip()])
-        dataset = torchvision.datasets.STL10
-
-    elif name == "MNIST":
-        dataset = torchvision.datasets.MNIST
-
-    else:
-        raise ValueError("Invalid dataset name")
+    if name in ["CIFAR10", "STL10"]:
+        train_transform_pars.append(transforms.RandomHorizontalFlip())
+        test_transform_pars.append(transforms.RandomHorizontalFlip())
 
     train_transform = transforms.Compose(train_transform_pars)
     test_transform = transforms.Compose(test_transform_pars)
-
-    trainset = dataset(root='./data', train=True, download=True, transform=train_transform)
-    testset = dataset(root='./data', train=False, download=True, transform=test_transform)
+    trainset = config["dataset"](root='./data', **config["train option"], download=True, transform=train_transform)
+    testset = config["dataset"](root='./data', **config["test option"], download=True, transform=test_transform)
 
     return trainset, testset
-
