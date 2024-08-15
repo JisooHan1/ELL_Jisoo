@@ -15,7 +15,7 @@ def load_dataset(name):
 
         "STL10" : {
             "dataset" : torchvision.datasets.STL10,
-            "image size" : 96,
+            "image size" : 32,
             "input channel" : 3,
             "train option" : {"split": 'train'},
             "test option" : {"split": 'test'}
@@ -51,7 +51,6 @@ def load_dataset(name):
 
     if name in ["CIFAR10", "STL10"]:
         train_transform_pars.append(transforms.RandomHorizontalFlip())
-        test_transform_pars.append(transforms.RandomHorizontalFlip())
 
     train_transform = transforms.Compose(train_transform_pars)
     test_transform = transforms.Compose(test_transform_pars)

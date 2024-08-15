@@ -2,14 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# LeNet-5
 class LeNet5(nn.Module):
-
     def __init__(self, input_channels, image_size):
         super(LeNet5, self).__init__()
         self.conv1 = nn.Conv2d(input_channels, 6, 5) #  1or3 input cannel, 6 output channel, 5x5 kernel
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, 5)
-
         out_size = ((image_size-4)//2 - 4)//2
         self.fc1 = nn.Linear(16 * out_size * out_size, 120)
         self.fc2 = nn.Linear(120, 84)
@@ -24,40 +23,36 @@ class LeNet5(nn.Module):
         x = self.fc3(x)
         return x
 
+# ResNet-18
 class ResBlock(nn.Module):
-    def __init__(self, in_channel, out_channel, stride=1):
+    def __init__(self, in_channel, out_channel, stride): # par for first layer in a block.
         super(ResBlock, self).__init__()
 
-        self.conv_1 = nn.Conv2d(in_channel, out_channel,
-                                kernel_size=3, stride=stride, padding=1)
-        self.bn1 = nn.BatchNorm2d(out_channel)
-        self.conv_2 = nn.Conv2d(out_channel, out_channel,
-                                kernel_size=3, stride=1, padding=1)
+        self.bn1 = nn.BatchNorm2d(in_channel)
+        self.conv_1 = nn.Conv2d(in_channel, out_channel, kernel_size=3, stride=stride, padding=1)
         self.bn2 = nn.BatchNorm2d(out_channel)
+        self.conv_2 = nn.Conv2d(out_channel, out_channel, kernel_size=3, stride=1, padding=1)
         self.shortcut = nn.Sequential()
         if stride != 1 or in_channel != out_channel:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_channel, out_channel, kernel_size=1,
-                          stride=stride, bias=False),
-                nn.BatchNorm2d(out_channel))
+                nn.BatchNorm2d(in_channel),
+                nn.Conv2d(in_channel, out_channel, kernel_size=1, stride=stride, bias=False))
 
     def forward(self, x):
         identity = self.shortcut(x)
-        out = F.relu(self.bn1(self.conv_1(x))) # first layer
-        out = self.bn2(self.conv_2(out)) # second layer
-        out += identity
-        out = F.relu(out)
-        return out
+        x = self.conv_1(F.relu(self.bn1(x))) # first layer (pre-activation)
+        x = self.conv_2(F.relu(self.bn2(x))) # second layer
+        x += identity
+        return x
 
 class ResNet18(nn.Module):
-
     def __init__(self, input_channels):
         super(ResNet18, self).__init__()
 
+        self.bn = nn.BatchNorm2d(input_channels)
         self.conv1 = nn.Conv2d(input_channels, 64, 7, stride=2, padding=3)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.pool = nn.MaxPool2d(3,2)
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.pool = nn.MaxPool2d(kernel_size=3, stride=2)
+        self.GAP = nn.AdaptiveAvgPool2d((1, 1))
 
         self.bundle1 = self.repeat_block(64, 64, 1)
         self.bundle2 = self.repeat_block(64, 128, 2)
@@ -73,14 +68,100 @@ class ResNet18(nn.Module):
         return nn.Sequential(*bundle)
 
     def forward(self, x):
-        x = self.pool(F.relu(self.bn1(self.conv1(x)))) # layer 1
+        x = F.relu(self.bn(x)) # layer 1
+        x = self.pool(self.conv1(x))
         x = self.bundle1(x) # layer 2~5
         x = self.bundle2(x) # layer 6~9
         x = self.bundle3(x) # layer 10~13
         x = self.bundle4(x) # layer 14~17
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
+        x = self.GAP(x)
+        x = torch.flatten(x, 1)
         x = self.fc(x) # layer 18
+        return x
+
+# DensNet-121
+class DensBlock(nn.Module):
+    def __init__(self, in_channel, growth_rate):
+        super(DensBlock, self).__init__()
+        out_channel_1 = 4*growth_rate
+        out_channel_2 = growth_rate
+
+        self.bn1 = nn.BatchNorm2d(in_channel)
+        self.bn2 = nn.BatchNorm2d(out_channel_1)
+        self.conv1 = nn.Conv2d(in_channel, out_channel_1, kernel_size=1, stride=1, padding=0)
+        self.conv2 = nn.Conv2d(out_channel_1, out_channel_2, kernel_size=3, stride=1, padding=1)
+
+    def forward(self, x):
+        dense_connection = x
+        x = F.relu(self.bn1(x)) # pre-activation
+        x = self.conv1(x) # first layer in a block
+        x = F.relu(self.bn2(x))
+        x = self.conv2(x) # second layer in a block
+        x = torch.cat((x, dense_connection), dim=1) # channel-wise concat
+        return x
+
+class TransitionBlock(nn.Module):
+    def __init__(self, in_channel):
+        super(TransitionBlock, self).__init__()
+        out_channel = in_channel // 2
+
+        self.bn = nn.BatchNorm2d(in_channel)
+        self.conv1 = nn.Conv2d(in_channel, out_channel, kernel_size=1, stride=1, padding=0)
+        self.pool = nn.AvgPool2d(stride=2, kernel_size=2, padding=0)
+
+    def forward(self, x):
+        x = F.relu(self.bn(x)) # pre-activation
+        x = self.conv1(x)
+        x = self.pool(x)
+        return x
+
+class DensNet121(nn.Module):
+    def __init__(self, input_channels):
+        super(DensNet121, self).__init__()
+
+        # initial conv, pool total 1
+        self.bn = nn.BatchNorm2d(input_channels)
+        self.conv1 = nn.Conv2d(input_channels, 64, kernel_size=3, stride=1, padding=1) # used 3x3 filter for 32x32 input.
+        # self.pool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1) # initial pooling not used for 32x32 input.
+
+        # dense layers total 119: 116(dense) + 3(trans)
+        self.dense_layers = self.repeat_block(in_channel=64, growth_rate=32, bundle_structure= [6, 12, 24, 16])
+
+        # final fully-connected layer total 1
+        self.global_avgpool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Linear(1024, 10)
+
+    def repeat_block(self, in_channel, growth_rate, bundle_structure):
+        bundle1 = []
+        bundle2 = []
+        bundle3 = []
+        bundle4 = []
+        bundles = [bundle1, bundle2, bundle3, bundle4]
+        total_dense_layers = []
+
+        for bundle, i in zip(bundles, bundle_structure):
+            for _ in range(i):
+                bundle.append(DensBlock(in_channel, growth_rate))
+                in_channel += growth_rate
+            if bundle != bundle4:
+                bundle.append(TransitionBlock(in_channel))
+                in_channel //= 2
+            total_dense_layers.extend(bundle)
+        return nn.Sequential(*total_dense_layers)
+
+    def forward(self, x):
+        # initial conv, pooling layer
+        x = F.relu(self.bn(x))
+        x = self.conv1(x)
+        # x = self.pool(x) ## not used for 32x32 input
+
+        # dense layers
+        x = self.dense_layers(x)
+
+        # flatten, classification layer
+        x = self.global_avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.fc(x)
         return x
 
 def load_model(name, input_channels, image_size):
@@ -88,5 +169,7 @@ def load_model(name, input_channels, image_size):
         return LeNet5(input_channels, image_size)
     elif name == "ResNet18":
         return ResNet18(input_channels)
+    elif name == "DensNet121":
+        return DensNet121(input_channels)
     else:
         raise ValueError("Invalid model name")
