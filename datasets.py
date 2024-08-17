@@ -6,6 +6,10 @@ def load_dataset(name):
     dataset_config = {
 
         "CIFAR10" : {
+            # 32x32x3
+            # 10 class
+            # 50,000 traning images
+            # 10,000 test images
             "dataset" : torchvision.datasets.CIFAR10,
             "image size" : 32,
             "input channel" : 3,
@@ -14,6 +18,10 @@ def load_dataset(name):
         },
 
         "STL10" : {
+            # 96x96x3
+            # 10 class
+            # 5,000 traning images
+            # 8,000 test images
             "dataset" : torchvision.datasets.STL10,
             "image size" : 32,
             "input channel" : 3,
@@ -22,6 +30,10 @@ def load_dataset(name):
         },
 
         "MNIST" : {
+            # 28x28x1
+            # 10 class
+            # 60,000 traning images
+            # 10,000 test images
             "dataset" : torchvision.datasets.MNIST,
             "image size" : 32,
             "input channel" : 1,
