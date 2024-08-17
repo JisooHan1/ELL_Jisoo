@@ -31,7 +31,7 @@ def train(net, trainloader, criterion, optimizer, epoch, writer, device):
     net.train() # using dropout & batch normalization
     running_loss = 0.0
 
-    for i, data in enumerate(trainloader, 0): # loops over batches
+    for i, data in enumerate(trainloader, 0): # iterates over elements of  trainloader (one batch). 0: starting batch index of 'i'
         inputs, labels = data
         inputs = inputs.to(device)
         labels = labels.to(device)
@@ -45,10 +45,10 @@ def train(net, trainloader, criterion, optimizer, epoch, writer, device):
 
         # print statistics
         running_loss += loss.item() # extract scalar from tensor
-        if i % 2000 == 1999: # print every 2000 mini-batches
-            # (current epoch, total batches processed, average loss for last 2000 batches) => avg of avg??
-            print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, running_loss / 2000))
-            writer.add_scalar('Loss/train', running_loss / 2000, epoch * len(trainloader) + i) # global index for loss
+        if i % 200 == 199: # print every 200 mini-batches
+            # (current epoch, total batches processed, average loss for last 200 batches) => avg of avg??
+            print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, running_loss / 200))
+            writer.add_scalar('Loss/train', running_loss / 200, epoch * len(trainloader) + i) # global index for loss
             running_loss = 0.0
     writer.add_scalar('Loss/train_epoch', running_loss, epoch)
 
