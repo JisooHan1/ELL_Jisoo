@@ -115,38 +115,37 @@ class TransitionBlock(nn.Module):
         x = self.pool(x)
         return x
 
-class DensNet121(nn.Module):
+class DensNet100_12(nn.Module):
     def __init__(self, input_channels):
-        super(DensNet121, self).__init__()
+        super(DensNet100_12, self).__init__()
 
         # initial conv, pool total 1
         self.bn = nn.BatchNorm2d(input_channels)
-        self.conv1 = nn.Conv2d(input_channels, 64, kernel_size=3, stride=1, padding=1) # used 3x3 filter for 32x32 input.
-        # self.pool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1) # initial pooling not used for 32x32 input.
+        self.conv1 = nn.Conv2d(input_channels, out_channels=24, kernel_size=3, stride=1, padding=1) # used 24 3x3 filter for 32x32 input.
+        # self.pool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1) ## initial pooling not used for 32x32 input.
 
-        # dense layers total 119: 116(dense) + 3(trans)
-        self.dense_layers = self.repeat_block(in_channel=64, growth_rate=32, bundle_structure= [6, 12, 24, 16])
+        # dense layers total 98: 96(dense) + 2(trans)
+        self.dense_layers = self.repeat_block(in_channel=24, growth_rate=12, bundle_structure= [16, 16, 16])
 
         # final fully-connected layer total 1
-        self.global_avgpool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Linear(1024, 10)
+        self.GAP = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Linear(342, 10) # 3-24-/216-108/-/300-150/-/342/
 
     def repeat_block(self, in_channel, growth_rate, bundle_structure):
-        bundle1 = []
-        bundle2 = []
-        bundle3 = []
-        bundle4 = []
-        bundles = [bundle1, bundle2, bundle3, bundle4]
-        total_dense_layers = []
+        '''
+        in_channel: number of channels of the input that enters the denseblock. => 2*growthrate (paper)
+        bundle_structure: number of denseblocks for each bundle.
+        '''
+        bundles = list(range(len(bundle_structure))) # making list of index of bundle.
+        total_dense_layers = [] # extracting all layers from each bundles and list them in one list.
 
         for bundle, i in zip(bundles, bundle_structure):
             for _ in range(i):
-                bundle.append(DensBlock(in_channel, growth_rate))
+                total_dense_layers.append(DensBlock(in_channel, growth_rate))
                 in_channel += growth_rate
-            if bundle != bundle4:
-                bundle.append(TransitionBlock(in_channel))
+            if bundle != bundles[-1]: # doesn't append transition block for the last denseblock
+                total_dense_layers.append(TransitionBlock(in_channel))
                 in_channel //= 2
-            total_dense_layers.extend(bundle)
         return nn.Sequential(*total_dense_layers)
 
     def forward(self, x):
@@ -159,8 +158,8 @@ class DensNet121(nn.Module):
         x = self.dense_layers(x)
 
         # flatten, classification layer
-        x = self.global_avgpool(x)
-        x = torch.flatten(x, 1)
+        x = self.GAP(x) # shape: (batch-size, 342, 8, 8) -> (batch-size, 342, 1, 1)
+        x = torch.flatten(x, 1) # shape: (batch-size, 342, 1, 1) -> (batch-size, 342)
         x = self.fc(x)
         return x
 
@@ -169,7 +168,7 @@ def load_model(name, input_channels, image_size):
         return LeNet5(input_channels, image_size)
     elif name == "ResNet18":
         return ResNet18(input_channels)
-    elif name == "DensNet121":
-        return DensNet121(input_channels)
+    elif name == "DensNet100_12":
+        return DensNet100_12(input_channels)
     else:
         raise ValueError("Invalid model name")
