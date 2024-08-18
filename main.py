@@ -79,7 +79,7 @@ def test(net, testloader, criterion, epoch, writer, device):
             correct += (predicted == labels).sum().item() # num of 'True' for pred==label
 
     accuracy = 100 * correct / total
-    print('Accuracy of the network on test images: %d %%' % accuracy)
+    print('epoch: %d, Accuracy of the network on test images: %d %%' %(epoch, accuracy))
     writer.add_scalar('Loss/test', test_loss / len(testloader), epoch)
     writer.add_scalar('Accuracy/test', accuracy, epoch)
 
