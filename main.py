@@ -30,6 +30,11 @@ def train(net, trainloader, criterion, optimizer, epoch, writer, device):
     print(f"Starting training for epoch {epoch + 1}")
     net.train() # using dropout & batch normalization
     running_loss = 0.0
+    number_of_batches = len(trainloader)
+    if number_of_batches > 200:
+        print_frequency = 200
+    else:
+        print_frequency = 15
 
     for i, data in enumerate(trainloader, 0): # iterates over elements of  trainloader (one batch). 0: starting batch index of 'i'
         inputs, labels = data
@@ -45,11 +50,6 @@ def train(net, trainloader, criterion, optimizer, epoch, writer, device):
 
         # print statistics
         running_loss += loss.item() # extract scalar from tensor
-        number_of_batches = len(trainloader)
-        if number_of_batches > 200:
-            print_frequency = 200
-        else:
-            print_frequency = 15
         if (i+1) % print_frequency == 0: # print every (print_frequency) mini-batches
             # (current epoch, total batches processed, average loss for last (print_frequency) batches) => avg of avg??
             print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, running_loss / print_frequency)) # running_loss / print_frequency: pf개 배치의 평균 손실
