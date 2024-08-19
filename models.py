@@ -64,7 +64,7 @@ class ResNet18(nn.Module):
     def repeat_block(self, in_channel, out_channel, stride):
         bundle = []
         bundle.append(ResBlock(in_channel, out_channel, stride))
-        bundle.append(ResBlock(out_channel, out_channel))
+        bundle.append(ResBlock(out_channel, out_channel, 1))
         return nn.Sequential(*bundle)
 
     def forward(self, x):
