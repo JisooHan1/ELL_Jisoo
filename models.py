@@ -115,9 +115,9 @@ class TransitionBlock(nn.Module):
         x = self.pool(x)
         return x
 
-class DensNet100_12(nn.Module):
+class DensNet_100_12(nn.Module):
     def __init__(self, input_channels):
-        super(DensNet100_12, self).__init__()
+        super(DensNet_100_12, self).__init__()
 
         # initial conv, pool total 1
         self.bn = nn.BatchNorm2d(input_channels)
@@ -168,7 +168,7 @@ def load_model(name, input_channels, image_size):
         return LeNet5(input_channels, image_size)
     elif name == "ResNet18":
         return ResNet18(input_channels)
-    elif name == "DensNet100_12":
-        return DensNet100_12(input_channels)
+    elif name == "DensNet_100_12":
+        return DensNet_100_12(input_channels)
     else:
         raise ValueError("Invalid model name")

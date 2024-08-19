@@ -29,14 +29,18 @@ def get_device():
 def train(net, trainloader, criterion, optimizer, epoch, writer, device):
     print(f"Starting training for epoch {epoch + 1}")
     net.train() # using dropout & batch normalization
-    running_loss = 0.0
+    running_loss = 0.0 # for batches
+    total_loss = 0.0 # for epochs
     number_of_batches = len(trainloader)
+
+    # print batch manage
     if number_of_batches > 200:
         print_frequency = 200
     else:
         print_frequency = 15
 
-    for i, data in enumerate(trainloader, 0): # iterates over elements of  trainloader (one batch). 0: starting batch index of 'i'
+    # iterates over elements of  trainloader (one batch). 0: starting batch index of 'i'
+    for i, data in enumerate(trainloader, 0):
         inputs, labels = data
         inputs = inputs.to(device)
         labels = labels.to(device)
@@ -49,13 +53,14 @@ def train(net, trainloader, criterion, optimizer, epoch, writer, device):
         optimizer.step() # update weights
 
         # print statistics
-        running_loss += loss.item() # extract scalar from tensor
+        running_loss += loss.item() # extract scalar from tensor: for batches
+        total_loss += loss.item() # extract scalar from tensor: for epochs
         if (i+1) % print_frequency == 0: # print every (print_frequency) mini-batches
             # (current epoch, total batches processed, average loss for last (print_frequency) batches) => avg of avg??
-            print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, running_loss / print_frequency)) # running_loss / print_frequency: pf개 배치의 평균 손실
+            print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, running_loss / print_frequency)) # average loss for an amount of batches
             writer.add_scalar('Loss/train', running_loss / print_frequency, epoch * len(trainloader) + i) # global index for loss
             running_loss = 0.0
-    writer.add_scalar('Loss/train_epoch', running_loss, epoch)
+    writer.add_scalar('Loss/train_epoch', total_loss / len(trainloader), epoch) # average loss for each epoch
 
 # testing on one epoch
 def test(net, testloader, criterion, epoch, writer, device):
@@ -80,7 +85,7 @@ def test(net, testloader, criterion, epoch, writer, device):
 
     accuracy = 100 * correct / total
     print('epoch: %d, Accuracy of the network on test images: %d %%' %(epoch, accuracy))
-    writer.add_scalar('Loss/test', test_loss / len(testloader), epoch)
+    writer.add_scalar('Loss/test', test_loss / len(testloader), epoch) # average loss for one batch in total dataset
     writer.add_scalar('Accuracy/test', accuracy, epoch)
 
 # main
@@ -90,8 +95,8 @@ def main():
 
     # Parsing command 정의
     parser = argparse.ArgumentParser(description="Executes deep learning using CCN")
-    parser.add_argument("-md", "--model", type=str, required=True, help="type of model: LeNet-5")
-    parser.add_argument("-ds", "--dataset", type=str, required=True, help="type of dataset: CIFAR-10, MNIST")
+    parser.add_argument("-md", "--model", type=str, required=True, help="type of model: LeNet-5, ResNet-18, DensNet-100-12")
+    parser.add_argument("-ds", "--dataset", type=str, required=True, help="type of dataset: CIFAR-10, MNIST, STL-10")
     parser.add_argument("-ep", "--num_epochs", type=int, required=True, help="number of epochs")
     parser.add_argument("-bs", "--batch_size", type=int, required=True, help="batch size")
     args = parser.parse_args()
@@ -109,7 +114,7 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(net.parameters(), lr=1e-3)
 
-    writer = SummaryWriter(log_dir='logs')
+    writer = SummaryWriter(log_dir=f'logs/{args.model}')
 
     for epoch_index in range(epoch):
         train(net, trainloader, criterion, optimizer, epoch_index, writer, device)
