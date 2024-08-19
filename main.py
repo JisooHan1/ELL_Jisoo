@@ -52,7 +52,7 @@ def train(net, trainloader, criterion, optimizer, epoch, writer, device):
             print_frequency = 15
         if (i+1) % print_frequency == 0: # print every (print_frequency) mini-batches
             # (current epoch, total batches processed, average loss for last (print_frequency) batches) => avg of avg??
-            print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, running_loss / print_frequency))
+            print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, running_loss / print_frequency)) # running_loss / print_frequency: pf개 배치의 평균 손실
             writer.add_scalar('Loss/train', running_loss / print_frequency, epoch * len(trainloader) + i) # global index for loss
             running_loss = 0.0
     writer.add_scalar('Loss/train_epoch', running_loss, epoch)
