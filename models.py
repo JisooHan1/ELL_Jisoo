@@ -50,8 +50,8 @@ class ResNet18(nn.Module):
         super(ResNet18, self).__init__()
 
         self.bn = nn.BatchNorm2d(input_channels)
-        self.conv1 = nn.Conv2d(input_channels, 64, 7, stride=2, padding=3)
-        self.pool = nn.MaxPool2d(kernel_size=3, stride=2)
+        self.conv1 = nn.Conv2d(input_channels, 64, 3, stride=1, padding=1) # used 3x3 kernel for 32x32 input
+        # self.pool = nn.MaxPool2d(kernel_size=3, stride=2) ## initial pooling ommited for 32x32 input
         self.GAP = nn.AdaptiveAvgPool2d((1, 1))
 
         self.bundle1 = self.repeat_block(64, 64, 1)
@@ -68,8 +68,9 @@ class ResNet18(nn.Module):
         return nn.Sequential(*bundle)
 
     def forward(self, x):
-        x = F.relu(self.bn(x)) # layer 1
-        x = self.pool(self.conv1(x))
+        x = F.relu(self.bn(x)) # pre-activation
+        x = self.conv1(x) # layer 1
+        # x = self.pool(x) ## initial pooling ommited for 32x32 input
         x = self.bundle1(x) # layer 2~5
         x = self.bundle2(x) # layer 6~9
         x = self.bundle3(x) # layer 10~13
