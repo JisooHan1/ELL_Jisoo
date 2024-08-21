@@ -29,5 +29,5 @@ Bundle3 = densenet_bundle_par(150)
 Fc = (342 + 1)*10
 
 densenet_par = Conv1 + Bundle1 + Bundle2 + Bundle3 + Trans1 + Trans2 + Fc
-print("number of parameter of DenseNet100_12: ", densenet_par)
+print("number of parameter of DenseNet_100_12: ", densenet_par)
 
