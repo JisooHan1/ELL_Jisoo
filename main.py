@@ -139,7 +139,8 @@ def main():
         scheduler.step()
 
     # Compute total number of parameters of the model
-    num_of_pars = sum(p.numel for p in net.parameters())
+    num_of_pars = sum(p.numel() for p in net.parameters())
+
 
     print("Finished Training & Testing\n")
     print(f"Number of Parameters in {args.model}: {num_of_pars}")
