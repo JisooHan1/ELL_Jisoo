@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import random
 
 # LeNet-5
 class LeNet5(nn.Module):
@@ -29,9 +30,9 @@ class ResBlock(nn.Module):
         super(ResBlock, self).__init__()
 
         self.bn1 = nn.BatchNorm2d(in_channel)
-        self.conv_1 = nn.Conv2d(in_channel, out_channel, kernel_size=3, stride=stride, padding=1)
+        self.conv1 = nn.Conv2d(in_channel, out_channel, kernel_size=3, stride=stride, padding=1)
         self.bn2 = nn.BatchNorm2d(out_channel)
-        self.conv_2 = nn.Conv2d(out_channel, out_channel, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(out_channel, out_channel, kernel_size=3, stride=1, padding=1)
         self.shortcut = nn.Sequential()
         if stride != 1 or in_channel != out_channel:
             self.shortcut = nn.Sequential(
@@ -40,8 +41,8 @@ class ResBlock(nn.Module):
 
     def forward(self, x):
         identity = self.shortcut(x)
-        x = self.conv_1(F.relu(self.bn1(x))) # first layer (pre-activation)
-        x = self.conv_2(F.relu(self.bn2(x))) # second layer
+        x = self.conv1(F.relu(self.bn1(x))) # first layer (pre-activation)
+        x = self.conv2(F.relu(self.bn2(x))) # second layer
         x += identity
         return x
 
@@ -49,7 +50,6 @@ class ResNet18(nn.Module):
     def __init__(self, input_channels):
         super(ResNet18, self).__init__()
 
-        self.bn = nn.BatchNorm2d(input_channels)
         self.conv1 = nn.Conv2d(input_channels, 64, 3, stride=1, padding=1) # used 3x3 kernel for 32x32 input
         # self.pool = nn.MaxPool2d(kernel_size=3, stride=2) ## initial pooling ommited for 32x32 input
         self.GAP = nn.AdaptiveAvgPool2d((1, 1))
@@ -68,7 +68,6 @@ class ResNet18(nn.Module):
         return nn.Sequential(*bundle)
 
     def forward(self, x):
-        x = F.relu(self.bn(x)) # pre-activation
         x = self.conv1(x) # layer 1
         # x = self.pool(x) ## initial pooling ommited for 32x32 input
         x = self.bundle1(x) # layer 2~5
@@ -80,7 +79,7 @@ class ResNet18(nn.Module):
         x = self.fc(x) # layer 18
         return x
 
-# DensNet-121
+# DensNet-100
 class DensBlock(nn.Module):
     def __init__(self, in_channel, growth_rate):
         super(DensBlock, self).__init__()
@@ -116,12 +115,11 @@ class TransitionBlock(nn.Module):
         x = self.pool(x)
         return x
 
-class DensNet_100_12(nn.Module):
+class DensNet100(nn.Module):
     def __init__(self, input_channels):
-        super(DensNet_100_12, self).__init__()
+        super(DensNet100, self).__init__()
 
         # initial conv, pool total 1
-        self.bn = nn.BatchNorm2d(input_channels)
         self.conv1 = nn.Conv2d(input_channels, out_channels=24, kernel_size=3, stride=1, padding=1) # used 24 3x3 filter for 32x32 input.
         # self.pool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1) ## initial pooling not used for 32x32 input.
 
@@ -151,7 +149,6 @@ class DensNet_100_12(nn.Module):
 
     def forward(self, x):
         # initial conv, pooling layer
-        x = F.relu(self.bn(x))
         x = self.conv1(x)
         # x = self.pool(x) ## not used for 32x32 input
 
@@ -164,12 +161,243 @@ class DensNet_100_12(nn.Module):
         x = self.fc(x)
         return x
 
+# FractalNet
+class DropPath(nn.Module):
+    def __init__(self, drop_probability):
+        super(DropPath, self).__init__()
+
+        self.keep_prob = 1 - drop_probability
+
+    def forward(self, x):
+        # doesn't apply when testing
+        if self.training == False:
+            return x
+
+        # 0: drop, 1: keep (under drop_prob)
+        mask_element = (torch.rand(1)+self.keep_prob).floor().item()
+
+        # masking tensor => broadcasting expected
+        mask  = torch.full((x.size(0), 1, 1, 1), mask_element, dtype=x.dtype, device=x.device)
+        x = x * mask
+        return x
+
+class Join(nn.Module):
+    def __init__(self, num_paths, drop_probability):
+        super(Join, self).__init__()
+
+        # make list of drop-path modules for each path
+        self.drop_path_module = nn.ModuleList()
+        [self.drop_path_module.append(DropPath(drop_probability)) for _ in range(num_paths)]
+
+    def forward(self, path_list):
+        # make a list of outcomes of each path after drop-path
+        outputs = []
+        for i, path in enumerate(path_list):
+            out = self.drop_path_module[i](path)
+            outputs.append(out)
+
+        # joining by elementwise means
+        join_outcome = sum(outputs)/len(path_list)
+
+        # Local sampling: keep at least one path when join
+        if join_outcome[0, 0, 0, 0].item() == 0:
+            random_index = random.randint(0, len(path_list)-1)
+            join_outcome = path_list[random_index]
+
+        return join_outcome
+
+class FractalBlock1Col(nn.Module):
+    def __init__(self, input_channel, output_channel):
+        super(FractalBlock1Col, self).__init__()
+
+        self.conv1 = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        return x
+
+class FractalBlock2Col(nn.Module):
+    def __init__(self, input_channel, output_channel):
+        super(FractalBlock2Col, self).__init__()
+
+        # path1: conv
+        self.path1 = nn.Sequential(FractalBlock1Col(input_channel, output_channel))
+
+        # path2: conv-conv
+        self.path2 = nn.Sequential(
+            FractalBlock1Col(input_channel, output_channel),
+            FractalBlock1Col(output_channel, output_channel),
+        )
+
+    def forward(self, x):
+        # compute two path in parllel
+        out1 = self.path1(x)
+        out2 = self.path2(x)
+
+        # make a list of outputs from each path
+        paths_to_list = []
+        paths_to_list.extend([out1, out2])
+        return paths_to_list
+
+class FractalBlock3Col(nn.Module):
+    def __init__(self, input_channel, output_channel):
+        super(FractalBlock3Col, self).__init__()
+
+        # path1: conv
+        self.path1 = nn.Sequential(FractalBlock1Col(input_channel, output_channel))
+
+        # path2&3: FractalBlock2Col-Join-FractalBlock2Col
+        self.path2 = nn.Sequential(
+            FractalBlock2Col(input_channel, output_channel),
+            Join(num_paths=2, drop_probability=0.15),
+            FractalBlock2Col(output_channel, output_channel)
+        )
+
+    def forward(self, x):
+        # compute two structure in parllel
+        out1 = self.path1(x)
+        out2 = self.path2(x)
+
+        # make a list of outputs from each path(structure)
+        paths_to_list = []
+        paths_to_list.append(out1)
+        paths_to_list.extend(out2)
+        return paths_to_list
+
+class FractalBlock4Col(nn.Module):
+    def __init__(self, input_channel, output_channel):
+        super(FractalBlock4Col, self).__init__()
+
+        # path1: conv
+        self.path1 = nn.Sequential(FractalBlock1Col(input_channel, output_channel))
+
+        # path2&3: FractalBlock3Col-Join-FractalBlock3Col
+        self.path2 = nn.Sequential(
+            FractalBlock3Col(input_channel, output_channel),
+            Join(num_paths=3, drop_probability=0.15),
+            FractalBlock3Col(output_channel, output_channel)
+        )
+
+    def forward(self, x):
+        # compute two structure in parllel
+        out1 = self.path1(x)
+        out2 =self.path2(x)
+
+        # make a list of outputs from each path(structure)
+        paths_to_list = []
+        paths_to_list.append(out1)
+        paths_to_list.extend(out2)
+        return paths_to_list
+
+class ParallelPool(nn.Module):
+    def __init__(self, num_cols):
+        super(ParallelPool, self).__init__()
+
+        self.num_cols = num_cols
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2) # 2x2 non-overlapping max-pooling
+
+    def forward(self, paths):
+        pool_outcome = []
+        for i in range(self.num_cols):
+            out = self.pool(paths[i])
+            pool_outcome.append(out)
+        return pool_outcome
+
+class FractalNet(nn.Module):
+    def __init__(self, input_channel, output_channel, num_col):
+        super(FractalNet, self).__init__()
+
+        # Initialize block based on number of columns
+        if num_col == 2:
+            block = FractalBlock2Col
+        elif num_col == 3:
+            block = FractalBlock3Col
+        elif num_col == 4:
+            block = FractalBlock4Col
+        else:
+            raise ValueError("Invalid number of columns.")
+
+        layers = []
+
+        for i in range(5):
+            # block-pool-join
+            layers.append(block(input_channel, output_channel))
+            layers.append(ParallelPool(num_cols=num_col))
+            layers.append(Join(num_paths=num_col, drop_probability=0.15))
+
+            # adjust num of channel for next block
+            input_channel = output_channel
+            if i != 3:
+                output_channel *= 2
+
+        # total layer
+        self.total_layer = nn.Sequential(*layers)
+
+        # fc layer
+        self.fc = nn.Linear(512, 10) # 512 = "output_channel"
+
+    def forward(self, x):
+        x = self.total_layer(x)
+        x = torch.flatten(x, 1)
+        x = self.fc(x)
+        return x
+
 def load_model(name, input_channels, image_size):
     if name == "LeNet5":
         return LeNet5(input_channels, image_size)
     elif name == "ResNet18":
         return ResNet18(input_channels)
-    elif name == "DensNet_100_12":
-        return DensNet_100_12(input_channels)
+    elif name == "DensNet100":
+        return DensNet100(input_channels)
+    elif name == "FractalNet":
+        return FractalNet(input_channels, output_channel=64, num_col=4)
     else:
         raise ValueError("Invalid model name")
+
+
+
+
+
+
+
+
+
+
+
+#     class RecursiveBlock(nn.Module):
+#     def __init__(self, in_channel, out_channel, columns):
+#         super(RecursiveBlock, self).__init__()
+
+#         # base conv: single layer
+#         self.conv = baseblock(in_channel, out_channel)
+#         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+#         self.is_base = 0
+#         self.columns = columns
+
+#         # check if it's a base case
+#         if columns == 1:
+#             self.is_base = 1
+
+#         # path1: doubling the original structure
+#         if columns >= 1:
+#             doubling_original_path = []
+#             [doubling_original_path.append(RecursiveBlock(in_channel, out_channel, columns-1)) for _ in range(2)]
+#             doubling_original_path.append(self.pool)
+#             self.path1 = nn.Sequential(*doubling_original_path)
+
+#         # path2: adding parallel single layer
+#             parallel_single_layer = []
+#             parallel_single_layer.append(baseblock(in_channel, out_channel), self.pool)
+#             self.path2 = nn.Sequential(*parallel_single_layer)
+
+#     def forward(self, x):
+#         # only use conv in the first base case.
+#         if self.is_base == 1:
+#             x = self.conv(x)
+#         # join two
+#         if len(self.path1) != 1:
+#             out1 = self.path1(x)
+#             out2 = self.path2(x)
+#             x = (out1*(self.columns - 1) + out2) / self.columns
+#         return x
+

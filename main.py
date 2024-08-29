@@ -7,6 +7,7 @@ from models import load_model
 import argparse
 from torch.utils.tensorboard import SummaryWriter
 import sys
+import math
 
 # check gpu
 def get_device():
@@ -95,7 +96,7 @@ def main():
 
     # Parsing command 정의
     parser = argparse.ArgumentParser(description="Executes deep learning using CCN")
-    parser.add_argument("-md", "--model", type=str, required=True, help="type of model: LeNet-5, ResNet-18, DensNet-100-12")
+    parser.add_argument("-md", "--model", type=str, required=True, help="type of model: LeNet5, ResNet18, DensNet100, FractalNet")
     parser.add_argument("-ds", "--dataset", type=str, required=True, help="type of dataset: CIFAR-10, MNIST, STL-10")
     parser.add_argument("-ep", "--num_epochs", type=int, required=True, help="number of epochs")
     parser.add_argument("-bs", "--batch_size", type=int, required=True, help="batch size")
@@ -108,19 +109,40 @@ def main():
     epoch = args.num_epochs
     batch_size = args.batch_size
 
+    # Data Loader
     trainloader = torch.utils.data.DataLoader(trainset, batch_size, shuffle=True, num_workers=2)
     testloader = torch.utils.data.DataLoader(testset, batch_size, shuffle=False, num_workers=2)
 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(net.parameters(), lr=1e-3)
+    # Optimization
+    if args.model == "ResNet18": # batch size: 64, epoch: 300
+        lr = 0.1
+        milestones = [epoch*0.5, epoch*0.75]
+    elif args.model == "DensNet100": # batch size: 64, epoch: 300
+        lr = 0.1
+        milestones = [epoch*0.5, epoch*0.75]
+    elif args.model == "FractalNet": # batch size: 100, epoch: 400
+        lr = 0.02
+        milestones = [epoch // i**2 for i in range(1, int(math.log2(epoch)) + 1)]
 
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.1)
+
+    # Initialize tensorboard writer
     writer = SummaryWriter(log_dir=f'logs/{args.model}')
 
-    for epoch_index in range(epoch):
-        train(net, trainloader, criterion, optimizer, epoch_index, writer, device)
-        test(net, testloader, criterion, epoch_index, writer, device)
+    # train & test
+    for epoch in range(epoch):
+        train(net, trainloader, criterion, optimizer, epoch, writer, device)
+        test(net, testloader, criterion, epoch, writer, device)
 
-    print("Finished Training & Testing")
+        scheduler.step()
+
+    # Compute total number of parameters of the model
+    num_of_pars = sum(p.numel for p in net.parameters())
+
+    print("Finished Training & Testing\n")
+    print(f"Number of Parameters in {args.model}: {num_of_pars}")
 
 if __name__ == "__main__":
     main()
