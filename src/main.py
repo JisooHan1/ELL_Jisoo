@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from datasets import load_dataset
-from models import load_model
+from models import LeNet, ResNet, DenseNet, FractalNet, load_model
 
 import argparse
 from torch.utils.tensorboard import SummaryWriter
@@ -114,10 +114,13 @@ def main():
     testloader = torch.utils.data.DataLoader(testset, batch_size, shuffle=False, num_workers=2)
 
     # Optimization
-    if args.model == "ResNet18": # batch size: 64, epoch: 300
-        lr = 0.1
+    if args.model == "LeNet": # batch size: 64, epoch: 300
+        lr = 0.001
         milestones = [epoch*0.5, epoch*0.75]
-    elif args.model == "DensNet100": # batch size: 64, epoch: 300
+    elif args.model == "ResNet": # batch size: 64, epoch: 300
+        lr = 0.001
+        milestones = [epoch*0.5, epoch*0.75]
+    elif args.model == "DenseNet": # batch size: 64, epoch: 300
         lr = 0.1
         milestones = [epoch*0.5, epoch*0.75]
     elif args.model == "FractalNet": # batch size: 100, epoch: 400

@@ -66,7 +66,7 @@ def load_dataset(name):
 
     train_transform = transforms.Compose(train_transform_pars)
     test_transform = transforms.Compose(test_transform_pars)
-    trainset = config["dataset"](root='./data', **config["train option"], download=True, transform=train_transform)
-    testset = config["dataset"](root='./data', **config["test option"], download=True, transform=test_transform)
+    trainset = config["dataset"](root='./datasets', **config["train option"], download=True, transform=train_transform)
+    testset = config["dataset"](root='./datasets', **config["test option"], download=True, transform=test_transform)
 
     return trainset, testset
