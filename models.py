@@ -200,7 +200,7 @@ class Join(nn.Module):
         join_outcome = sum(outputs)/len(path_list)
 
         # Local sampling: keep at least one path when join
-        if join_outcome[0, 0, 0, 0].item() == 0:
+        if join_outcome.sum() == 0:
             random_index = random.randint(0, len(path_list)-1)
             join_outcome = path_list[random_index]
 
