@@ -39,13 +39,14 @@ class Join(nn.Module):
             if self.drop_path_module[i](path)[1] == False: # path not dropped
                 outputs.append(out)
 
-        # joining by elementwise means
-        join_outcome = sum(outputs)/len(outputs)
-
         # Local sampling: keep at least one path when join
-        if join_outcome.sum() == 0:
+        if sum(outputs).sum() == 0:
             random_index = random.randint(0, len(path_list)-1)
             join_outcome = path_list[random_index]
+
+        # joining by elementwise means
+        else:
+            join_outcome = sum(outputs)/len(outputs)
 
         return join_outcome
 
