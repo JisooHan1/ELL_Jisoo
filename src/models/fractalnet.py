@@ -117,10 +117,9 @@ class FractalNet(nn.Module):
         super(FractalNet, self).__init__()
 
         layers = []
+        shared_conv = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
 
         for i in range(1, 6):
-            shared_conv = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
-
             # block-pool-join
             layers.append(FractalBlock(input_channel, output_channel, num_col, shared_conv))
             layers.append(ParallelPool(num_cols=num_col))
@@ -130,6 +129,7 @@ class FractalNet(nn.Module):
             input_channel = output_channel
             if i < 4:
                 output_channel *= 2
+                shared_conv = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
 
         # total layer
         self.total_layer = nn.Sequential(*layers)
