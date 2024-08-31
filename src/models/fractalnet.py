@@ -59,19 +59,27 @@ class FractalBlock1Col(nn.Module):
         x = self.conv1(x)
         return [x]
 
+class NoOpModule(nn.Module):
+    def __init__(self):
+        super(NoOpModule, self).__init__()
+
+    def forward(self, x): # doesn't return anything. Deletes input
+        pass
+
 class FractalBlock(nn.Module):
     def __init__(self, input_channel, output_channel, num_col):
         super(FractalBlock, self).__init__()
 
         for i in range(1, num_col+1):
             drop_prob = 0 if i == 2 else 0.15
+            self.is_C_1 = False
 
             # branch1
             self.path1 = nn.Sequential(FractalBlock1Col(input_channel, output_channel))
 
             # branch2(Ommited if C=1): FractalBlock-Join-FractalBlock
             if i == 1:
-                self.path2 = None
+                self.is_C_1 = True
             else:
                 self.path2 = nn.Sequential(
                     FractalBlock(input_channel, output_channel, i-1),
@@ -79,14 +87,17 @@ class FractalBlock(nn.Module):
                     FractalBlock(output_channel, output_channel, i-1)
                 )
     def forward(self, x):
-        # compute two structure in parllel
-        out1 = self.path1(x)
-        out2 = self.path2(x)
-
         # make a list of outputs from each path(structure)
         output_paths = []
+
+        # output from path1
+        out1 = self.path1(x)
         output_paths.extend(out1)
-        output_paths.extend(out2)
+
+        # output form path2
+        if self.is_C_1 == False:
+            out2 = self.path2(x)
+            output_paths.extend(out2)
         return output_paths
 
 class ParallelPool(nn.Module):
