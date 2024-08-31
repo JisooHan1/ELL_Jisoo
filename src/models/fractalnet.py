@@ -70,11 +70,14 @@ class FractalBlock(nn.Module):
 
         # branch1
         self.path1 = nn.Sequential(FractalBlock1Col(input_channel, output_channel, shared_conv))
-        shared_conv2 = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1),
+
 
         # branch2(Ommited if C=1): FractalBlock-Join-FractalBlock
         if self.is_col_1 == False:
             drop_prob = 0 if num_col == 2 else 0.15
+
+            shared_conv2 = nn.Conv2d(output_channel, output_channel, kernel_size=3, stride=1, padding=1)
+
             self.path2 = nn.Sequential(
                 FractalBlock(input_channel, output_channel, num_col-1, shared_conv),
                 Join(num_paths=num_col-1, drop_probability=drop_prob),
