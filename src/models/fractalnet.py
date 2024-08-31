@@ -59,13 +59,6 @@ class FractalBlock1Col(nn.Module):
         x = self.conv1(x)
         return [x]
 
-class NoOpModule(nn.Module):
-    def __init__(self):
-        super(NoOpModule, self).__init__()
-
-    def forward(self, x): # doesn't return anything. Deletes input
-        pass
-
 class FractalBlock(nn.Module):
     def __init__(self, input_channel, output_channel, num_col):
         super(FractalBlock, self).__init__()
