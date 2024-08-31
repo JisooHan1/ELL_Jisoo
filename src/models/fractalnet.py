@@ -53,26 +53,24 @@ class FractalBlock1Col(nn.Module):
     def __init__(self, input_channel, output_channel, shared_conv=None):
         super(FractalBlock1Col, self).__init__()
 
-        if shared_conv is None:
-            self.conv1 = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
-        else:
+        if shared_conv:
             self.conv1 = shared_conv
+        else:
+            self.conv1 = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
 
     def forward(self, x):
         x = self.conv1(x)
         return [x]
 
 class FractalBlock(nn.Module):
-    def __init__(self, input_channel, output_channel, num_col, shared_conv=None):
+    def __init__(self, input_channel, output_channel, num_col, shared_conv):
         super(FractalBlock, self).__init__()
 
         self.is_col_1 = (num_col == 1)
 
         # branch1
-        if shared_conv is None:
-            self.path1 = nn.Sequential(FractalBlock1Col(input_channel, output_channel))
-        else:
-            self.path1 = nn.Sequential(shared_conv)
+        self.path1 = nn.Sequential(FractalBlock1Col(input_channel, output_channel, shared_conv))
+
 
         # branch2(Ommited if C=1): FractalBlock-Join-FractalBlock
         if self.is_col_1 == False:
