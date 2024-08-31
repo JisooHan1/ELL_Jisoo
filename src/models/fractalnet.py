@@ -14,12 +14,10 @@ class DropPath(nn.Module):
         if self.training == False:
             return x
 
-        # 0: drop, 1: keep (under drop_prob)
-        mask_element = (torch.rand(1)+self.keep_prob).floor().item()
-
         # masking tensor => broadcasting expected
-        mask  = torch.full((x.size(0), 1, 1, 1), mask_element, dtype=x.dtype, device=x.device)
+        mask = (torch.rand(x.size(0), 1, 1, 1, dtype=x.dtype, device=x.device)+self.keep_prob).floor()
         x = x * mask
+
         return x
 
 class Join(nn.Module):
@@ -43,7 +41,7 @@ class Join(nn.Module):
         # Local sampling: keep at least one path when join
         if not outputs:
             random_index = random.randint(0, len(path_list)-1)
-            join_outcome = path_list[random_index]
+            outputs.append(path_list[random_index])
 
         # joining by elementwise means
         else:
@@ -114,7 +112,7 @@ class FractalNet(nn.Module):
 
         layers = []
 
-        for i in range(1, 5+1):
+        for i in range(1, 6):
             # block-pool-join
             layers.append(FractalBlock(input_channel, output_channel, num_col))
             layers.append(ParallelPool(num_cols=num_col))
