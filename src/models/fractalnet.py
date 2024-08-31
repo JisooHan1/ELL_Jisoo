@@ -16,12 +16,11 @@ class DropPath(nn.Module):
 
         # 0: drop, 1: keep (under drop_prob)
         mask_element = (torch.rand(1)+self.keep_prob).floor().item()
-        is_dropped = True if mask_element == 0 else False
 
         # masking tensor => broadcasting expected
         mask  = torch.full((x.size(0), 1, 1, 1), mask_element, dtype=x.dtype, device=x.device)
         x = x * mask
-        return x, is_dropped
+        return x
 
 class Join(nn.Module):
     def __init__(self, num_paths, drop_probability):
@@ -37,8 +36,8 @@ class Join(nn.Module):
         # make a list of outcomes of each path after drop-path
         outputs = []
         for i, path in enumerate(path_list):
-            out, is_dropped = self.drop_path_module[i](path)
-            if is_dropped == False: # path not dropped
+            out = self.drop_path_module[i](path)
+            if out.sum() != 0: # path not dropped
                 outputs.append(out)
 
         # Local sampling: keep at least one path when join
@@ -49,6 +48,7 @@ class Join(nn.Module):
         # joining by elementwise means
         else:
             join_outcome = sum(outputs)/len(outputs)
+
         return join_outcome
 
 class FractalBlock1Col(nn.Module):
@@ -122,7 +122,7 @@ class FractalNet(nn.Module):
 
             # adjust num of channel for next block
             input_channel = output_channel
-            if i != 4:
+            if i < 4:
                 output_channel *= 2
 
         # total layer
