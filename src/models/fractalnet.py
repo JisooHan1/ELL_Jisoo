@@ -16,11 +16,12 @@ class DropPath(nn.Module):
 
         # 0: drop, 1: keep (under drop_prob)
         mask_element = (torch.rand(1)+self.keep_prob).floor().item()
+        is_dropped = True if mask_element == 0 else False
 
         # masking tensor => broadcasting expected
         mask  = torch.full((x.size(0), 1, 1, 1), mask_element, dtype=x.dtype, device=x.device)
         x = x * mask
-        return x
+        return x, is_dropped
 
 class Join(nn.Module):
     def __init__(self, num_paths, drop_probability):
@@ -34,11 +35,12 @@ class Join(nn.Module):
         # make a list of outcomes of each path after drop-path
         outputs = []
         for i, path in enumerate(path_list):
-            out = self.drop_path_module[i](path)
-            outputs.append(out)
+            out = self.drop_path_module[i](path)[0]
+            if self.drop_path_module[i](path)[1] == False: # path not dropped
+                outputs.append(out)
 
         # joining by elementwise means
-        join_outcome = sum(outputs)/len(path_list)
+        join_outcome = sum(outputs)/len(outputs)
 
         # Local sampling: keep at least one path when join
         if join_outcome.sum() == 0:
@@ -55,80 +57,37 @@ class FractalBlock1Col(nn.Module):
 
     def forward(self, x):
         x = self.conv1(x)
-        return x
+        return [x]
 
-class FractalBlock2Col(nn.Module):
-    def __init__(self, input_channel, output_channel):
-        super(FractalBlock2Col, self).__init__()
+class FractalBlock(nn.Module):
+    def __init__(self, input_channel, output_channel, num_col):
+        super(FractalBlock, self).__init__()
 
-        # path1: conv
-        self.path1 = nn.Sequential(FractalBlock1Col(input_channel, output_channel))
+        for i in range(1, num_col+1):
+            drop_prob = 0 if i == 2 else 0.15
 
-        # path2: conv-conv
-        self.path2 = nn.Sequential(
-            FractalBlock1Col(input_channel, output_channel),
-            FractalBlock1Col(output_channel, output_channel),
-        )
+            # branch1
+            self.path1 = nn.Sequential(FractalBlock1Col(input_channel, output_channel))
 
-    def forward(self, x):
-        # compute two path in parllel
-        out1 = self.path1(x)
-        out2 = self.path2(x)
-
-        # make a list of outputs from each path
-        paths_to_list = []
-        paths_to_list.extend([out1, out2])
-        return paths_to_list
-
-class FractalBlock3Col(nn.Module):
-    def __init__(self, input_channel, output_channel):
-        super(FractalBlock3Col, self).__init__()
-
-        # path1: conv
-        self.path1 = nn.Sequential(FractalBlock1Col(input_channel, output_channel))
-
-        # path2&3: FractalBlock2Col-Join-FractalBlock2Col
-        self.path2 = nn.Sequential(
-            FractalBlock2Col(input_channel, output_channel),
-            Join(num_paths=2, drop_probability=0.15),
-            FractalBlock2Col(output_channel, output_channel)
-        )
-
+            # branch2(Ommited if C=1): FractalBlock-Join-FractalBlock
+            if i == 1:
+                self.path2 = None
+            else:
+                self.path2 = nn.Sequential(
+                    FractalBlock(input_channel, output_channel, i-1),
+                    Join(num_paths=i-1, drop_probability=drop_prob),
+                    FractalBlock(output_channel, output_channel, i-1)
+                )
     def forward(self, x):
         # compute two structure in parllel
         out1 = self.path1(x)
         out2 = self.path2(x)
 
         # make a list of outputs from each path(structure)
-        paths_to_list = []
-        paths_to_list.append(out1)
-        paths_to_list.extend(out2)
-        return paths_to_list
-
-class FractalBlock4Col(nn.Module):
-    def __init__(self, input_channel, output_channel):
-        super(FractalBlock4Col, self).__init__()
-
-        # path1: conv
-        self.path1 = nn.Sequential(FractalBlock1Col(input_channel, output_channel))
-
-        # path2&3: FractalBlock3Col-Join-FractalBlock3Col
-        self.path2 = nn.Sequential(
-            FractalBlock3Col(input_channel, output_channel),
-            Join(num_paths=3, drop_probability=0.15),
-            FractalBlock3Col(output_channel, output_channel)
-        )
-
-    def forward(self, x):
-        # compute two structure in parllel
-        out1 = self.path1(x)
-        out2 =self.path2(x)
-
-        # make a list of outputs from each path(structure)
-        paths_to_list = []
-        paths_to_list.append(out1)
-        paths_to_list.extend(out2)
-        return paths_to_list
+        output_paths = []
+        output_paths.extend(out1)
+        output_paths.extend(out2)
+        return output_paths
 
 class ParallelPool(nn.Module):
     def __init__(self, num_cols):
@@ -148,27 +107,17 @@ class FractalNet(nn.Module):
     def __init__(self, input_channel, output_channel, num_col):
         super(FractalNet, self).__init__()
 
-        # Initialize block based on number of columns
-        if num_col == 2:
-            block = FractalBlock2Col
-        elif num_col == 3:
-            block = FractalBlock3Col
-        elif num_col == 4:
-            block = FractalBlock4Col
-        else:
-            raise ValueError("Invalid number of columns.")
-
         layers = []
 
-        for i in range(5):
+        for i in range(1, 5+1):
             # block-pool-join
-            layers.append(block(input_channel, output_channel))
+            layers.append(FractalBlock(input_channel, output_channel, num_col))
             layers.append(ParallelPool(num_cols=num_col))
             layers.append(Join(num_paths=num_col, drop_probability=0.15))
 
             # adjust num of channel for next block
             input_channel = output_channel
-            if i != 3:
+            if i != 4:
                 output_channel *= 2
 
         # total layer
