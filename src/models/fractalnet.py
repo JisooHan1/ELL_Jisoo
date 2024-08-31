@@ -28,27 +28,27 @@ class Join(nn.Module):
         super(Join, self).__init__()
 
         # make list of drop-path modules for each path
-        self.drop_path_module = nn.ModuleList()
-        [self.drop_path_module.append(DropPath(drop_probability)) for _ in range(num_paths)]
+        self.drop_path_module = nn.ModuleList(
+            [DropPath(drop_probability) for _ in range(num_paths)]
+        )
+
 
     def forward(self, path_list):
         # make a list of outcomes of each path after drop-path
         outputs = []
         for i, path in enumerate(path_list):
-            out = self.drop_path_module[i](path)[0]
-            if self.drop_path_module[i](path)[1] == False: # path not dropped
+            out, is_dropped = self.drop_path_module[i](path)
+            if is_dropped == False: # path not dropped
                 outputs.append(out)
 
-        outputs_sum = sum(outputs)
         # Local sampling: keep at least one path when join
-        if outputs_sum.sum().item() == 0:
+        if not outputs:
             random_index = random.randint(0, len(path_list)-1)
             join_outcome = path_list[random_index]
 
         # joining by elementwise means
         else:
-            join_outcome = outputs_sum/len(outputs)
-
+            join_outcome = sum(outputs)/len(outputs)
         return join_outcome
 
 class FractalBlock1Col(nn.Module):
@@ -65,22 +65,20 @@ class FractalBlock(nn.Module):
     def __init__(self, input_channel, output_channel, num_col):
         super(FractalBlock, self).__init__()
 
-        for i in range(1, num_col+1):
-            drop_prob = 0 if i == 2 else 0.15
-            self.is_C_1 = False
+        self.is_col_1 = (num_col == 1)
 
-            # branch1
-            self.path1 = nn.Sequential(FractalBlock1Col(input_channel, output_channel))
+        # branch1
+        self.path1 = nn.Sequential(FractalBlock1Col(input_channel, output_channel))
 
-            # branch2(Ommited if C=1): FractalBlock-Join-FractalBlock
-            if i == 1:
-                self.is_C_1 = True
-            else:
-                self.path2 = nn.Sequential(
-                    FractalBlock(input_channel, output_channel, i-1),
-                    Join(num_paths=i-1, drop_probability=drop_prob),
-                    FractalBlock(output_channel, output_channel, i-1)
-                )
+        # branch2(Ommited if C=1): FractalBlock-Join-FractalBlock
+        if self.is_col_1 == False:
+            drop_prob = 0 if num_col == 2 else 0.15
+            self.path2 = nn.Sequential(
+                FractalBlock(input_channel, output_channel, num_col-1),
+                Join(num_paths=num_col-1, drop_probability=drop_prob),
+                FractalBlock(output_channel, output_channel, num_col-1)
+            )
+
     def forward(self, x):
         # make a list of outputs from each path(structure)
         output_paths = []
@@ -93,6 +91,7 @@ class FractalBlock(nn.Module):
         if self.is_C_1 == False:
             out2 = self.path2(x)
             output_paths.extend(out2)
+
         return output_paths
 
 class ParallelPool(nn.Module):
