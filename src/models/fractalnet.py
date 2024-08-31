@@ -88,7 +88,7 @@ class FractalBlock(nn.Module):
         output_paths.extend(out1)
 
         # output form path2
-        if self.is_C_1 == False:
+        if self.is_col_1 == False:
             out2 = self.path2(x)
             output_paths.extend(out2)
 
