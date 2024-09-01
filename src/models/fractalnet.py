@@ -43,7 +43,7 @@ class Join(nn.Module):
         else:
             join_outcome = sum(outputs)/len(outputs) if outputs else torch.zeros_like(path_list[0]) ###
 
-        print(f'Join output shape: {join_outcome.shape}')  # Debugging output
+        # print(f'Join output shape: {join_outcome.shape}')  # Debugging output
 
         return join_outcome
 
@@ -61,7 +61,7 @@ class FractalBlock1Col(nn.Module):
         x = self.conv1(x)
         x = self.bn(x)
         x = F.relu(x)
-        print(f'FractalBlock1Col output shape: {x.shape}')  # Debugging output
+        # print(f'FractalBlock1Col output shape: {x.shape}')  # Debugging output
         return [x]
 
 class FractalBlock(nn.Module):
@@ -93,13 +93,13 @@ class FractalBlock(nn.Module):
         # output from path1
         out1 = self.path1(x)
         output_paths.extend(out1)
-        print(f'FractalBlock path1 output shape: {out1[0].shape}')  # Debugging output
+        # print(f'FractalBlock path1 output shape: {out1[0].shape}')  # Debugging output
 
         # output form path2
         if self.is_col_1 == False:
             out2 = self.path2(x)
             output_paths.extend(out2)
-            print(f'FractalBlock path2 output shape: {out2[0].shape}')  # Debugging output
+            # print(f'FractalBlock path2 output shape: {out2[0].shape}')  # Debugging output
 
         return output_paths
 
@@ -115,7 +115,7 @@ class ParallelPool(nn.Module):
         for i in range(self.num_cols):
             out = self.pool(paths[i])
             pool_outcome.append(out)
-            print(f'ParallelPool output shape [{i}]: {out.shape}')  # Debugging output
+            # print(f'ParallelPool output shape [{i}]: {out.shape}')  # Debugging output
         return pool_outcome
 
 class FractalNet(nn.Module):
@@ -145,7 +145,7 @@ class FractalNet(nn.Module):
 
     def forward(self, x):
         x = self.total_layer(x)
-        print(f'Final layer output shape: {x.shape}')  # Debugging output
+        # print(f'Final layer output shape: {x.shape}')  # Debugging output
         x = torch.flatten(x, 1)
         x = self.fc(x)
         return x
