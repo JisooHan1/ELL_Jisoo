@@ -14,10 +14,9 @@ class DropPath(nn.Module):
         if self.training == False:
             return x
 
-        # masking tensor => broadcasting expected
-        mask = (torch.rand(x.size(0), 1, 1, 1, dtype=x.dtype, device=x.device)+self.keep_prob).floor()
+        # masking tensor => broadcasting expected (seprerate for each samples in one batch)
+        mask = (torch.rand(x.size(0), 1, 1, 1, dtype=x.dtype, device=x.device) + self.keep_prob).floor()
         x = x * mask
-
         return x
 
 class Join(nn.Module):
@@ -25,10 +24,7 @@ class Join(nn.Module):
         super(Join, self).__init__()
 
         # make list of drop-path modules for each path
-        self.drop_path_module = nn.ModuleList(
-            [DropPath(drop_probability) for _ in range(num_paths)]
-        )
-
+        self.drop_path_module = nn.ModuleList([DropPath(drop_probability) for _ in range(num_paths)])
 
     def forward(self, path_list):
         # make a list of outcomes of each path after drop-path
@@ -45,31 +41,34 @@ class Join(nn.Module):
 
         # joining by elementwise means
         else:
-            join_outcome = sum(outputs)/len(outputs)
+            join_outcome = sum(outputs)/len(outputs) if outputs else torch.zeros_like(path_list[0]) ###
 
         return join_outcome
 
 class FractalBlock1Col(nn.Module):
-    def __init__(self, input_channel, output_channel, shared_conv):
+    def __init__(self, output_channel, shared_conv):
         super(FractalBlock1Col, self).__init__()
 
-        if shared_conv:
-            self.conv1 = shared_conv
-        else:
-            self.conv1 = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
+        # use shared_conv filter
+        self.conv1 = shared_conv
+
+        # conv-bn-relu
+        self.bn = nn.BatchNorm2d(output_channel)
 
     def forward(self, x):
         x = self.conv1(x)
+        x = self.bn(x)
+        x = F.relu(x)
         return [x]
 
 class FractalBlock(nn.Module):
     def __init__(self, input_channel, output_channel, num_col, shared_conv):
         super(FractalBlock, self).__init__()
 
-        self.is_col_1 = (num_col == 1)
+        self.is_col_1 = (num_col == 1) # only true when num_col==1
 
         # branch1
-        self.path1 = nn.Sequential(FractalBlock1Col(input_channel, output_channel, shared_conv))
+        self.path1 = nn.Sequential(FractalBlock1Col(output_channel, shared_conv))
 
 
         # branch2(Ommited if C=1): FractalBlock-Join-FractalBlock
