@@ -135,7 +135,7 @@ class FractalNet(nn.Module):
             input_channel = output_channel
             if i < 4:
                 output_channel *= 2
-                shared_conv = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
+            shared_conv = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
 
         # total layer
         self.total_layer = nn.Sequential(*layers)
