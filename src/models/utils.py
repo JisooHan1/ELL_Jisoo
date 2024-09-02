@@ -2,6 +2,7 @@ from .lenet import LeNet
 from .resnet import ResNet
 from .densenet import DenseNet
 from .fractalnet import FractalNet
+from .vit import ViT
 
 def load_model(name, input_channels, image_size):
     if name == "LeNet":
@@ -12,5 +13,7 @@ def load_model(name, input_channels, image_size):
         return DenseNet(input_channels)
     elif name == "FractalNet":
         return FractalNet(input_channels, output_channel=64, num_col=4)
+    elif name == "ViT":
+        return ViT(input_channels)
     else:
         raise ValueError("Invalid model name")
