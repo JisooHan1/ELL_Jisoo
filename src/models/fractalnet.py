@@ -3,48 +3,20 @@ import torch.nn as nn
 import torch.nn.functional as F
 import random
 
-class DropPath(nn.Module):
-    def __init__(self, drop_probability):
-        super(DropPath, self).__init__()
-
-        self.keep_prob = 1 - drop_probability
-
-    def forward(self, x):
-        # doesn't apply when testing
-        if self.training == False:
-            return x
-
-        # masking tensor => broadcasting expected (seprerate for each samples in one batch)
-        mask = (torch.rand(x.size(0), 1, 1, 1, dtype=x.dtype, device=x.device) + self.keep_prob).floor()
-        x = x * mask
-        return x
-
 class Join(nn.Module):
-    def __init__(self, num_paths, drop_probability):
+    def __init__(self):
         super(Join, self).__init__()
-
-        # make list of drop-path modules for each path
-        self.drop_path_module = nn.ModuleList([DropPath(drop_probability) for _ in range(num_paths)])
 
     def forward(self, path_list):
         # make a list of outcomes of each path after drop-path
         outputs = []
-        for i, path in enumerate(path_list):
-            out = self.drop_path_module[i](path)
-            if out.sum() != 0: # path not dropped
-                outputs.append(out)
-
-        # Local sampling: keep at least one path when join
-        if not outputs:
-            random_index = random.randint(0, len(path_list)-1)
-            outputs.append(path_list[random_index])
+        for path in path_list:
+            outputs.append(path)
 
         # joining by elementwise means
-        else:
-            join_outcome = sum(outputs)/len(outputs) if outputs else torch.zeros_like(path_list[0]) ###
+        join_outcome = sum(outputs)/len(outputs)
 
         # print(f'Join output shape: {join_outcome.shape}')  # Debugging output
-
         return join_outcome
 
 class FractalBlock1Col(nn.Module):
@@ -68,51 +40,73 @@ class FractalBlock(nn.Module):
     def __init__(self, input_channel, output_channel, num_col, shared_conv):
         super(FractalBlock, self).__init__()
 
-        self.is_col_1 = (num_col == 1) # only true when num_col==1
+        # make a list of 0/1 for path1, path2: generate path vs doesn't generate path
+        keep_prob = 0.85
+        self.drop_keep = []
+        [self.drop_keep.append((torch.rand(1) + keep_prob).floor().item()) for _ in range(2)] # drop = 0, keep = 1
+        # print(f'1111111111111self.drop_keep: {self.drop_keep}')  # Debugging output
+
+        # doesn't generate path2 if num_col==1
+        if num_col == 1:
+            self.drop_keep = [1, 0]
+            # print(f'2222222222222222self.drop_keep: {self.drop_keep}')  # Debugging output
+
+        # if both branch is dropped, choose one randomly
+        elif sum(self.drop_keep) == 0:
+            self.drop_keep[random.randint(0,1)] = 1
+            # print(f'333333333333333333333self.drop_keep: {self.drop_keep}')  # Debugging output
 
         # branch1
-        self.path1 = nn.Sequential(FractalBlock1Col(output_channel, shared_conv))
-
+        if self.drop_keep[0] == 1:
+            self.path1 = self.generate_path1(output_channel, shared_conv)
+            # print('PATH1 GENERATED')  # Debugging output
 
         # branch2(Ommited if C=1): FractalBlock-Join-FractalBlock
-        if self.is_col_1 == False:
-            drop_prob = 0 if num_col == 2 else 0.15
+        if self.drop_keep[1] == 1:
+            self.path2 = self.generate_path2(input_channel, output_channel, num_col, shared_conv)
+            # print('PATH2 GENERATED')  # Debugging output
 
-            shared_conv2 = nn.Conv2d(output_channel, output_channel, kernel_size=3, stride=1, padding=1)
+    def generate_path1(self, output_channel, shared_conv):
+        return nn.Sequential(FractalBlock1Col(output_channel, shared_conv))
 
-            self.path2 = nn.Sequential(
-                FractalBlock(input_channel, output_channel, num_col-1, shared_conv),
-                Join(num_paths=num_col-1, drop_probability=drop_prob),
-                FractalBlock(output_channel, output_channel, num_col-1, shared_conv2)
-            )
+    def generate_path2(self, input_channel, output_channel, num_col, shared_conv):
+        shared_conv2 = nn.Conv2d(output_channel, output_channel, kernel_size=3, stride=1, padding=1)
+        self.path2 = nn.Sequential(
+            FractalBlock(input_channel, output_channel, num_col-1, shared_conv),
+            Join(),
+            FractalBlock(output_channel, output_channel, num_col-1, shared_conv2)
+        )
+        return self.path2
 
     def forward(self, x):
         # make a list of outputs from each path(structure)
         output_paths = []
 
+        # print(f'444444444444444444self.drop_keep: {self.drop_keep}')  # Debugging output
+
         # output from path1
-        out1 = self.path1(x)
-        output_paths.extend(out1)
+        if self.drop_keep[0] == 1:
+            out1 = self.path1(x)
+            output_paths.extend(out1)
         # print(f'FractalBlock path1 output shape: {out1[0].shape}')  # Debugging output
 
         # output form path2
-        if self.is_col_1 == False:
+        if self.drop_keep[1] == 1:
             out2 = self.path2(x)
             output_paths.extend(out2)
             # print(f'FractalBlock path2 output shape: {out2[0].shape}')  # Debugging output
 
         return output_paths
 
-class ParallelPool(nn.Module):
-    def __init__(self, num_cols):
-        super(ParallelPool, self).__init__()
+class Pool(nn.Module):
+    def __init__(self):
+        super(Pool, self).__init__()
 
-        self.num_cols = num_cols
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2) # 2x2 non-overlapping max-pooling
 
     def forward(self, paths):
         pool_outcome = []
-        for i in range(self.num_cols):
+        for i in range(len(paths)):
             out = self.pool(paths[i])
             pool_outcome.append(out)
             # print(f'ParallelPool output shape [{i}]: {out.shape}')  # Debugging output
@@ -128,8 +122,8 @@ class FractalNet(nn.Module):
         for i in range(1, 6):
             # block-pool-join
             layers.append(FractalBlock(input_channel, output_channel, num_col, shared_conv))
-            layers.append(ParallelPool(num_cols=num_col))
-            layers.append(Join(num_paths=num_col, drop_probability=0.15))
+            layers.append(Pool())
+            layers.append(Join())
 
             # adjust num of channel for next block
             input_channel = output_channel
