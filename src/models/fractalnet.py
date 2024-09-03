@@ -4,13 +4,11 @@ import torch.nn.functional as F
 import random
 
 class FractalBlock1Col(nn.Module):
-    def __init__(self, output_channel, shared_conv, dropout_rate):
+    def __init__(self, input_channel, output_channel, dropout_rate):
         super(FractalBlock1Col, self).__init__()
 
-        # use shared_conv filter
-        self.conv1 = shared_conv
-
         # conv-bn-relu-dropout
+        self.conv1 = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
         self.bn = nn.BatchNorm2d(output_channel)
         self.dropout_conv = nn.Dropout2d(dropout_rate)
 
@@ -21,7 +19,7 @@ class FractalBlock1Col(nn.Module):
         return [x]
 
 class FractalBlock(nn.Module):
-    def __init__(self, input_channel, output_channel, num_col, shared_conv, dropout_rate):
+    def __init__(self, input_channel, output_channel, num_col, dropout_rate):
         super(FractalBlock, self).__init__()
 
         self.dropout = nn.Dropout2d(dropout_rate)
@@ -30,32 +28,28 @@ class FractalBlock(nn.Module):
         keep_prob = 0.85
         self.drop_keep = []
         [self.drop_keep.append((torch.rand(1) + keep_prob).floor().item()) for _ in range(2)] # drop = 0, keep = 1
-
-        # handling condition 1) doesn't generate path2 if "num_col==1"
+            # handling condition 1) doesn't generate path2 if "num_col==1"
         if num_col == 1:
             self.drop_keep = [1, 0]
-
-        # handling condition 2) if "both branch is dropped", choose one randomly
+            # handling condition 2) if "both branch is dropped", choose one randomly
         elif sum(self.drop_keep) == 0:
             self.drop_keep[random.randint(0,1)] = 1
 
         # generate branch1
         if self.drop_keep[0] == 1:
-            self.path1 = self.generate_path1(output_channel, shared_conv, dropout_rate)
-
+            self.path1 = self.generate_path1(input_channel, output_channel, dropout_rate)
         # generate branch2(Ommited if C=1): FractalBlock-Join-FractalBlock
         if self.drop_keep[1] == 1:
-            self.path2 = self.generate_path2(input_channel, output_channel, num_col, shared_conv, dropout_rate)
+            self.path2 = self.generate_path2(input_channel, output_channel, num_col, dropout_rate)
 
-    def generate_path1(self, output_channel, shared_conv, dropout_rate):
-        return nn.Sequential(FractalBlock1Col(output_channel, shared_conv, dropout_rate))
+    def generate_path1(self, input_channel, output_channel, dropout_rate):
+        return nn.Sequential(FractalBlock1Col(input_channel, output_channel, dropout_rate))
 
-    def generate_path2(self, input_channel, output_channel, num_col, shared_conv, dropout_rate):
-        shared_conv2 = nn.Conv2d(output_channel, output_channel, kernel_size=3, stride=1, padding=1)
+    def generate_path2(self, input_channel, output_channel, num_col, dropout_rate):
         self.path2 = nn.Sequential(
-            FractalBlock(input_channel, output_channel, num_col-1, shared_conv, dropout_rate),
+            FractalBlock(input_channel, output_channel, num_col-1, dropout_rate),
             Join(),
-            FractalBlock(output_channel, output_channel, num_col-1, shared_conv2, dropout_rate)
+            FractalBlock(output_channel, output_channel, num_col-1, dropout_rate)
         )
         return self.path2
 
@@ -66,13 +60,13 @@ class FractalBlock(nn.Module):
         # output from path1
         if self.drop_keep[0] == 1:
             out1 = self.path1(x)
-            out1 = self.dropout(x)
+            out1 = self.dropout(out1)
             output_paths.extend(out1)
 
         # output form path2
         if self.drop_keep[1] == 1:
             out2 = self.path2(x)
-            out2 = self.dropout(x)
+            out2 = self.dropout(out2)
             output_paths.extend(out2)
         return output_paths
 
@@ -111,14 +105,13 @@ class FractalNet(nn.Module):
         output_channel=64
         num_col=4
         layers = []
-        shared_conv = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
+        dropout_rates = [0,0.1,0.2,0.3,0.4] if self.training == True else [0,0,0,0,0]
 
         # 5 blocks
         for i in range(1, 6):
             # block-pool-join
-            dropout_rates = [0, 0.1, 0.2, 0.3, 0.4]
             dropout_rate = dropout_rates[i-1]
-            layers.append(FractalBlock(input_channel, output_channel, num_col, shared_conv, dropout_rate))
+            layers.append(FractalBlock(input_channel, output_channel, num_col, dropout_rate))
             layers.append(Pool())
             layers.append(Join())
 
@@ -126,7 +119,6 @@ class FractalNet(nn.Module):
             input_channel = output_channel
             if i < 4:
                 output_channel *= 2
-            shared_conv = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
 
         # total fractal layer of 5 blocks
         self.total_layer = nn.Sequential(*layers)
