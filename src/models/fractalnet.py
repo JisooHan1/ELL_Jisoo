@@ -105,9 +105,11 @@ class Join(nn.Module):
         return join_outcome
 
 class FractalNet(nn.Module):
-    def __init__(self, input_channel, output_channel, num_col):
+    def __init__(self, input_channel):
         super(FractalNet, self).__init__()
 
+        output_channel=64
+        num_col=4
         layers = []
         shared_conv = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
 

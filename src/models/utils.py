@@ -12,7 +12,7 @@ def load_model(name, input_channels, image_size):
     elif name == "DenseNet":
         return DenseNet(input_channels)
     elif name == "FractalNet":
-        return FractalNet(input_channels, output_channel=64, num_col=4)
+        return FractalNet(input_channels)
     elif name == "ViT":
         return ViT(input_channels)
     else:
