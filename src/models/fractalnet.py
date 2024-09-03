@@ -137,27 +137,25 @@ class FractalNet(nn.Module):
         dropout_rates = [0,0.1,0.2,0.3,0.4] if self.training == True else [0,0,0,0,0]
 
         # 5 blocks
-        layers = []
+        self.total_layers = nn.ModuleList()
         for i in range(1, 6):
             # block-pool-join
             dropout_rate = dropout_rates[i-1]
-            layers.append(FractalBlock(input_channel, output_channel, num_col, dropout_rate))
-            layers.append(Pool())
-            layers.append(Join())
+            self.total_layers.append(FractalBlock(input_channel, output_channel, num_col, dropout_rate))
+            self.total_layers.append(Pool())
+            self.total_layers.append(Join())
 
             # adjust num of channel for next block
             input_channel = output_channel
             if i < 4:
                 output_channel *= 2
 
-        # total fractal layer of 5 blocks
-        self.total_layer = nn.Sequential(*layers)
-
         # final fc layer
         self.fc = nn.Linear(512, 10) # 512 = "output_channel"
 
     def forward(self, x, batch_index):
-        x = self.total_layer(x, batch_index)
+        for layer in self.total_layers:
+            x = layer(x, batch_index)
         x = torch.flatten(x, 1)
         x = self.fc(x)
         return x
