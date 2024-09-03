@@ -107,7 +107,7 @@ class Pool(nn.Module):
 
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2) # 2x2 non-overlapping max-pooling
 
-    def forward(self, paths, batch_index):
+    def forward(self, paths, batch_index=None):
         pool_outcome = []
         for i in range(len(paths)):
             out = self.pool(paths[i])
@@ -118,7 +118,7 @@ class Join(nn.Module):
     def __init__(self):
         super(Join, self).__init__()
 
-    def forward(self, path_list, batch_index):
+    def forward(self, path_list, batch_index=None):
         # make a list of outcomes after drop-path
         outputs = []
         for path in path_list:
