@@ -107,7 +107,7 @@ class Pool(nn.Module):
 
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2) # 2x2 non-overlapping max-pooling
 
-    def forward(self, paths):
+    def forward(self, paths, batch_index):
         pool_outcome = []
         for i in range(len(paths)):
             out = self.pool(paths[i])
@@ -118,7 +118,7 @@ class Join(nn.Module):
     def __init__(self):
         super(Join, self).__init__()
 
-    def forward(self, path_list):
+    def forward(self, path_list, batch_index):
         # make a list of outcomes after drop-path
         outputs = []
         for path in path_list:
@@ -156,12 +156,8 @@ class FractalNet(nn.Module):
         # final fc layer
         self.fc = nn.Linear(512, 10) # 512 = "output_channel"
 
-    def forward(self, x, batch_idx):
-        for layer in self.total_layer:
-            if isinstance(layer, FractalBlock) is True:
-                x = layer(x, batch_idx)
-            else:
-                x = layer(x)
+    def forward(self, x, batch_index):
+        x = self.total_layer(x, batch_index)
         x = torch.flatten(x, 1)
         x = self.fc(x)
         return x
