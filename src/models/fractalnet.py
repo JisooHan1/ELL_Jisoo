@@ -96,7 +96,7 @@ class FractalBlock(nn.Module):
         if self.drop_keep_list[1] == 1:
             if self.path2 == None: # generate branch2(Ommited if C=1)
                 self.path2 = self.generate_path2(self.input_channel, self.output_channel, self.num_col, self.dropout_rate).to(device)
-            out2 = self.path2(x)
+            out2 = self.path2(x, batch_index)
             output_paths.extend(out2)
 
         return output_paths
