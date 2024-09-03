@@ -36,19 +36,35 @@ class LocalSampling:
     def sampling_result(self):
         return self.drop_keep_list
 
+class GlobalSampling:
+    def __init__(self, drop_prob, num_col):
+        # make a list of 0/1 for path1, path2: generate path vs doesn't generate path ex)[0,1]
+        self.drop_keep_list = [1,0] # drop = 0, keep = 1
+        random.shuffle(self.drop_keep_list)
+
+        # # handling condition 1) doesn't generate path2 if "num_col==1"
+        # if num_col == 1:
+        #     self.drop_keep_list = [1, 0]
+
+        # # handling condition 2) if "both branch is dropped", choose one randomly
+        # elif sum(self.drop_keep_list) == 0:
+        #     self.drop_keep_list[random.randint(0,1)] = 1
+
+    def sampling_result(self):
+        if self.drop_keep_list[0] == 1:
+            return self.drop_keep_list
+
 class FractalBlock(nn.Module):
     def __init__(self, input_channel, output_channel, num_col, dropout_rate):
         super(FractalBlock, self).__init__()
 
-        local_sampling = LocalSampling(drop_prob=0.15, num_col=num_col)
-        self.drop_keep_list = local_sampling.sampling_result()
+        self.input_channel = input_channel
+        self.output_channel = output_channel
+        self.num_col = num_col
+        self.dropout_rate = dropout_rate
 
-        # generate branch1
-        if self.drop_keep_list[0] == 1:
-            self.path1 = self.generate_path1(input_channel, output_channel, dropout_rate)
-        # generate branch2(Ommited if C=1): FractalBlock-Join-FractalBlock
-        if self.drop_keep_list[1] == 1:
-            self.path2 = self.generate_path2(input_channel, output_channel, num_col, dropout_rate)
+        self.path1 = None
+        self.path2 = None
 
     def generate_path1(self, input_channel, output_channel, dropout_rate):
         return nn.Sequential(FractalBlock1Col(input_channel, output_channel, dropout_rate))
@@ -62,18 +78,27 @@ class FractalBlock(nn.Module):
         return self.path2
 
     def forward(self, x):
-        # make a list of outputs from each path(structure)
+        # local sampling
+        local_sampling = LocalSampling(drop_prob=0.15, num_col=self.num_col)
+        self.drop_keep_list = local_sampling.sampling_result()
+
+        # make a list of outputs from each path(branch)
         output_paths = []
 
         # output from path1
         if self.drop_keep_list[0] == 1:
+            if self.path1 == None: # generate branch1
+                self.path1 = self.generate_path1(self.input_channel, self.output_channel, self.dropout_rate)
             out1 = self.path1(x)
             output_paths.extend(out1)
 
         # output form path2
         if self.drop_keep_list[1] == 1:
+            if self.path2 == None: # generate branch2(Ommited if C=1)
+                self.path2 = self.generate_path2(self.input_channel, self.output_channel, self.num_col, self.dropout_rate)
             out2 = self.path2(x)
             output_paths.extend(out2)
+
         return output_paths
 
 class Pool(nn.Module):
@@ -110,10 +135,11 @@ class FractalNet(nn.Module):
 
         output_channel=64
         num_col=4
-        layers = []
+        local_global_flag = 0
         dropout_rates = [0,0.1,0.2,0.3,0.4] if self.training == True else [0,0,0,0,0]
 
         # 5 blocks
+        layers = []
         for i in range(1, 6):
             # block-pool-join
             dropout_rate = dropout_rates[i-1]
