@@ -61,17 +61,6 @@ class FractalBlock(nn.Module):
         self.path1 = None
         self.path2 = None
 
-    def generate_path1(self, input_channel, output_channel, dropout_rate):
-        return nn.Sequential(FractalBlock1Col(input_channel, output_channel, dropout_rate))
-
-    def generate_path2(self, input_channel, output_channel, num_col, dropout_rate):
-        self.path2 = nn.ModuleList([
-            FractalBlock(input_channel, output_channel, num_col-1, dropout_rate),
-            Join(),
-            FractalBlock(output_channel, output_channel, num_col-1, dropout_rate)
-        ])
-        return self.path2
-
     def forward(self, x, batch_index):
         print(f"Input shape: {x.shape}")
         device = x.device
@@ -103,6 +92,18 @@ class FractalBlock(nn.Module):
             output_paths.extend(out2)
 
         return output_paths
+
+    def generate_path1(self, input_channel, output_channel, dropout_rate):
+        return nn.Sequential(FractalBlock1Col(input_channel, output_channel, dropout_rate))
+
+    def generate_path2(self, input_channel, output_channel, num_col, dropout_rate):
+        self.path2 = nn.ModuleList([
+            FractalBlock(input_channel, output_channel, num_col-1, dropout_rate),
+            Join(),
+            FractalBlock(output_channel, output_channel, num_col-1, dropout_rate)
+        ])
+        return self.path2
+
 
 class Pool(nn.Module):
     def __init__(self):
@@ -157,9 +158,15 @@ class FractalNet(nn.Module):
         self.fc = nn.Linear(512, 10) # 512 = "output_channel"
 
     def forward(self, x, batch_index):
-        print(f"0000000000000000000000000000Input shape: {x.shape}")
+        print(f"Initial input shape: {x.shape}")
         for layer in self.total_layers:
             x = layer(x, batch_index)
+            if isinstance(x, list):
+                # If the output is a list, print each element's shape
+                for i, out in enumerate(x):
+                    print(f"After layer {layer.__class__.__name__}, output {i} shape: {out.shape}")
+            else:
+                print(f"After layer {layer.__class__.__name__}, output shape: {x.shape}")
         x = torch.flatten(x, 1)
         x = self.fc(x)
         return x
