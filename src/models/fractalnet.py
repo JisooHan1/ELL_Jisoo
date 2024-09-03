@@ -65,11 +65,11 @@ class FractalBlock(nn.Module):
         return nn.Sequential(FractalBlock1Col(input_channel, output_channel, dropout_rate))
 
     def generate_path2(self, input_channel, output_channel, num_col, dropout_rate):
-        self.path2 = nn.Sequential(
+        self.path2 = nn.ModuleList([
             FractalBlock(input_channel, output_channel, num_col-1, dropout_rate),
             Join(),
             FractalBlock(output_channel, output_channel, num_col-1, dropout_rate)
-        )
+        ])
         return self.path2
 
     def forward(self, x, batch_index):
@@ -96,6 +96,8 @@ class FractalBlock(nn.Module):
         if self.drop_keep_list[1] == 1:
             if self.path2 == None: # generate branch2(Ommited if C=1)
                 self.path2 = self.generate_path2(self.input_channel, self.output_channel, self.num_col, self.dropout_rate).to(device)
+            for layer in self.path2:
+                out2 = layer(x, batch_index)
             out2 = self.path2(x, batch_index)
             output_paths.extend(out2)
 
