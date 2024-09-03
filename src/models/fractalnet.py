@@ -40,8 +40,8 @@ class FractalBlock(nn.Module):
         if self.drop_keep[1] == 1:
             self.path2 = self.generate_path2(input_channel, output_channel, num_col, dropout_rate)
 
-    def generate_path1(self, input_channel, output_channel, dropout_rate):
-        return nn.Sequential(FractalBlock1Col(input_channel, output_channel, dropout_rate))
+    def generate_path1(self, input_channel, output_channel):
+        return nn.Sequential(FractalBlock1Col(input_channel, output_channel))
 
     def generate_path2(self, input_channel, output_channel, num_col, dropout_rate):
         self.path2 = nn.Sequential(
