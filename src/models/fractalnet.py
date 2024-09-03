@@ -78,6 +78,7 @@ class FractalBlock(nn.Module):
         return self.path2
 
     def forward(self, x):
+        device = x.device
         # local sampling
         local_sampling = LocalSampling(drop_prob=0.15, num_col=self.num_col)
         self.drop_keep_list = local_sampling.sampling_result()
@@ -89,14 +90,14 @@ class FractalBlock(nn.Module):
         if self.drop_keep_list[0] == 1:
             if self.path1 == None: # generate branch1
                 self.path1 = self.generate_path1(self.input_channel, self.output_channel, self.dropout_rate)
-            out1 = self.path1(x)
+            out1 = self.path1(x).to(device)
             output_paths.extend(out1)
 
         # output form path2
         if self.drop_keep_list[1] == 1:
             if self.path2 == None: # generate branch2(Ommited if C=1)
                 self.path2 = self.generate_path2(self.input_channel, self.output_channel, self.num_col, self.dropout_rate)
-            out2 = self.path2(x)
+            out2 = self.path2(x).to(device)
             output_paths.extend(out2)
 
         return output_paths
