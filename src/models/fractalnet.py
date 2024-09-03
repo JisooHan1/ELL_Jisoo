@@ -4,25 +4,25 @@ import torch.nn.functional as F
 import random
 
 class FractalBlock1Col(nn.Module):
-    def __init__(self, input_channel, output_channel):
+    def __init__(self, input_channel, output_channel, dropout_rate):
         super(FractalBlock1Col, self).__init__()
 
-        # conv-bn-relu
+        # conv-bn-relu-dropout
         self.conv1 = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
         self.bn = nn.BatchNorm2d(output_channel)
+        self.dropout = nn.Dropout(dropout_rate)
 
     def forward(self, x):
         x = self.conv1(x)
         x = F.relu(self.bn(x))
+        x = self.dropout(x)
         return [x]
 
 class FractalBlock(nn.Module):
     def __init__(self, input_channel, output_channel, num_col, dropout_rate):
         super(FractalBlock, self).__init__()
 
-        self.dropout = nn.Dropout2d(dropout_rate)
-
-        # make a list of 0/1 for path1, path2: generate path vs doesn't generate path
+        # make a list of 0/1 for path1, path2: generate path vs doesn't generate path ex)[0,1]
         keep_prob = 0.85
         self.drop_keep = []
         [self.drop_keep.append((torch.rand(1) + keep_prob).floor().item()) for _ in range(2)] # drop = 0, keep = 1
@@ -35,13 +35,13 @@ class FractalBlock(nn.Module):
 
         # generate branch1
         if self.drop_keep[0] == 1:
-            self.path1 = self.generate_path1(input_channel, output_channel)
+            self.path1 = self.generate_path1(input_channel, output_channel, dropout_rate)
         # generate branch2(Ommited if C=1): FractalBlock-Join-FractalBlock
         if self.drop_keep[1] == 1:
             self.path2 = self.generate_path2(input_channel, output_channel, num_col, dropout_rate)
 
-    def generate_path1(self, input_channel, output_channel):
-        return nn.Sequential(FractalBlock1Col(input_channel, output_channel))
+    def generate_path1(self, input_channel, output_channel, dropout_rate):
+        return nn.Sequential(FractalBlock1Col(input_channel, output_channel, dropout_rate))
 
     def generate_path2(self, input_channel, output_channel, num_col, dropout_rate):
         self.path2 = nn.Sequential(
@@ -58,13 +58,11 @@ class FractalBlock(nn.Module):
         # output from path1
         if self.drop_keep[0] == 1:
             out1 = self.path1(x)
-            out1 = self.dropout(out1)
             output_paths.extend(out1)
 
         # output form path2
         if self.drop_keep[1] == 1:
             out2 = self.path2(x)
-            out2 = self.dropout(out2)
             output_paths.extend(out2)
         return output_paths
 
