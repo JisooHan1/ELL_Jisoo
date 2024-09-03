@@ -28,7 +28,7 @@ def get_device():
 
 # training on one epoch
 def train(net, trainloader, criterion, optimizer, epoch, writer, device):
-    print(f"Starting training for epoch {epoch + 1}")
+    print(f"Starting training for epoch {epoch}")
     net.train() # using dropout & batch normalization
     running_loss = 0.0 # for batches
     total_loss = 0.0 # for epochs
@@ -58,7 +58,7 @@ def train(net, trainloader, criterion, optimizer, epoch, writer, device):
         total_loss += loss.item() # extract scalar from tensor: for epochs
         if (i+1) % print_frequency == 0: # print every (print_frequency) mini-batches
             # (current epoch, total batches processed, average loss for last (print_frequency) batches) => avg of avg??
-            print('[%d, %5d] loss: %.3f' %(epoch + 1, i + 1, running_loss / print_frequency)) # average loss for an amount of batches
+            print('[%d, %5d] loss: %.3f' %(epoch, i + 1, running_loss / print_frequency)) # average loss for an amount of batches
             writer.add_scalar('Loss/train', running_loss / print_frequency, epoch * len(trainloader) + i) # global index for loss
             running_loss = 0.0
     writer.add_scalar('Loss/train_epoch', total_loss / len(trainloader), epoch) # average loss for each epoch
@@ -135,7 +135,7 @@ def main():
     writer = SummaryWriter(log_dir=f'logs/{args.model}')
 
     # train & test
-    for epoch in range(epoch):
+    for epoch in range(1, epoch+1):
         train(net, trainloader, criterion, optimizer, epoch, writer, device)
         test(net, testloader, criterion, epoch, writer, device)
 

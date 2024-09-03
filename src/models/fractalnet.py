@@ -18,26 +18,35 @@ class FractalBlock1Col(nn.Module):
         x = self.dropout(x)
         return [x]
 
+class LocalSampling:
+    def __init__(self, drop_prob, num_col):
+        # make a list of 0/1 for path1, path2: generate path vs doesn't generate path ex)[0,1]
+        keep_prob = 1-drop_prob
+        self.drop_keep_list = []
+        [self.drop_keep_list.append((torch.rand(1) + keep_prob).floor().item()) for _ in range(2)] # drop = 0, keep = 1
+
+        # handling condition 1) doesn't generate path2 if "num_col==1"
+        if num_col == 1:
+            self.drop_keep_list = [1, 0]
+
+        # handling condition 2) if "both branch is dropped", choose one randomly
+        elif sum(self.drop_keep_list) == 0:
+            self.drop_keep_list[random.randint(0,1)] = 1
+
+    def sampling_result(self):
+        return self.drop_keep_list
+
 class FractalBlock(nn.Module):
     def __init__(self, input_channel, output_channel, num_col, dropout_rate):
         super(FractalBlock, self).__init__()
 
-        # make a list of 0/1 for path1, path2: generate path vs doesn't generate path ex)[0,1]
-        keep_prob = 0.85
-        self.drop_keep = []
-        [self.drop_keep.append((torch.rand(1) + keep_prob).floor().item()) for _ in range(2)] # drop = 0, keep = 1
-            # handling condition 1) doesn't generate path2 if "num_col==1"
-        if num_col == 1:
-            self.drop_keep = [1, 0]
-            # handling condition 2) if "both branch is dropped", choose one randomly
-        elif sum(self.drop_keep) == 0:
-            self.drop_keep[random.randint(0,1)] = 1
+        self.drop_keep_list = LocalSampling(num_col, drop_prob=0.15)
 
         # generate branch1
-        if self.drop_keep[0] == 1:
+        if self.drop_keep_list[0] == 1:
             self.path1 = self.generate_path1(input_channel, output_channel, dropout_rate)
         # generate branch2(Ommited if C=1): FractalBlock-Join-FractalBlock
-        if self.drop_keep[1] == 1:
+        if self.drop_keep_list[1] == 1:
             self.path2 = self.generate_path2(input_channel, output_channel, num_col, dropout_rate)
 
     def generate_path1(self, input_channel, output_channel, dropout_rate):
@@ -56,12 +65,12 @@ class FractalBlock(nn.Module):
         output_paths = []
 
         # output from path1
-        if self.drop_keep[0] == 1:
+        if self.drop_keep_list[0] == 1:
             out1 = self.path1(x)
             output_paths.extend(out1)
 
         # output form path2
-        if self.drop_keep[1] == 1:
+        if self.drop_keep_list[1] == 1:
             out2 = self.path2(x)
             output_paths.extend(out2)
         return output_paths
