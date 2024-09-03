@@ -35,7 +35,7 @@ class FractalBlock(nn.Module):
 
         # generate branch1
         if self.drop_keep[0] == 1:
-            self.path1 = self.generate_path1(input_channel, output_channel, dropout_rate)
+            self.path1 = self.generate_path1(input_channel, output_channel)
         # generate branch2(Ommited if C=1): FractalBlock-Join-FractalBlock
         if self.drop_keep[1] == 1:
             self.path2 = self.generate_path2(input_channel, output_channel, num_col, dropout_rate)
