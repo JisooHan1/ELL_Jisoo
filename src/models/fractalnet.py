@@ -4,18 +4,16 @@ import torch.nn.functional as F
 import random
 
 class FractalBlock1Col(nn.Module):
-    def __init__(self, input_channel, output_channel, dropout_rate):
+    def __init__(self, input_channel, output_channel):
         super(FractalBlock1Col, self).__init__()
 
-        # conv-bn-relu-dropout
+        # conv-bn-relu
         self.conv1 = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
         self.bn = nn.BatchNorm2d(output_channel)
-        self.dropout_conv = nn.Dropout2d(dropout_rate)
 
     def forward(self, x):
         x = self.conv1(x)
         x = F.relu(self.bn(x))
-        x = self.dropout_conv(x)
         return [x]
 
 class FractalBlock(nn.Module):
