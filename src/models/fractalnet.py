@@ -157,7 +157,11 @@ class FractalNet(nn.Module):
         self.fc = nn.Linear(512, 10) # 512 = "output_channel"
 
     def forward(self, x, batch_idx):
-        x = self.total_layer(x, batch_idx)
+        for layer in self.total_layer:
+            if isinstance(layer, FractalBlock) is True:
+                x = layer(x, batch_idx)
+            else:
+                x = layer(x)
         x = torch.flatten(x, 1)
         x = self.fc(x)
         return x
