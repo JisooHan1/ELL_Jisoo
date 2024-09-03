@@ -73,6 +73,7 @@ class FractalBlock(nn.Module):
         return self.path2
 
     def forward(self, x, batch_index):
+        print(f"Input shape: {x.shape}")
         device = x.device
 
         if batch_index % 2 == 0: # local sampling
@@ -156,6 +157,7 @@ class FractalNet(nn.Module):
         self.fc = nn.Linear(512, 10) # 512 = "output_channel"
 
     def forward(self, x, batch_index):
+        print(f"0000000000000000000000000000Input shape: {x.shape}")
         for layer in self.total_layers:
             x = layer(x, batch_index)
         x = torch.flatten(x, 1)
