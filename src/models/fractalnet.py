@@ -40,7 +40,7 @@ class FractalBlock(nn.Module):
     def __init__(self, input_channel, output_channel, num_col, dropout_rate):
         super(FractalBlock, self).__init__()
 
-        self.drop_keep_list = LocalSampling(num_col, drop_prob=0.15)
+        self.drop_keep_list = LocalSampling(drop_prob=0.15, num_col=num_col)
 
         # generate branch1
         if self.drop_keep_list[0] == 1:
