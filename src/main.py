@@ -41,14 +41,14 @@ def train(net, trainloader, criterion, optimizer, epoch, writer, device):
         print_frequency = 15
 
     # iterates over elements of  trainloader (one batch). 0: starting batch index of 'i'
-    for i, data in enumerate(trainloader, 0):
+    for batch_index, data in enumerate(trainloader, 0):
         inputs, labels = data
         inputs = inputs.to(device)
         labels = labels.to(device)
 
         # forward + backward + optimize
         optimizer.zero_grad() # initialize the gradients to '0'
-        outputs = net(inputs) # Forward pass => softmax not applied
+        outputs = net(inputs, batch_index) # Forward pass => softmax not applied
         loss = criterion(outputs, labels) # average loss "over the batch"
         loss.backward() # back propagation
         optimizer.step() # update weights
@@ -56,10 +56,10 @@ def train(net, trainloader, criterion, optimizer, epoch, writer, device):
         # print statistics
         running_loss += loss.item() # extract scalar from tensor: for batches
         total_loss += loss.item() # extract scalar from tensor: for epochs
-        if (i+1) % print_frequency == 0: # print every (print_frequency) mini-batches
+        if (batch_index+1) % print_frequency == 0: # print every (print_frequency) mini-batches
             # (current epoch, total batches processed, average loss for last (print_frequency) batches) => avg of avg??
-            print('[%d, %5d] loss: %.3f' %(epoch, i + 1, running_loss / print_frequency)) # average loss for an amount of batches
-            writer.add_scalar('Loss/train', running_loss / print_frequency, epoch * len(trainloader) + i) # global index for loss
+            print('[%d, %5d] loss: %.3f' %(epoch, batch_index + 1, running_loss / print_frequency)) # average loss for an amount of batches
+            writer.add_scalar('Loss/train', running_loss / print_frequency, epoch * len(trainloader) + batch_index) # global index for loss
             running_loss = 0.0
     writer.add_scalar('Loss/train_epoch', total_loss / len(trainloader), epoch) # average loss for each epoch
 
