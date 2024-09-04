@@ -48,7 +48,10 @@ def train(net, trainloader, criterion, optimizer, epoch, writer, device):
 
         # forward + backward + optimize
         optimizer.zero_grad() # initialize the gradients to '0'
-        outputs = net(inputs, batch_index) # Forward pass => softmax not applied
+        if isinstance(net, FractalNet):
+            outputs = net(inputs, batch_index) # Forward pass => softmax not applied
+        else:
+            outputs = net(inputs)
         loss = criterion(outputs, labels) # average loss "over the batch"
         loss.backward() # back propagation
         optimizer.step() # update weights
@@ -76,7 +79,10 @@ def test(net, testloader, criterion, epoch, writer, device):
             images = images.to(device)
             labels = labels.to(device)
 
-            outputs = net(images, batch_index)
+            if isinstance(net, FractalNet):
+                outputs = net(images, batch_index)
+            else:
+                outputs = net(images)
             loss = criterion(outputs, labels) # average loss "over the batch"
             test_loss += loss.item()
 
@@ -124,8 +130,10 @@ def main():
         lr = 0.1
         milestones = [epoch*0.5, epoch*0.75]
     elif args.model == "FractalNet": # batch size: 100, epoch: 400
-        lr = 0.02
-        milestones = [epoch // i**2 for i in range(1, int(math.log2(epoch)) + 1)]
+        lr = 0.001
+        milestones = [epoch*0.5, epoch*0.75]
+        # milestones = [epoch // 2**i for i in range(1, int(math.log2(epoch)) + 1)]
+        # milestones.reverse()
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
