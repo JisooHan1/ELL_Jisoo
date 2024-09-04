@@ -151,7 +151,7 @@ class FractalNet(nn.Module):
         super(FractalNet, self).__init__()
 
         output_channel=64
-        num_col=2
+        num_col=4
         dropout_rates = [0,0.1,0.2,0.3,0.4] if self.training == True else [0,0,0,0,0]
 
         # 5 blocks
