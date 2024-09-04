@@ -8,6 +8,7 @@ class MakePatchEmbedding(nn.Module):
 
         self.patch_size = patch_size
         self.linear_proj = nn.Linear(patch_size**2 * input_channel, dim)
+        self.class_token = nn.Parameter(torch.ones(1, 1,  dim))
 
     def forward(self, x):
 
@@ -17,7 +18,7 @@ class MakePatchEmbedding(nn.Module):
         # => shape of x: (batch, channel, num height patch, num width patch, height, width)
 
         # change shape to (batch, num height patch, num width patch, channel, height, width)
-        x.permutate(0,2,3,1,4,5)
+        x.permute(0,2,3,1,4,5)
 
         # change shape to (batch, patch, flattened patch vector)
         x = x.flatten(start_dim=3, end_dim=-1).flatten(start_dim=1, end_dim=2)
@@ -26,8 +27,7 @@ class MakePatchEmbedding(nn.Module):
         x = self.linear_proj(x)
 
         # prepend class_token at the beginning of the patch for each image
-        class_token = nn.Parameter(torch.ones(x.shape[2]))
-        patch_embeddings = torch.cat((class_token, x), dim=1)
+        patch_embeddings = torch.cat((self.class_token, x), dim=1)
 
         # element-wise add positional vectors to patch embeddings at once by tensor
         positional_tensor = nn.Parameter(torch.rand(patch_embeddings.shape))
