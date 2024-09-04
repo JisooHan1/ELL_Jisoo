@@ -48,10 +48,7 @@ def train(net, trainloader, criterion, optimizer, epoch, writer, device):
 
         # forward + backward + optimize
         optimizer.zero_grad() # initialize the gradients to '0'
-        if isinstance(net, FractalNet):
-            outputs = net(inputs, batch_index) # Forward pass => softmax not applied
-        else:
-            outputs = net(inputs)
+        outputs = net(inputs) # Forward pass => softmax not applied
         loss = criterion(outputs, labels) # average loss "over the batch"
         loss.backward() # back propagation
         optimizer.step() # update weights
@@ -74,15 +71,12 @@ def test(net, testloader, criterion, epoch, writer, device):
     test_loss = 0.0 # total loss in test set (batch 단위)
 
     with torch.no_grad(): # doesn't compute gradients while testing
-        for batch_index, data in enumerate(testloader): # loops over each batches
+        for data in testloader: # loops over each batches
             images, labels = data
             images = images.to(device)
             labels = labels.to(device)
 
-            if isinstance(net, FractalNet):
-                outputs = net(images, batch_index)
-            else:
-                outputs = net(images)
+            outputs = net(images)
             loss = criterion(outputs, labels) # average loss "over the batch"
             test_loss += loss.item()
 

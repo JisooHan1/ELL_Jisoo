@@ -3,28 +3,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import random
 
-class FractalBlock1Col(nn.Module):
-    def __init__(self, input_channel, output_channel, dropout_rate):
-        super(FractalBlock1Col, self).__init__()
-
-        # conv-bn-relu-dropout
-        self.conv1 = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
-        self.bn = nn.BatchNorm2d(output_channel)
-        self.dropout = nn.Dropout(dropout_rate)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = F.relu(self.bn(x))
-        x = self.dropout(x)
-        return [x]
-
 class LocalSampling:
     def __init__(self, drop_prob, num_col):
 
-        # make a list of 0/1 for path1, path2: generate path vs doesn't generate path ex)[0,1]
+        # make drop_keep_list
         keep_prob = 1-drop_prob
         self.drop_keep_list = []
-        [self.drop_keep_list.append((torch.rand(1) + keep_prob).floor().item()) for _ in range(2)] # drop = 0, keep = 1
+        [self.drop_keep_list.append((torch.rand(1) + keep_prob).floor().item()) for _ in range(2)]
 
         # handling condition 1) doesn't generate path2 if "num_col==1"
         if num_col == 1:
@@ -50,43 +35,75 @@ class GlobalSampling:
     def sampling_result(self):
         return self.drop_keep_list
 
+class Pool(nn.Module):
+    def __init__(self):
+        super(Pool, self).__init__()
+
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2) # 2x2 non-overlapping max-pooling
+
+    def forward(self, paths, *args):
+        pool_outcome = []
+        for i in range(len(paths)):
+            out = self.pool(paths[i])
+            pool_outcome.append(out)
+        return pool_outcome
+
+class Join(nn.Module):
+    def __init__(self):
+        super(Join, self).__init__()
+
+    def forward(self, path_list, *args):
+        # make a list of outcomes after drop-path
+        outputs = []
+        for path in path_list:
+            outputs.append(path)
+
+        # join by elementwise means
+        join_outcome = sum(outputs)/len(outputs)
+        return join_outcome
+
+class FractalBlock1Col(nn.Module):
+    def __init__(self, input_channel, output_channel, dropout_rate):
+        super(FractalBlock1Col, self).__init__()
+
+        # conv-bn-relu-dropout
+        self.conv1 = nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1)
+        self.bn = nn.BatchNorm2d(output_channel)
+        self.dropout = nn.Dropout(dropout_rate)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = F.relu(self.bn(x))
+        x = self.dropout(x)
+        return [x]
+
 class FractalBlock(nn.Module):
     def __init__(self, input_channel, output_channel, num_col, dropout_rate):
         super(FractalBlock, self).__init__()
 
-        self.input_channel = input_channel
-        self.output_channel = output_channel
         self.num_col = num_col
-        self.dropout_rate = dropout_rate
 
         # generate path1
-        self.path1 = self.generate_path1(self.input_channel, self.output_channel, self.dropout_rate)
-        #print(f"Path1 generated")
+        self.path1 = self.generate_path1(input_channel, output_channel, dropout_rate)
 
         # generate path2: (Ommited if C=1)
         if num_col > 1:
-            self.path2 = self.generate_path2(self.input_channel, self.output_channel, self.num_col, self.dropout_rate)
-            #print(f"Path2 generated")
+            self.path2 = self.generate_path2(input_channel, output_channel, num_col, dropout_rate)
         else:
             self.path2 = None
-        #print(f"FractalBlock __init__, {input_channel}->{output_channel}")
 
-    def forward(self, x, batch_index):
-        #print(f"Input shape: {x.shape}")
+    def forward(self, x, sampling):
 
         # Drop-path: training only
         if self.training:
             # local sampling
-            if batch_index % 2 == 0:
-                #print(f"LOCAL SAMPLING")
+            if sampling == "local":
                 local_sampling = LocalSampling(drop_prob=0.15, num_col=self.num_col)
                 self.drop_keep_list = local_sampling.sampling_result()
             # global sampling
-            else:
-                # print(f"GLOBAL SAMPLING")
+            elif sampling == "global":
                 global_sampling = GlobalSampling(num_col=self.num_col)
                 self.drop_keep_list = global_sampling.sampling_result()
-            # print(f"self.drop_keep_list: {self.drop_keep_list}")
         else: # no drop
             self.drop_keep_list = [1,1] if self.num_col != 1 else [1,0]
 
@@ -97,15 +114,13 @@ class FractalBlock(nn.Module):
         if self.drop_keep_list[0] == 1:
             out1 = self.path1(x)
             output_paths.extend(out1)
-            # print(f"output list: {len(output_paths)}")
 
         # output form path2
         if self.drop_keep_list[1] == 1:
             out2 = x
             for layer in self.path2:
-                out2 = layer(out2, batch_index)
+                out2 = layer(out2, sampling)
             output_paths.extend(out2)
-            # print(f"output list: {len(output_paths)}")
 
         return output_paths
 
@@ -120,34 +135,6 @@ class FractalBlock(nn.Module):
         ])
         return self.path2
 
-
-class Pool(nn.Module):
-    def __init__(self):
-        super(Pool, self).__init__()
-
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2) # 2x2 non-overlapping max-pooling
-
-    def forward(self, paths, batch_index=None):
-        pool_outcome = []
-        for i in range(len(paths)):
-            out = self.pool(paths[i])
-            pool_outcome.append(out)
-        return pool_outcome
-
-class Join(nn.Module):
-    def __init__(self):
-        super(Join, self).__init__()
-
-    def forward(self, path_list, batch_index=None):
-        # make a list of outcomes after drop-path
-        outputs = []
-        for path in path_list:
-            outputs.append(path)
-
-        # join by elementwise means
-        join_outcome = sum(outputs)/len(outputs)
-        return join_outcome
-
 class FractalNet(nn.Module):
     def __init__(self, input_channel):
         super(FractalNet, self).__init__()
@@ -156,10 +143,9 @@ class FractalNet(nn.Module):
         num_col=2
         dropout_rates = [0,0.1,0.2,0.3,0.4] if self.training else [0,0,0,0,0]
 
-        # 5 blocks
+        # generate 5 blocks
         self.total_layers = nn.ModuleList()
         for i in range(1, 6):
-            # print(f"CURRENT BLOCK: {i}")
             # block-pool-join
             dropout_rate = dropout_rates[i-1]
             self.total_layers.append(FractalBlock(input_channel, output_channel, num_col, dropout_rate))
@@ -174,16 +160,12 @@ class FractalNet(nn.Module):
         # final fc layer
         self.fc = nn.Linear(512, 10) # 512 = "output_channel"
 
-    def forward(self, x, batch_index):
-        # print(f"Initial input shape: {x.shape}")
+    def forward(self, x):
+        # choose sampling in "batch level": local vs global
+        sampling = "local" if random.randint(0, 1) == 0 else "global"
+
         for layer in self.total_layers:
-            x = layer(x, batch_index)
-            # if isinstance(x, list):
-            #     # If the output is a list, print each element's shape
-            #     for i, out in enumerate(x):
-            #         print(f"After layer {layer.__class__.__name__}, output {i} shape: {out.shape}")
-            # else:
-            #     print(f"After layer {layer.__class__.__name__}, output shape: {x.shape}")
+            x = layer(x, sampling)
         x = torch.flatten(x, 1)
         x = self.fc(x)
         return x
