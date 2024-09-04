@@ -71,7 +71,7 @@ def test(net, testloader, criterion, epoch, writer, device):
     test_loss = 0.0 # total loss in test set (batch 단위)
 
     with torch.no_grad(): # doesn't compute gradients while testing
-        for data in testloader: # loops over each batches
+        for batch_index, data in enumerate(testloader): # loops over each batches
             images, labels = data
             images = images.to(device)
             labels = labels.to(device)
