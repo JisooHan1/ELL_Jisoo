@@ -124,6 +124,6 @@ class ViT(nn.Module):
         for _ in range(self.depth):
             x = self.encoder(x)
 
-        x = torch.flatten(x, 1)
+        x = x.view(x.shape[0], -1)
         x = self.fc(x)
         return x
