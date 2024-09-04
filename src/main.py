@@ -116,21 +116,28 @@ def main():
     # Optimization
     if args.model == "LeNet": # batch size: 64, epoch: 300
         lr = 0.001
+        optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
         milestones = [epoch*0.5, epoch*0.75]
     elif args.model == "ResNet": # batch size: 64, epoch: 300
         lr = 0.001
+        optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
         milestones = [epoch*0.5, epoch*0.75]
     elif args.model == "DenseNet": # batch size: 64, epoch: 300
         lr = 0.1
+        optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
         milestones = [epoch*0.5, epoch*0.75]
-    elif args.model == "FractalNet": # batch size: 100, epoch: 400
+    elif args.model == "FractalNet": # batch size: 64, epoch: 100
         lr = 0.001
+        optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
         milestones = [epoch*0.5, epoch*0.75]
         # milestones = [epoch // 2**i for i in range(1, int(math.log2(epoch)) + 1)]
         # milestones.reverse()
+    elif args.model == "Vit": # batch size: 64, epoch: 100
+        lr = 0.001
+        optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=0.1)
+        milestones = [epoch*0.5, epoch*0.75]
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.1)
 
     # Initialize tensorboard writer

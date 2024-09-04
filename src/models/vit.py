@@ -6,7 +6,6 @@ class MakePatchEmbedding(nn.Module):
     def __init__(self, input_channel, patch_size, dim):
         super(MakePatchEmbedding, self).__init__()
 
-        self.input_channels = input_channel
         self.patch_size = patch_size
         self.linear_proj = nn.Linear(patch_size**2 * input_channel, dim)
 
@@ -20,8 +19,11 @@ class MakePatchEmbedding(nn.Module):
         # change shape to (batch, num height patch, num width patch, channel, height, width)
         x.permutate(0,2,3,1,4,5)
 
-        # change shape to (batch, patch, a flattened patch vector)
+        # change shape to (batch, patch, flattened patch vector)
         x = x.flatten(start_dim=3, end_dim=-1).flatten(start_dim=1, end_dim=2)
+
+        # change shape to (batch, patch, dim)
+        x = self.linear_proj(x)
 
         # prepend class_token at the beginning of the patch for each image
         class_token = nn.parameter(torch.ones(x.shape[2]))
@@ -31,19 +33,92 @@ class MakePatchEmbedding(nn.Module):
         positional_tensor = nn.parameter(torch.rand(patch_embeddings.shape))
         final_embeddings = positional_tensor + patch_embeddings
 
-        return final_embeddings # return positional+patch embeddings tensor
+        # return positional+patch embeddings tensor
+        return final_embeddings # =>(batch_size, num_patches, dim)
 
+class Attention(nn.Module):
+    def __init__(self, dim, dim_qkv):
+        super(Attention, self).__init__()
+
+        self.dim_qkv = dim_qkv
+
+        # Wq: (dim, 64)
+        self.wq_matrix = nn.parameter(torch.ones(dim, self.dim_qkv))
+        # Wk: (dim, 64)
+        self.wk_matrix = nn.parameter(torch.ones(dim, self.dim_qkv))
+        # Wv: (dim, 64)
+        self.wv_matrix = nn.parameter(torch.ones(dim, self.dim_qkv))
+
+        self.softmax = nn.Softmax(dim=-2) # sum of each row is 1
+
+    def forward(self, x):
+
+        Wq = torch.mm(x, self.wq_matrix) # => (batch_size, num_patches, dim_q)
+        Wk = torch.mm(x, self.wk_matrix) # => (batch_size, num_patches, dim_k)
+        Wv = torch.mm(x, self.wv_matrix) # => (batch_size, num_patches, dim_v)
+
+        scores = torch.einsum('bik,bjk->bij', Wq, Wk) # => (batch_size, num_patches, num_patches)
+        attention_weights = self.softmax(scores / self.dim_qkv**0.5) # => (batch_size, num_patches, num_patches)
+
+        attention_output = torch.mm(attention_weights, Wv) # =>(batch_size, num_patches, dim_v)
+
+        return attention_output
 
 class Encoder(nn.Module):
-    def __init__(self):
+    def __init__(self, dim, num_head):
         super(Encoder, self).__init__()
 
-    def forward(self,):
-        pass
+        self.dim = dim
+        dim_qkv = 64
+        self.num_head = num_head
+        self.attention = Attention(dim, self.dim_qkv)
+        self.linear = nn.Linear(dim_qkv*num_head, dim)
+
+        self.fc1 = nn.Linear(dim, dim* 4)
+        self.fc2 = nn.Linear(dim* 4, dim)
+
+    def forward(self, x):
+
+        # layer norm & MSA & residual connection
+        identity_map_1 = x # =>(batch_size, num_patches, dim)
+        x = torch.layer_norm(x)
+        final_attention_result = self.attention(x)
+        for _ in range(self.num_head-1):
+            out = self.attention(x)
+            torch.cat((final_attention_result, out), dim=-1) # =>(batch_size, num_patches, dim_v*num_head)
+        final_attention_result = self.linear(final_attention_result) # =>(batch_size, num_patches, dim)
+        out = final_attention_result + identity_map_1
+
+        # layer norm & MLP & residual connection
+        identity_map_2 = out # =>(batch_size, num_patches, dim)
+        out = torch.layer_norm(out)
+        out = self.fc1(out) # =>(batch_size, num_patches, dim * 4)
+        out = self.fc2(out) # =>(batch_size, num_patches, dim)
+        out = F.gelu(out)
+        out += identity_map_2
+
+        return out # =>(batch_size, num_patches, dim)
 
 class ViT(nn.Module):
     def __init__(self, input_channel):
         super(ViT, self).__init__()
 
+        patch_size = 4
+        dim = 192
+        num_head = dim/64
+        self.depth = 8
+
+        self.patch_embeddings = MakePatchEmbedding(input_channel, patch_size, dim)
+        self.encoder = Encoder(dim, num_head)
+
+        self.fc = nn.Linear(dim, 10)
+
     def forward(self, x):
-        pass
+        x = self.patch_embeddings(x)
+
+        for _ in range(self.depth):
+            x = self.encoder(x)
+
+        x = torch.flatten(x, 1)
+        x = self.fc(x)
+        return x
