@@ -12,6 +12,7 @@ class MakePatchEmbedding(nn.Module):
 
 
     def forward(self, x):
+        device = x.device
 
         # turn image to patches in a tensor form
         x = x.unfold(2, self.patch_size, self.patch_size) # unfold along height: unfold(dim-H, Psize, stride)
@@ -28,7 +29,7 @@ class MakePatchEmbedding(nn.Module):
         x = self.linear_proj(x)
 
         # prepend class_token at the beginning of the patch for each image
-        class_token = nn.Parameter(torch.ones(x.shape[0], 1, self.dim))
+        class_token = nn.Parameter(torch.ones(x.shape[0], 1, self.dim)).to(device)
         patch_embeddings = torch.cat((class_token, x), dim=1)
 
         # element-wise add positional vectors to patch embeddings at once by tensor
