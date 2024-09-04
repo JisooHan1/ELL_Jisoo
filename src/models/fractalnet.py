@@ -20,6 +20,7 @@ class FractalBlock1Col(nn.Module):
 
 class LocalSampling:
     def __init__(self, drop_prob, num_col):
+
         # make a list of 0/1 for path1, path2: generate path vs doesn't generate path ex)[0,1]
         keep_prob = 1-drop_prob
         self.drop_keep_list = []
@@ -66,15 +67,19 @@ class FractalBlock(nn.Module):
         #print(f"Input shape: {x.shape}")
         device = x.device
 
-        if batch_index % 2 == 0: # local sampling
-            #print(f"LOCAL SAMPLING")
-            local_sampling = LocalSampling(drop_prob=0.15, num_col=self.num_col)
-            self.drop_keep_list = local_sampling.sampling_result()
-        else: # global sampling
-            #print(f"GLOBAL SAMPLING")
-            global_sampling = GlobalSampling(num_col=self.num_col)
-            self.drop_keep_list = global_sampling.sampling_result()
-        #print(f"self.drop_keep_list: {self.drop_keep_list}")
+        # apply drop-path only when training
+        if self.training == True:
+            if batch_index % 2 == 0: # local sampling
+                #print(f"LOCAL SAMPLING")
+                local_sampling = LocalSampling(drop_prob=0.15, num_col=self.num_col)
+                self.drop_keep_list = local_sampling.sampling_result()
+            else: # global sampling
+                #print(f"GLOBAL SAMPLING")
+                global_sampling = GlobalSampling(num_col=self.num_col)
+                self.drop_keep_list = global_sampling.sampling_result()
+            #print(f"self.drop_keep_list: {self.drop_keep_list}")
+        else:
+            self.drop_keep_list = [1,1] if self.num_col != 1 else [1,0]
 
         # make a list of outputs from each path(branch)
         output_paths = []

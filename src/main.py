@@ -76,7 +76,7 @@ def test(net, testloader, criterion, epoch, writer, device):
             images = images.to(device)
             labels = labels.to(device)
 
-            outputs = net(images)
+            outputs = net(images, batch_index)
             loss = criterion(outputs, labels) # average loss "over the batch"
             test_loss += loss.item()
 
