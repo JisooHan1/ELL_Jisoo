@@ -84,7 +84,7 @@ class Encoder(nn.Module):
 
         # layer norm & MSA & residual connection
         identity_map_1 = x # =>(batch_size, num_patches, dim)
-        x = torch.layer_norm(x)
+        x = torch.layer_norm(x, x.size()[1:])
         final_attention_result = self.attention(x)
         for _ in range(self.num_head-1):
             out = self.attention(x)
@@ -94,7 +94,7 @@ class Encoder(nn.Module):
 
         # layer norm & MLP & residual connection
         identity_map_2 = out # =>(batch_size, num_patches, dim)
-        out = torch.layer_norm(out)
+        out = torch.layer_norm(out, out.size()[1:])
         out = self.fc1(out) # =>(batch_size, num_patches, dim * 4)
         out = self.fc2(out) # =>(batch_size, num_patches, dim)
         out = F.gelu(out)
