@@ -119,7 +119,6 @@ class ViT(nn.Module):
 
     def forward(self, x):
         x = self.patch_embeddings(x)
-        print(x.shape)
 
         for _ in range(self.depth):
             x = self.encoder(x)
