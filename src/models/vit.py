@@ -33,7 +33,7 @@ class MakePatchEmbedding(nn.Module):
         patch_embeddings = torch.cat((class_token, x), dim=1)
 
         # element-wise add positional vectors to patch embeddings at once by tensor
-        positional_tensor = nn.Parameter(torch.rand(patch_embeddings.shape))
+        positional_tensor = nn.Parameter(torch.rand(patch_embeddings.shape, device=device))
         final_embeddings = positional_tensor + patch_embeddings
 
         # return positional+patch embeddings tensor
