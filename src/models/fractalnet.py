@@ -60,17 +60,21 @@ class FractalBlock(nn.Module):
 
         self.path1 = None
         self.path2 = None
+        #print(f"FractalBlock __init__, {input_channel}->{output_channel}")
 
     def forward(self, x, batch_index):
-        print(f"Input shape: {x.shape}")
+        #print(f"Input shape: {x.shape}")
         device = x.device
 
         if batch_index % 2 == 0: # local sampling
+            #print(f"LOCAL SAMPLING")
             local_sampling = LocalSampling(drop_prob=0.15, num_col=self.num_col)
             self.drop_keep_list = local_sampling.sampling_result()
         else: # global sampling
+            #print(f"GLOBAL SAMPLING")
             global_sampling = GlobalSampling(num_col=self.num_col)
-            self.drop_keep_list = global_sampling
+            self.drop_keep_list = global_sampling.sampling_result()
+        #print(f"self.drop_keep_list: {self.drop_keep_list}")
 
         # make a list of outputs from each path(branch)
         output_paths = []
@@ -78,18 +82,23 @@ class FractalBlock(nn.Module):
         # output from path1
         if self.drop_keep_list[0] == 1:
             if self.path1 == None: # generate branch1
+                #print(f"Path1 generated")
                 self.path1 = self.generate_path1(self.input_channel, self.output_channel, self.dropout_rate).to(device)
             out1 = self.path1(x)
             output_paths.extend(out1)
+            # print(f"output list: {len(output_paths)}")
 
         # output form path2
         if self.drop_keep_list[1] == 1:
             if self.path2 == None: # generate branch2(Ommited if C=1)
+                # print(f"Path2 generated")
                 self.path2 = self.generate_path2(self.input_channel, self.output_channel, self.num_col, self.dropout_rate).to(device)
+
+            out2 = x
             for layer in self.path2:
-                out2 = layer(x, batch_index)
-            out2 = self.path2(x, batch_index)
+                out2 = layer(out2, batch_index)
             output_paths.extend(out2)
+            # print(f"output list: {len(output_paths)}")
 
         return output_paths
 
@@ -137,12 +146,13 @@ class FractalNet(nn.Module):
         super(FractalNet, self).__init__()
 
         output_channel=64
-        num_col=4
+        num_col=2
         dropout_rates = [0,0.1,0.2,0.3,0.4] if self.training == True else [0,0,0,0,0]
 
         # 5 blocks
         self.total_layers = nn.ModuleList()
         for i in range(1, 6):
+            # print(f"CURRENT BLOCK: {i}")
             # block-pool-join
             dropout_rate = dropout_rates[i-1]
             self.total_layers.append(FractalBlock(input_channel, output_channel, num_col, dropout_rate))
@@ -158,15 +168,15 @@ class FractalNet(nn.Module):
         self.fc = nn.Linear(512, 10) # 512 = "output_channel"
 
     def forward(self, x, batch_index):
-        print(f"Initial input shape: {x.shape}")
+        # print(f"Initial input shape: {x.shape}")
         for layer in self.total_layers:
             x = layer(x, batch_index)
-            if isinstance(x, list):
-                # If the output is a list, print each element's shape
-                for i, out in enumerate(x):
-                    print(f"After layer {layer.__class__.__name__}, output {i} shape: {out.shape}")
-            else:
-                print(f"After layer {layer.__class__.__name__}, output shape: {x.shape}")
+            # if isinstance(x, list):
+            #     # If the output is a list, print each element's shape
+            #     for i, out in enumerate(x):
+            #         print(f"After layer {layer.__class__.__name__}, output {i} shape: {out.shape}")
+            # else:
+            #     print(f"After layer {layer.__class__.__name__}, output shape: {x.shape}")
         x = torch.flatten(x, 1)
         x = self.fc(x)
         return x
