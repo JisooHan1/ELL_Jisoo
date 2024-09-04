@@ -18,7 +18,7 @@ class MakePatchEmbedding(nn.Module):
         # => shape of x: (batch, channel, num height patch, num width patch, height, width)
 
         # change shape to (batch, num height patch, num width patch, channel, height, width)
-        x.permute(0,2,3,1,4,5)
+        x = x.permute(0,2,3,1,4,5)
 
         # change shape to (batch, patch, flattened patch vector)
         x = x.flatten(start_dim=3, end_dim=-1).flatten(start_dim=1, end_dim=2)
