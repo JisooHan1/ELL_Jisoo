@@ -86,9 +86,11 @@ class Encoder(nn.Module):
         identity_map_1 = x # =>(batch_size, num_patches, dim)
         x = torch.layer_norm(x, x.size()[1:])
         final_attention_result = self.attention(x)
-        for _ in range(self.num_head-1):
+        attention_outputs = [final_attention_result]
+        for _ in range(self.num_head - 1):
             out = self.attention(x)
-            torch.cat((final_attention_result, out), dim=-1) # =>(batch_size, num_patches, dim_v*num_head)
+            attention_outputs.append(out)
+        final_attention_result = torch.cat(attention_outputs, dim=-1)  # =>(batch_size, num_patches, dim_v*num_head)
         final_attention_result = self.linear(final_attention_result) # =>(batch_size, num_patches, dim)
         out = final_attention_result + identity_map_1
 
