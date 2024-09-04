@@ -138,7 +138,7 @@ def main():
         milestones = [epoch*0.5, epoch*0.75]
 
     criterion = nn.CrossEntropyLoss()
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.1)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=milestones, gamma=0.1)
 
     # Initialize tensorboard writer
     writer = SummaryWriter(log_dir=f'logs/{args.model}')
