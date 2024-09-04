@@ -26,11 +26,11 @@ class MakePatchEmbedding(nn.Module):
         x = self.linear_proj(x)
 
         # prepend class_token at the beginning of the patch for each image
-        class_token = nn.parameter(torch.ones(x.shape[2]))
+        class_token = nn.Parameter(torch.ones(x.shape[2]))
         patch_embeddings = torch.cat((class_token, x), dim=1)
 
         # element-wise add positional vectors to patch embeddings at once by tensor
-        positional_tensor = nn.parameter(torch.rand(patch_embeddings.shape))
+        positional_tensor = nn.Parameter(torch.rand(patch_embeddings.shape))
         final_embeddings = positional_tensor + patch_embeddings
 
         # return positional+patch embeddings tensor
@@ -43,24 +43,24 @@ class Attention(nn.Module):
         self.dim_qkv = dim_qkv
 
         # Wq: (dim, 64)
-        self.wq_matrix = nn.parameter(torch.ones(dim, self.dim_qkv))
+        self.wq_matrix = nn.Parameter(torch.ones(dim, self.dim_qkv))
         # Wk: (dim, 64)
-        self.wk_matrix = nn.parameter(torch.ones(dim, self.dim_qkv))
+        self.wk_matrix = nn.Parameter(torch.ones(dim, self.dim_qkv))
         # Wv: (dim, 64)
-        self.wv_matrix = nn.parameter(torch.ones(dim, self.dim_qkv))
+        self.wv_matrix = nn.Parameter(torch.ones(dim, self.dim_qkv))
 
-        self.softmax = nn.Softmax(dim=-2) # sum of each row is 1
+        self.softmax = nn.Softmax(dim=-1) # sum of each row is 1
 
     def forward(self, x):
 
-        Wq = torch.mm(x, self.wq_matrix) # => (batch_size, num_patches, dim_q)
-        Wk = torch.mm(x, self.wk_matrix) # => (batch_size, num_patches, dim_k)
-        Wv = torch.mm(x, self.wv_matrix) # => (batch_size, num_patches, dim_v)
+        Wq = torch.matmul(x, self.wq_matrix) # => (batch_size, num_patches, dim_q)
+        Wk = torch.matmul(x, self.wk_matrix) # => (batch_size, num_patches, dim_k)
+        Wv = torch.matmul(x, self.wv_matrix) # => (batch_size, num_patches, dim_v)
 
         scores = torch.einsum('bik,bjk->bij', Wq, Wk) # => (batch_size, num_patches, num_patches)
         attention_weights = self.softmax(scores / self.dim_qkv**0.5) # => (batch_size, num_patches, num_patches)
 
-        attention_output = torch.mm(attention_weights, Wv) # =>(batch_size, num_patches, dim_v)
+        attention_output = torch.matmul(attention_weights, Wv) # =>(batch_size, num_patches, dim_v)
 
         return attention_output
 
@@ -71,7 +71,7 @@ class Encoder(nn.Module):
         self.dim = dim
         dim_qkv = 64
         self.num_head = num_head
-        self.attention = Attention(dim, self.dim_qkv)
+        self.attention = Attention(dim, dim_qkv)
         self.linear = nn.Linear(dim_qkv*num_head, dim)
 
         self.fc1 = nn.Linear(dim, dim* 4)
