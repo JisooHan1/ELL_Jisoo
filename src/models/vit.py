@@ -72,10 +72,10 @@ class Encoder(nn.Module):
         dim_qkv = 64
         self.num_head = num_head
         self.attention = Attention(dim, dim_qkv)
-        self.linear = nn.Linear(dim_qkv*num_head, dim)
+        self.linear = nn.Linear(dim_qkv * num_head, dim)
 
-        self.fc1 = nn.Linear(dim, dim* 4)
-        self.fc2 = nn.Linear(dim* 4, dim)
+        self.fc1 = nn.Linear(dim, dim * 4)
+        self.fc2 = nn.Linear(dim * 4, dim)
 
     def forward(self, x):
 
@@ -105,7 +105,7 @@ class ViT(nn.Module):
 
         patch_size = 4
         dim = 192
-        num_head = dim/64
+        num_head = int(dim/64)
         self.depth = 8
 
         self.patch_embeddings = MakePatchEmbedding(input_channel, patch_size, dim)
