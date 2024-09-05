@@ -81,6 +81,9 @@ class Encoder(nn.Module):
         self.attention = Attention(dim, dim_qkv)
         self.linear = nn.Linear(dim_qkv * num_head, dim)
 
+        self.layer_norm_1 = nn.LayerNorm(dim)
+        self.layer_norm_2 = nn.LayerNorm(dim)
+
         self.fc1 = nn.Linear(dim, dim * 4)
         self.fc2 = nn.Linear(dim * 4, dim)
 
@@ -88,7 +91,7 @@ class Encoder(nn.Module):
 
         # layer norm & MSA & residual connection
         identity_map_1 = x # =>(batch_size, num_patches, dim)
-        x = torch.nn.LayerNorm(x, x.size()[1:])
+        x = self.layer_norm_1(x)
         final_attention_result = self.attention(x)
         attention_outputs = [final_attention_result]
         for _ in range(self.num_head - 1):
@@ -100,11 +103,10 @@ class Encoder(nn.Module):
 
         # layer norm & MLP & residual connection
         identity_map_2 = out # =>(batch_size, num_patches, dim)
-        out = torch.nn.LayerNorm(out, out.size()[1:])
+        out = self.layer_norm_1(out)
         out = self.fc1(out) # =>(batch_size, num_patches, dim * 4)
         out = F.gelu(out)
         out = self.fc2(out) # =>(batch_size, num_patches, dim)
-
         out += identity_map_2
 
         return out # =>(batch_size, num_patches, dim)
