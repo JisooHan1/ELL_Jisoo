@@ -3,6 +3,33 @@ import torch.nn as nn
 import torch.nn.functional as F
 import random
 
+
+
+
+"""
+mask structure: path1/path2/path3
+"""
+
+# returns list of 0/1 mask
+def BasicMask(drop_prob, num_path):
+    mask = (torch.rand(num_path) + (1-drop_prob)).floor()
+    return mask.tolist()
+
+def MakeMask(num_col):
+    final_structure = []
+
+    if num_col == 2:
+        final_structure.extend(BasicMask(0.15, 3))
+
+    elif num_col > 2:
+        final_structure.append(BasicMask(0.15, 1))
+        final_structure.append(MakeMask(num_col-1))
+        final_structure.append(MakeMask(num_col-1))
+    return final_structure
+
+
+
+
 class LocalSampling:
     def __init__(self, drop_prob, num_col):
 
