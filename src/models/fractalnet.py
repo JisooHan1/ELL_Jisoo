@@ -34,7 +34,7 @@ def local_drop(paths, drop_prob):
 def global_drop(paths, chosen_col): # chosen_col: 4/3/2/1
 
     if len(paths) < chosen_col:
-        results = torch.zeros(paths[0].shape)
+        results = [torch.zeros(paths[0].shape)]
         return results
     else:
         kept_path_index = len(paths) - chosen_col
@@ -47,21 +47,16 @@ class Join(nn.Module):
 
     def forward(self, paths, sampling):
         # Local Sampling
-        print(f"Initial paths: {len(paths)}")  # 초기 paths 출력
         if sampling == 'local':
             paths = local_drop(paths, drop_prob=0.15)
-            print(f"After local drop: {len(paths)}")  # local drop 후의 paths 출력
         # Global Sampling
         if type(sampling) == tuple:
             chosen_col = sampling[1]
             paths = global_drop(paths, chosen_col)
-            print(f"After global drop: {len(paths)}")  # global drop 후의 paths 출력
 
         # Join - elementwise means
         stacked_paths = torch.stack(paths, dim=0)  # (num_paths, batch, channel, height, width)
-        print(f"Stacked paths shape: {stacked_paths.shape}")  # 스택된 텐서의 shape 출력
         out = torch.mean(stacked_paths, dim=0)     # (batch, channel, height, width)
-        print(f"Output after mean: {out.shape}")  # 평균 연산 후 결과 shape 출력
         return out
 
 class BasicBlock(nn.Module):
@@ -75,7 +70,8 @@ class BasicBlock(nn.Module):
             nn.Dropout(dropout_rate)
         )
     def forward(self, x):
-        return [self.conv_bn_drop(x)]
+        device = next(self.parameters()).device
+        return [self.conv_bn_drop(x.to(device))]
 
 def gen_path1(input_channel, output_channel, dropout_rate):
     return nn.Sequential(BasicBlock(input_channel, output_channel, dropout_rate))
