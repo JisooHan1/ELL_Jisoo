@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import random
 
 class Pool(nn.Module):
@@ -11,48 +10,47 @@ class Pool(nn.Module):
 
     def forward(self, paths, *args):
         pool_outcome = []
+        device = paths[0].device
+
         for i in range(len(paths)):
-            out = self.pool(paths[i])
-            pool_outcome.append(out)
+            out = self.pool(paths[i].to(device))
+            pool_outcome.append(out.to(device))
         return pool_outcome
 
-
-# list -> list (dropped)
+# List -> List
 def local_drop(paths, drop_prob):
-    results = paths[:] # for output
+    device = paths[0].device
     # Drop path
-    for i in range(len(paths)):
-            if random.random() <= drop_prob:
-                results[i] = 'dropped'
+    drop_mask = torch.rand(len(paths), device=device) > drop_prob # True: keep, False: drop
+    results = [path for path, keep in zip(paths, drop_mask) if keep.item()]
+
     # Kept path
-    results = list(filter(lambda x: x != 'dropped', results))
     if len(results) == 0: # Handle all dropped
         results.append(random.choice(paths))
     return results
 
-
 def global_drop(paths, chosen_col): # chosen_col: 4/3/2/1
+    device = paths[0].device
 
     if len(paths) < chosen_col:
-        results = [torch.zeros(paths[0].shape)]
-        return results
+        return [torch.zeros_like(paths[0], device=device)]
     else:
         kept_path_index = len(paths) - chosen_col
-        results = [paths[kept_path_index]]
-        return results
+        return [paths[kept_path_index].to(device)]
 
 class Join(nn.Module):
     def __init__(self):
         super(Join, self).__init__()
 
     def forward(self, paths, sampling):
-        # Local Sampling
-        if sampling == 'local':
+        device = paths[0].device
+
+        if sampling == 'local': # Local Sampling
             paths = local_drop(paths, drop_prob=0.15)
-        # Global Sampling
-        if type(sampling) == tuple:
+        elif isinstance(sampling, tuple): # Global Sampling
             chosen_col = sampling[1]
             paths = global_drop(paths, chosen_col)
+        paths = [p.to(device) for p in paths]
 
         # Join - elementwise means
         stacked_paths = torch.stack(paths, dim=0)  # (num_paths, batch, channel, height, width)
@@ -70,8 +68,9 @@ class BasicBlock(nn.Module):
             nn.Dropout(dropout_rate)
         )
     def forward(self, x):
-        device = next(self.parameters()).device
-        return [self.conv_bn_drop(x.to(device))]
+        device = x.device
+        x = x.to(device)
+        return [self.conv_bn_drop(x)]
 
 def gen_path1(input_channel, output_channel, dropout_rate):
     return nn.Sequential(BasicBlock(input_channel, output_channel, dropout_rate))
@@ -86,32 +85,19 @@ def gen_path2(input_channel, output_channel, num_col, dropout_rate):
 class FractalBlock(nn.Module):
     def __init__(self, input_channel, output_channel, num_col, dropout_rate):
         super(FractalBlock, self).__init__()
-
         self.num_col = num_col
-
-        # generate path1
         self.path1 = gen_path1(input_channel, output_channel, dropout_rate)
-
-        # generate path2: (Ommited if C=1)
-        if num_col > 1:
-            self.path2 = gen_path2(input_channel, output_channel, num_col, dropout_rate)
-        else:
-            self.path2 = None
+        self.path2 = gen_path2(input_channel, output_channel, num_col, dropout_rate) if num_col > 1 else None
 
     def forward(self, x, sampling):
-
-        # make a list of outputs from each path(branch)
+        device = x.device
+        # List of outputs from each path
         output_paths = []
-
-        # output from path1
-        output_paths.extend(self.path1(x))
-
-        # output form path2
+        output_paths.extend(self.path1(x)) # Add path 1
         if self.path2 is not None:
             for layer in self.path2:
                 x = layer(x, sampling)
-            output_paths.extend(x)
-
+            output_paths.extend(x) # Add path 2
         return output_paths
 
 class FractalNet(nn.Module):
@@ -119,35 +105,31 @@ class FractalNet(nn.Module):
         super(FractalNet, self).__init__()
 
         output_channel=64
-        num_col=4
-
+        self.num_col=4
         dropout_rates = [0, 0.1, 0.2, 0.3, 0.4] if self.training else [0, 0, 0, 0, 0]
 
-        # 4 blocks
+        # 4 blocks: block-pool-join x4
         self.layers = nn.ModuleList()
-        for i in range(1, 5):
-            # block-pool-join
-            dropout_rate = dropout_rates[i-1]
-            self.layers.append(FractalBlock(input_channel, output_channel, num_col, dropout_rate))
-            if i != 4:
+        for i in range(4):
+            self.layers.append(FractalBlock(input_channel, output_channel, self.num_col, dropout_rates[i]))
+            if i != 3:  # Add Pool layer except for the last block
                 self.layers.append(Pool())
             self.layers.append(Join())
 
-            # adjust num of channel for next block
+            # Adjust channels for the next block
             input_channel = output_channel
             output_channel *= 2
 
-        # final fc layer
+        # Final fc layer
         self.GAP = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Linear(512, 10) # 512 = "output_channel"
 
     def forward(self, x):
-        # choose sampling in "batch level": local vs global
-        sampling = 'local' if random.random() <= 0.5 else ('global', random.randint(1,4))
-
+        # Choose sampling in "batch level": local vs global
+        sampling = 'local' if random.random() <= 0.5 else ('global', random.randint(1, self.num_col))
         for layer in self.layers:
             x = layer(x, sampling)
-        x = self.GAP(x) # shape: (batch-size, 512, 8, 8) -> (batch-size, 512, 1, 1)
-        x = torch.flatten(x, 1) # shape: (batch-size, 512, 1, 1) -> (batch-size, 512)
+        x = self.GAP(x) # (batch-size, 512, 8, 8) -> (batch-size, 512, 1, 1)
+        x = torch.flatten(x, 1) # (batch-size, 512, 1, 1) -> (batch-size, 512)
         x = self.fc(x)
         return x
