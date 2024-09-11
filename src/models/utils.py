@@ -14,6 +14,6 @@ def load_model(name, input_channels, image_size):
     elif name == "FractalNet":
         return FractalNet(input_channels)
     elif name == "ViT":
-        return ViT(input_channels)
+        return ViT(input_channels, image_size)
     else:
         raise ValueError("Invalid model name")
