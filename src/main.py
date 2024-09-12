@@ -134,9 +134,8 @@ def main():
         milestones.reverse()
     elif args.model == "ViT": # batch size: 64, epoch: 100
         lr = 0.001
-        optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=0.1)
-        milestones = [epoch*0.5, epoch*0.75]
-
+        optimizer = optim.Adam(net.parameters(), lr=lr)
+        milestones = []
     criterion = nn.CrossEntropyLoss()
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=milestones, gamma=0.1)
 

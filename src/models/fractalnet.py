@@ -10,22 +10,15 @@ class Pool(nn.Module):
 
     def forward(self, paths, *args):
         pool_outcome = []
-        device = paths[0].device
-
         for i in range(len(paths)):
-            out = self.pool(paths[i].to(device))
-            pool_outcome.append(out.to(device))
+            x = self.pool(paths[i])
+            pool_outcome.append(x)
         return pool_outcome
 
-# List -> List
 def local_drop(paths, drop_prob):
-    device = paths[0].device
-    # Drop path
-    drop_mask = torch.rand(len(paths), device=device) > drop_prob # True: keep, False: drop
-    results = [path for path, keep in zip(paths, drop_mask) if keep.item()]
+    results = [path for path in paths if torch.rand() > drop_prob]  # drop-path
 
-    # Kept path
-    if len(results) == 0: # Handle all dropped
+    if results is None: # Handle all dropped
         results.append(random.choice(paths))
     return results
 
@@ -44,7 +37,6 @@ class Join(nn.Module):
 
     def forward(self, paths, sampling):
         device = paths[0].device
-
         if sampling == 'local': # Local Sampling
             paths = local_drop(paths, drop_prob=0.15)
         elif isinstance(sampling, tuple): # Global Sampling
@@ -57,37 +49,32 @@ class Join(nn.Module):
         out = torch.mean(stacked_paths, dim=0)     # (batch, channel, height, width)
         return out
 
+# conv-bn-relu-dropout
 class BasicBlock(nn.Module):
     def __init__(self, input_channel, output_channel, dropout_rate):
         super(BasicBlock, self).__init__()
-        # conv-bn-relu-dropout
         self.conv_bn_drop = nn.Sequential(
             nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(output_channel),
             nn.ReLU(),
             nn.Dropout(dropout_rate)
         )
+
     def forward(self, x):
-        device = x.device
-        x = x.to(device)
         return [self.conv_bn_drop(x)]
-
-def gen_path1(input_channel, output_channel, dropout_rate):
-    return nn.Sequential(BasicBlock(input_channel, output_channel, dropout_rate))
-
-def gen_path2(input_channel, output_channel, num_col, dropout_rate):
-    return nn.ModuleList([
-        FractalBlock(input_channel, output_channel, num_col-1, dropout_rate),
-        Join(),
-        FractalBlock(output_channel, output_channel, num_col-1, dropout_rate)
-    ])
 
 class FractalBlock(nn.Module):
     def __init__(self, input_channel, output_channel, num_col, dropout_rate):
         super(FractalBlock, self).__init__()
         self.num_col = num_col
-        self.path1 = gen_path1(input_channel, output_channel, dropout_rate)
-        self.path2 = gen_path2(input_channel, output_channel, num_col, dropout_rate) if num_col > 1 else None
+        self.path1 = nn.Sequential(BasicBlock(input_channel, output_channel, dropout_rate))
+        if num_col > 1:
+            self.path2 = nn.ModuleList([
+                FractalBlock(input_channel, output_channel, num_col-1, dropout_rate),
+                Join(),
+                FractalBlock(output_channel, output_channel, num_col-1, dropout_rate)
+            ])
+        else: self.path2 = None
 
     def forward(self, x, sampling):
         device = x.device
