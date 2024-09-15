@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class PatchEmbedding(nn.Module):
     def __init__(self, in_channels, img_size, patch_size, embed_dim):
         super(PatchEmbedding, self).__init__()
@@ -11,39 +12,39 @@ class PatchEmbedding(nn.Module):
         self.projection = nn.Linear(patch_size**2 * in_channels, embed_dim)
 
         self.cls_token = nn.Parameter(torch.ones(1, 1, embed_dim).mul_(0.02))
-        self.positional_tensor = nn.Parameter(torch.rand(1, (img_size // patch_size)**2 + 1, embed_dim).mul_(0.02))
-
+        self.positional_tensor = nn.Parameter(torch.rand(1, (img_size // patch_size) ** 2 + 1, embed_dim).mul_(0.02))
 
     def forward(self, x):
         device = x.device
         batch_size, channels, height, width = x.size()
 
         # Number of patches
-        num_patches_h =  height // self.patch_size
-        num_patches_w =  width // self.patch_size
+        num_patches_h = height // self.patch_size
+        num_patches_w = width // self.patch_size
 
         # (batch size, channels, height, width)
         # =>(batch size, channels, num_patches_h, height, num_patches_w, width)
         x = x.view(batch_size, channels, num_patches_h, self.patch_size, num_patches_w, self.patch_size)
 
         # => (batch size, num_patches_h, num_patches_w, channel, height, width)
-        x = x.permute(0,2,4,1,3,5)
+        x = x.permute(0, 2, 4, 1, 3, 5)
 
         # => (batch size, patches, flattened patch vector)
-        x = x.contiguous().view(batch_size, num_patches_h*num_patches_w, -1)
+        x = x.contiguous().view(batch_size, num_patches_h * num_patches_w, -1)
 
         # => (batch size, patches, dim)
         x = self.projection(x)
 
         # Prepend class token
-        cls_token = self.cls_token.expand(batch_size, -1, -1) # => (batch size, 1, dim)
-        patch_embeddings = torch.cat((cls_token, x), dim=1) # => (batch size, patches + 1, dim)
+        cls_token = self.cls_token.expand(batch_size, -1, -1)  # => (batch size, 1, dim)
+        patch_embeddings = torch.cat((cls_token, x), dim=1)  # => (batch size, patches + 1, dim)
 
         # element-wise add positional vectors
-        final_embeddings =  self.positional_tensor[:, :patch_embeddings.size(1), :] + patch_embeddings
+        final_embeddings = self.positional_tensor[:, : patch_embeddings.size(1), :] + patch_embeddings
 
         # return positional+patch embeddings tensor
-        return final_embeddings # =>(batch_size, num_patches, dim)
+        return final_embeddings  # =>(batch_size, num_patches, dim)
+
 
 class MSA(nn.Module):
     def __init__(self, heads, embed_dim):
@@ -59,7 +60,7 @@ class MSA(nn.Module):
         # Wv: (embed_dim, embed_dim)
         self.wv_matrix = nn.Parameter(torch.ones(embed_dim, embed_dim).mul_(0.02))
 
-        self.softmax = nn.Softmax(dim=-1) # sum of each row is 1
+        self.softmax = nn.Softmax(dim=-1)  # sum of each row is 1
 
     def forward(self, x):
         batch_size, num_patches, embed_dim = x.shape
@@ -73,15 +74,18 @@ class MSA(nn.Module):
         Wk = Wk.permute(0, 2, 1, 3)
         Wv = Wv.permute(0, 2, 1, 3)
 
-        scores = torch.einsum('bhid,bhjd->bhij', Wq, Wk) # => (batch_size, heads, num_patches, num_patches)
-        attention_weights = self.softmax(scores / self.head_dim**0.5) # => (batch_size, heads, num_patches, num_patches)
-        msa = torch.einsum('bhij,bhjd->bhid', attention_weights, Wv)  # (batch_size, heads, num_patches, head_dim)
+        scores = torch.einsum("bhid,bhjd->bhij", Wq, Wk)  # => (batch_size, heads, num_patches, num_patches)
+        attention_weights = self.softmax(
+            scores / self.head_dim**0.5
+        )  # => (batch_size, heads, num_patches, num_patches)
+        msa = torch.einsum("bhij,bhjd->bhid", attention_weights, Wv)  # (batch_size, heads, num_patches, head_dim)
 
         # => (batch_size, num_patches, embed_dim)
         msa = msa.permute(0, 2, 1, 3).contiguous()
         msa = msa.view(batch_size, num_patches, embed_dim)
 
         return msa
+
 
 class Encoder(nn.Module):
     def __init__(self, embed_dim, num_head):
@@ -101,20 +105,21 @@ class Encoder(nn.Module):
     def forward(self, x):
 
         # 1) layer norm & MSA & residual connection
-        identity_1 = x # => (batch_size, num_patches, embed_dim)
+        identity_1 = x  # => (batch_size, num_patches, embed_dim)
         x = self.layer_norm_1(x)
         msa = self.attention(x)
         x = msa + identity_1
 
         # 2) layer norm & MLP & residual connection
-        identity_2 = x # =>(batch_size, num_patches, dim)
+        identity_2 = x  # =>(batch_size, num_patches, dim)
         x = self.layer_norm_2(x)
-        x = self.fc1(x) # =>(batch_size, num_patches, dim * 4)
+        x = self.fc1(x)  # =>(batch_size, num_patches, dim * 4)
         x = F.gelu(x)
-        x = self.fc2(x) # =>(batch_size, num_patches, dim)
+        x = self.fc2(x)  # =>(batch_size, num_patches, dim)
         x += identity_2
 
-        return x # =>(batch_size, num_patches, dim)
+        return x  # =>(batch_size, num_patches, dim)
+
 
 class ViT(nn.Module):
     def __init__(self, in_channels, img_size):
@@ -122,7 +127,7 @@ class ViT(nn.Module):
 
         patch_size = 4
         dim = 192
-        num_head = int(dim/64)
+        num_head = int(dim / 64)
         self.depth = 8
 
         self.patch_embeddings = PatchEmbedding(in_channels, img_size, patch_size, dim)
