@@ -8,7 +8,9 @@ class Pool(nn.Module):
     def __init__(self):
         super(Pool, self).__init__()
 
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 non-overlapping max-pooling
+        self.pool = nn.MaxPool2d(
+            kernel_size=2, stride=2
+        )  # 2x2 non-overlapping max-pooling
 
     def forward(self, paths, *args):
         pool_outcome = []
@@ -50,7 +52,9 @@ class Join(nn.Module):
         paths = [p.to(device) for p in paths]
 
         # Join - elementwise means
-        stacked_paths = torch.stack(paths, dim=0)  # (num_paths, batch, channel, height, width)
+        stacked_paths = torch.stack(
+            paths, dim=0
+        )  # (num_paths, batch, channel, height, width)
         out = torch.mean(stacked_paths, dim=0)  # (batch, channel, height, width)
         return out
 
@@ -60,7 +64,9 @@ class BasicBlock(nn.Module):
     def __init__(self, input_channel, output_channel, dropout_rate):
         super(BasicBlock, self).__init__()
         self.conv_bn_drop = nn.Sequential(
-            nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(
+                input_channel, output_channel, kernel_size=3, stride=1, padding=1
+            ),
             nn.BatchNorm2d(output_channel),
             nn.ReLU(),
             nn.Dropout(dropout_rate),
@@ -74,15 +80,15 @@ class FractalBlock(nn.Module):
     def __init__(self, input_channel, output_channel, num_col, dropout_rate):
         super(FractalBlock, self).__init__()
         self.num_col = num_col
-        self.path1 = nn.Sequential(BasicBlock(input_channel, output_channel, dropout_rate))
+        self.path1 = nn.Sequential(
+            BasicBlock(input_channel, output_channel, dropout_rate)
+        )
         if num_col > 1:
-            self.path2 = nn.ModuleList(
-                [
-                    FractalBlock(input_channel, output_channel, num_col - 1, dropout_rate),
-                    Join(),
-                    FractalBlock(output_channel, output_channel, num_col - 1, dropout_rate),
-                ]
-            )
+            self.path2 = nn.ModuleList([
+                FractalBlock(input_channel, output_channel, num_col - 1, dropout_rate),
+                Join(),
+                FractalBlock(output_channel, output_channel, num_col - 1, dropout_rate),
+            ])
         else:
             self.path2 = None
 
@@ -109,7 +115,11 @@ class FractalNet(nn.Module):
         # 4 blocks: block-pool-join x4
         self.layers = nn.ModuleList()
         for i in range(4):
-            self.layers.append(FractalBlock(input_channel, output_channel, self.num_col, dropout_rates[i]))
+            self.layers.append(
+                FractalBlock(
+                    input_channel, output_channel, self.num_col, dropout_rates[i]
+                )
+            )
             if i != 3:  # Add Pool layer except for the last block
                 self.layers.append(Pool())
             self.layers.append(Join())
@@ -124,7 +134,11 @@ class FractalNet(nn.Module):
 
     def forward(self, x):
         # Choose sampling in "batch level": local vs global
-        sampling = "local" if random.random() <= 0.5 else ("global", random.randint(1, self.num_col))
+        sampling = (
+            "local"
+            if random.random() <= 0.5
+            else ("global", random.randint(1, self.num_col))
+        )
         for layer in self.layers:
             x = layer(x, sampling)
         x = self.GAP(x)  # (batch-size, 512, 8, 8) -> (batch-size, 512, 1, 1)
