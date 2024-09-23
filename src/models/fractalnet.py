@@ -1,5 +1,4 @@
 import random
-
 import torch
 import torch.nn as nn
 
@@ -7,10 +6,7 @@ import torch.nn as nn
 class Pool(nn.Module):
     def __init__(self):
         super(Pool, self).__init__()
-
-        self.pool = nn.MaxPool2d(
-            kernel_size=2, stride=2
-        )  # 2x2 non-overlapping max-pooling
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 non-overlapping max-pooling
 
     def forward(self, paths, *args):
         pool_outcome = []
@@ -22,14 +18,12 @@ class Pool(nn.Module):
 
 def local_drop(paths, drop_prob):
     results = [path for path in paths if torch.rand(1).item() > drop_prob]  # drop-path
-
     if not results:  # Handle all dropped
         results.append(random.choice(paths))
     return results
 
 
 def global_drop(paths, chosen_col):  # chosen_col: 4/3/2/1
-
     if len(paths) < chosen_col:
         return [torch.zeros_like(paths[0])]
     else:
@@ -38,32 +32,32 @@ def global_drop(paths, chosen_col):  # chosen_col: 4/3/2/1
 
 
 class Join(nn.Module):
-    def __init__(self):
+    def __init__(self, num_col):
         super(Join, self).__init__()
 
+        self.num_col = num_col
+
     def forward(self, paths, sampling):
-        if sampling == "local":  # Local Sampling
-            paths = local_drop(paths, drop_prob=0.15)
-        elif isinstance(sampling, tuple):  # Global Sampling
-            chosen_col = sampling[1]
-            paths = global_drop(paths, chosen_col)
+        if self.num_col == 1:
+            return paths[0]
+        else:
+            if sampling == "local":  # Local Sampling
+                paths = local_drop(paths, drop_prob=0.15)
+            elif isinstance(sampling, tuple):  # Global Sampling
+                chosen_col = sampling[1]
+                paths = global_drop(paths, chosen_col)
 
         # Join - elementwise means
-        stacked_paths = torch.stack(
-            paths, dim=0
-        )  # (num_paths, batch, channel, height, width)
+        stacked_paths = torch.stack(paths, dim=0)  # (num_paths, batch, channel, height, width)
         out = torch.mean(stacked_paths, dim=0)  # (batch, channel, height, width)
         return out
 
 
-# conv-bn-relu-dropout
 class BasicBlock(nn.Module):
     def __init__(self, input_channel, output_channel, dropout_rate):
         super(BasicBlock, self).__init__()
         self.conv_bn_drop = nn.Sequential(
-            nn.Conv2d(
-                input_channel, output_channel, kernel_size=3, stride=1, padding=1
-            ),
+            nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(output_channel),
             nn.ReLU(),
             nn.Dropout(dropout_rate),
@@ -77,13 +71,11 @@ class FractalBlock(nn.Module):
     def __init__(self, input_channel, output_channel, num_col, dropout_rate):
         super(FractalBlock, self).__init__()
         self.num_col = num_col
-        self.path1 = nn.Sequential(
-            BasicBlock(input_channel, output_channel, dropout_rate)
-        )
+        self.path1 = nn.Sequential(BasicBlock(input_channel, output_channel, dropout_rate))
         if num_col > 1:
             self.path2 = nn.ModuleList([
                 FractalBlock(input_channel, output_channel, num_col - 1, dropout_rate),
-                Join(),
+                Join(num_col - 1),
                 FractalBlock(output_channel, output_channel, num_col - 1, dropout_rate),
             ])
         else:
@@ -111,14 +103,10 @@ class FractalNet(nn.Module):
         # 4 blocks: block-pool-join x4
         self.layers = nn.ModuleList()
         for i in range(4):
-            self.layers.append(
-                FractalBlock(
-                    input_channel, output_channel, self.num_col, dropout_rates[i]
-                )
-            )
+            self.layers.append(FractalBlock(input_channel, output_channel, self.num_col, dropout_rates[i]))
             if i != 3:  # Add Pool layer except for the last block
                 self.layers.append(Pool())
-            self.layers.append(Join())
+            self.layers.append(Join(self.num_col))
 
             # Adjust channels for the next block
             input_channel = output_channel
@@ -130,11 +118,7 @@ class FractalNet(nn.Module):
 
     def forward(self, x):
         # Choose sampling in "batch level": local vs global
-        sampling = (
-            "local"
-            if random.random() <= 0.5
-            else ("global", random.randint(1, self.num_col))
-        )
+        sampling = ("local" if random.random() <= 0.5 else ("global", random.randint(1, self.num_col)))
         for layer in self.layers:
             x = layer(x, sampling)
         x = self.GAP(x)  # (batch-size, 512, 8, 8) -> (batch-size, 512, 1, 1)
