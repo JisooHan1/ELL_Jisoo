@@ -21,7 +21,7 @@ class Pool(nn.Module):
 
 
 def local_drop(paths, drop_prob):
-    results = [path for path in paths if torch.rand() > drop_prob]  # drop-path
+    results = [path for path in paths if torch.rand(1).item() > drop_prob]  # drop-path
 
     if not results:  # Handle all dropped
         results.append(random.choice(paths))
