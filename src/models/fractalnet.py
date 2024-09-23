@@ -23,19 +23,18 @@ class Pool(nn.Module):
 def local_drop(paths, drop_prob):
     results = [path for path in paths if torch.rand() > drop_prob]  # drop-path
 
-    if results is None:  # Handle all dropped
+    if not results:  # Handle all dropped
         results.append(random.choice(paths))
     return results
 
 
 def global_drop(paths, chosen_col):  # chosen_col: 4/3/2/1
-    device = paths[0].device
 
     if len(paths) < chosen_col:
-        return [torch.zeros_like(paths[0], device=device)]
+        return [torch.zeros_like(paths[0])]
     else:
         kept_path_index = len(paths) - chosen_col
-        return [paths[kept_path_index].to(device)]
+        return [paths[kept_path_index]]
 
 
 class Join(nn.Module):
@@ -43,13 +42,11 @@ class Join(nn.Module):
         super(Join, self).__init__()
 
     def forward(self, paths, sampling):
-        device = paths[0].device
         if sampling == "local":  # Local Sampling
             paths = local_drop(paths, drop_prob=0.15)
         elif isinstance(sampling, tuple):  # Global Sampling
             chosen_col = sampling[1]
             paths = global_drop(paths, chosen_col)
-        paths = [p.to(device) for p in paths]
 
         # Join - elementwise means
         stacked_paths = torch.stack(
@@ -93,7 +90,6 @@ class FractalBlock(nn.Module):
             self.path2 = None
 
     def forward(self, x, sampling):
-        device = x.device
         # List of outputs from each path
         output_paths = []
         output_paths.extend(self.path1(x))  # Add path 1
