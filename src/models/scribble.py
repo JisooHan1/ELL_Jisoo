@@ -7,6 +7,7 @@ import torch.nn as nn
 보다 근본적인 구조적 문제가 있음!!
 '''
 
+# 메인 블록 하나 끝날 때마다 조인 전에 실행됨
 class Pool(nn.Module):
     def __init__(self):
         super(Pool, self).__init__()
@@ -37,7 +38,7 @@ class Join(nn.Module):
 class BasicBlock(nn.Module):
     def __init__(self, input_channel, output_channel, dropout_rate):
         super(BasicBlock, self).__init__()
-        self.conv_bn_drop = nn.Sequential(
+        self.basic_layer = nn.Sequential(
             nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(output_channel),
             nn.ReLU(),
@@ -45,7 +46,7 @@ class BasicBlock(nn.Module):
         )
 
     def forward(self, x):
-        return [self.conv_bn_drop(x)]
+        return [self.basic_layer(x)]
 
 
 class FractalBlock(nn.Module):
