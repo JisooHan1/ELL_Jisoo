@@ -9,8 +9,12 @@ class Pool(nn.Module):
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 non-overlapping max-pooling
 
     def forward(self, paths):
+        for i in paths:
+            print(f"Pooling input shape: {i.shape}")
         pooled = []
         [pooled.append(self.pool(path)) for path in paths]
+        for i in pooled:
+            print(f"Pooling output shape: {i.shape}")
         return pooled
 
 
@@ -22,7 +26,10 @@ class Join(nn.Module):
 
     def forward(self, paths):
         if self.num_col == 1:
+            print("Joining 1 paths")
             return paths[0]
+        for i, path in enumerate(paths):
+            print(f"Path about to join index_{i} shape: {path.shape}")
 
         # Join - elementwise means
         stacked_paths = torch.stack(paths, dim=0)  # (num_paths, batch, channel, height, width)
@@ -41,6 +48,8 @@ class BasicBlock(nn.Module):
         )
 
     def forward(self, x):
+        print(f"BasicBlock input shape: {x.shape}")
+        print(f"BasicBlock output shape: {self.basic_layer(x).shape}")
         return [self.basic_layer(x)]
 
 
@@ -59,6 +68,7 @@ class FractalBlock(nn.Module):
             self.path2 = None
 
     def forward(self, x):
+        print(f"FractalBlock (columns: {self.num_cols}) input shape: {x.shape}")
         # List of outputs from each path
         output_paths = []
         output_paths.extend(self.path1(x))  # Add path 1
@@ -74,7 +84,7 @@ class FractalNet(nn.Module):
         super(FractalNet, self).__init__()
 
         output_channel = 64
-        self.num_col = 3
+        self.num_col = 4
         dropout_rates = [0, 0.1, 0.2, 0.3] if self.training else [0, 0, 0, 0]
 
         # 4 blocks: block-pool-join x4
@@ -94,10 +104,15 @@ class FractalNet(nn.Module):
         self.fc = nn.Linear(512, 10)  # 512 = "output_channel"
 
     def forward(self, x):
+        print(f"FractalNet input shape: {x.shape}")
         # Choose sampling in "batch level": local vs global
         for layer in self.layers:
+            print(f"Passing through BLOCK {i + 1}")
             x = layer(x)
         x = self.GAP(x)  # (batch-size, 512, 8, 8) -> (batch-size, 512, 1, 1)
+        print(f"After GAP, shape: {x.shape}")
         x = torch.flatten(x, 1)  # (batch-size, 512, 1, 1) -> (batch-size, 512)
+        print(f"Flattened shape: {x.shape}")
         x = self.fc(x)
+        print(f"Final output shape: {x.shape}")
         return x
