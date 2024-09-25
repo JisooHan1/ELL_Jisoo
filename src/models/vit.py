@@ -55,7 +55,7 @@ class MSA(nn.Module):
 
         # Wq, Wk, Wv in one tensor
         self.qkv_matrix = nn.Linear(embed_dim, 3 * embed_dim)
-        self.softmax = nn.Softmax(dim=-1)  # sum of each row is 1
+        self.softmax = nn.Softmax(dim=-2)  # sum of each row is 1
 
     def forward(self, x):
         batch_size, num_patches, embed_dim = x.shape
