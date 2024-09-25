@@ -9,12 +9,8 @@ class Pool(nn.Module):
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 non-overlapping max-pooling
 
     def forward(self, paths):
-        for i in paths:
-            print(f"Pooling input shape: {i.shape}")
         pooled = []
         [pooled.append(self.pool(path)) for path in paths]
-        for i in pooled:
-            print(f"Pooling output shape: {i.shape}")
         return pooled
 
 
@@ -26,12 +22,7 @@ class Join(nn.Module):
 
     def forward(self, paths):
         if self.num_col == 1:
-            print("Joining 1 paths")
             return paths[0]
-        else:
-            print(f"Joining {len(paths)} paths")
-            for i, path in enumerate(paths):
-                print(f"Path about to join index_{i} shape: {path.shape}")
 
         # Join - elementwise means
         stacked_paths = torch.stack(paths, dim=0)  # (num_paths, batch, channel, height, width)
@@ -50,8 +41,6 @@ class BasicBlock(nn.Module):
         )
 
     def forward(self, x):
-        print(f"BasicBlock input shape: {x.shape}")
-        print(f"BasicBlock output shape: {self.basic_layer(x).shape}")
         return [self.basic_layer(x)]
 
 
@@ -70,7 +59,6 @@ class FractalBlock(nn.Module):
             self.path2 = None
 
     def forward(self, x):
-        print(f"FractalBlock (number of columns: {self.num_col}) input shape: {x.shape}")
         # List of outputs from each path
         output_paths = []
         output_paths.extend(self.path1(x))  # Add path 1
@@ -87,37 +75,29 @@ class FractalNet(nn.Module):
 
         output_channel = 64
         self.num_col = 4
-        dropout_rates = [0, 0.1, 0.2, 0.3] if self.training else [0, 0, 0, 0]
+        dropout_rates = [0, 0.1, 0.15, 0.2] if self.training else [0, 0, 0, 0]
 
         # 4 blocks: block-pool-join x4
         self.layers = nn.ModuleList()
         for i in range(4):
             self.layers.append(FractalBlock(input_channel, output_channel, self.num_col, dropout_rates[i]))
-            if i != 3:  # Add Pool layer except for the last block
+            # Adjust channels for the next block
+            input_channel = output_channel
+            if i < 2:  # Add Pool layer except for the last block
+                output_channel *= 2
                 self.layers.append(Pool())
             self.layers.append(Join(self.num_col))
 
-            # Adjust channels for the next block
-            input_channel = output_channel
-            output_channel *= 2
-
         # Final fc layer
         self.GAP = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Linear(512, 10)  # 512 = "output_channel"
+        self.fc = nn.Linear(256, 10)  # 256 = "output_channel"
 
     def forward(self, x):
-        print(f"FractalNet input shape: {x.shape}")
         # Choose sampling in "batch level": local vs global
         block_count = 1  # To track block number
         for layer in self.layers:
-            if isinstance(layer, Pool):
-                print(f"Passing through block {block_count}")
-                block_count += 1
             x = layer(x)
-        x = self.GAP(x)  # (batch-size, 512, 8, 8) -> (batch-size, 512, 1, 1)
-        print(f"After GAP, shape: {x.shape}")
-        x = torch.flatten(x, 1)  # (batch-size, 512, 1, 1) -> (batch-size, 512)
-        print(f"Flattened shape: {x.shape}")
+        x = self.GAP(x)  # (batch-size, 256, 8, 8) -> (batch-size, 256, 1, 1)
+        x = torch.flatten(x, 1)  # (batch-size, 256, 1, 1) -> (batch-size, 256)
         x = self.fc(x)
-        print(f"Final output shape: {x.shape}")
         return x
