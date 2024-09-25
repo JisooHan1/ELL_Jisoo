@@ -74,8 +74,8 @@ class FractalNet(nn.Module):
         super(FractalNet, self).__init__()
 
         output_channel = 64
-        self.num_col = 4
-        dropout_rates = [0,0,0,0,0] if self.training else [0, 0, 0, 0, 0]
+        self.num_col = 3
+        dropout_rates = [0, 0.1, 0.2, 0.3] if self.training else [0, 0, 0, 0]
 
         # 4 blocks: block-pool-join x4
         self.layers = nn.ModuleList()
