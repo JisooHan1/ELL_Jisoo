@@ -106,8 +106,8 @@ class FractalNet(nn.Module):
     def forward(self, x):
         print(f"FractalNet input shape: {x.shape}")
         # Choose sampling in "batch level": local vs global
-        for layer in self.layers:
-            print(f"Passing through BLOCK {i + 1}")
+        for i, layer in enumerate(self.layers):
+            print(f"Passing through block {i//3 + 1}")
             x = layer(x)
         x = self.GAP(x)  # (batch-size, 512, 8, 8) -> (batch-size, 512, 1, 1)
         print(f"After GAP, shape: {x.shape}")
