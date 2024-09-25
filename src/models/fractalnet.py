@@ -28,8 +28,10 @@ class Join(nn.Module):
         if self.num_col == 1:
             print("Joining 1 paths")
             return paths[0]
-        for i, path in enumerate(paths):
-            print(f"Path about to join index_{i} shape: {path.shape}")
+        else:
+            print(f"Joining {len(paths)} paths")
+            for i, path in enumerate(paths):
+                print(f"Path about to join index_{i} shape: {path.shape}")
 
         # Join - elementwise means
         stacked_paths = torch.stack(paths, dim=0)  # (num_paths, batch, channel, height, width)
@@ -68,7 +70,7 @@ class FractalBlock(nn.Module):
             self.path2 = None
 
     def forward(self, x):
-        print(f"FractalBlock (columns: {self.num_cols}) input shape: {x.shape}")
+        print(f"FractalBlock (number of columns: {self.num_col}) input shape: {x.shape}")
         # List of outputs from each path
         output_paths = []
         output_paths.extend(self.path1(x))  # Add path 1
