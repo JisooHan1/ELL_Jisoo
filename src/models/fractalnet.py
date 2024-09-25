@@ -33,7 +33,7 @@ class Join(nn.Module):
 class BasicBlock(nn.Module):
     def __init__(self, input_channel, output_channel, dropout_rate):
         super(BasicBlock, self).__init__()
-        self.conv_bn_drop = nn.Sequential(
+        self.basic_layer = nn.Sequential(
             nn.Conv2d(input_channel, output_channel, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(output_channel),
             nn.ReLU(),
@@ -41,7 +41,7 @@ class BasicBlock(nn.Module):
         )
 
     def forward(self, x):
-        return [self.conv_bn_drop(x)]
+        return [self.basic_layer(x)]
 
 
 class FractalBlock(nn.Module):
@@ -75,7 +75,7 @@ class FractalNet(nn.Module):
 
         output_channel = 64
         self.num_col = 4
-        dropout_rates = [0, 0.1, 0.2, 0.3, 0.4] if self.training else [0, 0, 0, 0, 0]
+        dropout_rates = [0,0,0,0,0] if self.training else [0, 0, 0, 0, 0]
 
         # 4 blocks: block-pool-join x4
         self.layers = nn.ModuleList()
