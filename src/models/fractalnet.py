@@ -77,9 +77,9 @@ class FractalNet(nn.Module):
         self.num_col = 4
         dropout_rates = [0, 0.1, 0.15, 0.2] if self.training else [0, 0, 0, 0]
 
-        # 4 blocks: block-pool-join x4
+        # 3 blocks: block-pool-join x3
         self.layers = nn.ModuleList()
-        for i in range(4):
+        for i in range(3):
             self.layers.append(FractalBlock(input_channel, output_channel, self.num_col, dropout_rates[i]))
             # Adjust channels for the next block
             input_channel = output_channel
