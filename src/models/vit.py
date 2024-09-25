@@ -72,7 +72,7 @@ class MSA(nn.Module):
         msa = torch.einsum("bijh,bjhd->bihd", attention_weights, Wv)  # (batch_size, num_patches, heads, head_dim)
 
         # => (batch_size, num_patches, embed_dim)
-        msa = msa.view(batch_size, num_patches, embed_dim)
+        msa = msa.contiguous().view(batch_size, num_patches, embed_dim)
 
         return msa
 
