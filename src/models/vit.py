@@ -118,7 +118,7 @@ class ViT(nn.Module):
         self.depth = 8
 
         self.patch_embeddings = PatchEmbedding(in_channels, img_size, patch_size, dim)
-        self.encoder = nn.ModuleList([Encoder(dim, num_head) for _ in range(self.depth)])
+        self.encoders = nn.ModuleList([Encoder(dim, num_head) for _ in range(self.depth)])
 
         self.fc = nn.Linear(dim, 10)
 
