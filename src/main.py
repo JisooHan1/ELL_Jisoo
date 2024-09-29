@@ -129,7 +129,7 @@ def main():
     elif args.model == "FractalNet": # batch size: 64, epoch: 100
         lr = 0.001
         optimizer = optim.Adam(net.parameters(), lr=lr)
-        milestones = []
+        milestones = [epoch*0.5, epoch*0.75]
         # lr = 0.02
         # optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
         # # milestones = [epoch*0.5, epoch*0.75]

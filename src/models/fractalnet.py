@@ -23,7 +23,7 @@ class Pool(nn.Module):
         super(Pool, self).__init__()
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 non-overlapping max-pooling
 
-    def forward(self, paths):
+    def forward(self, paths, *args):
         pooled = []
         [pooled.append(self.pool(path)) for path in paths]
         return pooled
