@@ -40,7 +40,7 @@ class Join(nn.Module):
             return paths[0]
         elif self.training:
             if sampling == "local":  # Local Sampling
-                paths = local_drop(paths, drop_prob=0.1)
+                paths = local_drop(paths, drop_prob=0.15)
             elif isinstance(sampling, tuple):  # Global Sampling
                 chosen_col = sampling[1]
                 paths = global_drop(paths, chosen_col)
@@ -96,13 +96,12 @@ class FractalNet(nn.Module):
 
         output_channel = 64
         self.num_col = 4
-        dropout_rates = [0, 0.1, 0.15, 0.2] if self.training else [0, 0, 0, 0]
+        dropout_rates = [0, 0.1, 0.2, 0.3] if self.training else [0, 0, 0, 0]
 
         # 3 blocks: block-pool-join x3
         self.layers = nn.ModuleList()
         for i in range(3):
             self.layers.append(FractalBlock(input_channel, output_channel, self.num_col, dropout_rates[i]))
-            # Adjust channels for the next block
             input_channel = output_channel
             if i < 2:  # Add Pool layer except for the last block
                 output_channel *= 2
@@ -115,7 +114,6 @@ class FractalNet(nn.Module):
 
     def forward(self, x):
         # Choose sampling in "batch level": local vs global
-        block_count = 1  # To track block number
         sampling = ("local" if random.random() <= 0.5 else ("global", random.randint(1, self.num_col)))
         for layer in self.layers:
             x = layer(x, sampling)

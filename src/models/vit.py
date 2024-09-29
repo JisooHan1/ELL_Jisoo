@@ -57,6 +57,8 @@ class MSA(nn.Module):
         self.qkv_matrix = nn.Linear(embed_dim, 3 * embed_dim)
         self.softmax = nn.Softmax(dim=-2)  # sum of each row is 1
 
+        self.linear = nn.Linear(embed_dim, embed_dim)
+
     def forward(self, x):
         batch_size, num_patches, embed_dim = x.shape
 
@@ -74,7 +76,7 @@ class MSA(nn.Module):
         # => (batch_size, num_patches, embed_dim)
         msa = msa.contiguous().view(batch_size, num_patches, embed_dim)
 
-        return msa
+        return self.linear(msa)
 
 
 class Encoder(nn.Module):
@@ -84,27 +86,18 @@ class Encoder(nn.Module):
         self.dim = embed_dim
         self.num_head = num_head
         self.attention = MSA(num_head, embed_dim)
-        self.linear = nn.Linear(embed_dim, embed_dim)
 
-        self.layer_norm_1 = nn.LayerNorm(embed_dim)
-        self.layer_norm_2 = nn.LayerNorm(embed_dim)
+        self.ln_1 = nn.LayerNorm(embed_dim)
+        self.ln_2 = nn.LayerNorm(embed_dim)
 
-        self.fc1 = nn.Linear(embed_dim, embed_dim * 4)
-        self.fc2 = nn.Linear(embed_dim * 4, embed_dim)
+        self.fc_1 = nn.Linear(embed_dim, embed_dim * 4)
+        self.fc_2 = nn.Linear(embed_dim * 4, embed_dim)
 
     def forward(self, x):
-
         # 1) layer norm & MSA & residual connection
-        identity_1 = x  # => (batch_size, num_patches, embed_dim)
-        x = self.layer_norm_1(x)
-        x = self.linear(self.attention(x)) + identity_1  # Apply MSA and add the residual
-
+        x = x + self.attention(self.ln_1(x))
         # 2) layer norm & MLP & residual connection
-        identity_2 = x  # =>(batch_size, num_patches, dim)
-        x = self.layer_norm_2(x)
-        x = F.gelu(self.fc1(x))  # =>(batch_size, num_patches, dim * 4)
-        x = self.fc2(x) + identity_2
-
+        x = x + self.fc_2(F.gelu(self.fc_1(self.ln_2(x))))
         return x  # =>(batch_size, num_patches, dim)
 
 
