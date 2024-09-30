@@ -127,10 +127,8 @@ def main():
         optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
         milestones = [epoch*0.5, epoch*0.75]
     elif args.model == "FractalNet": # batch size: 64, epoch: 100
-        lr = 0.03
-        optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
-        milestones = [epoch // 2**i for i in range(1, int(math.log2(epoch)) + 1)]
-        milestones.reverse()
+        lr = 0.1
+        optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
         # lr = 0.02
         # optimizer = optim.Adam(net.parameters(), lr=lr)
         # # milestones = [epoch*0.5, epoch*0.75]
@@ -141,7 +139,8 @@ def main():
         optimizer = optim.Adam(net.parameters(), lr=lr)
         milestones = []
     criterion = nn.CrossEntropyLoss()
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=milestones, gamma=0.1)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epoch)
+    # scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=milestones, gamma=0.1)
 
     # Initialize tensorboard writer
     writer = SummaryWriter(log_dir=f'logs/{args.model}')
