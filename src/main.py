@@ -135,7 +135,7 @@ def main():
         # milestones = [epoch // 2**i for i in range(1, int(math.log2(epoch)) + 1)]
         # milestones.reverse()
     elif args.model == "ViT": # batch size: 64, epoch: 100
-        lr = 0.02
+        lr = 0.001
         optimizer = optim.Adam(net.parameters(), lr=lr)
         milestones = []
     criterion = nn.CrossEntropyLoss()
