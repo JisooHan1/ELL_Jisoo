@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from datasets import load_dataset
-from models import LeNet, ResNet, DenseNet, FractalNet, load_model
+from models import LeNet, ResNet, DenseNet, FractalNet, ViT, MLPMixer, load_model
 
 import argparse
 from torch.utils.tensorboard import SummaryWriter
@@ -134,12 +134,16 @@ def main():
         # # milestones = [epoch*0.5, epoch*0.75]
         # milestones = [epoch // 2**i for i in range(1, int(math.log2(epoch)) + 1)]
         # milestones.reverse()
-    elif args.model == "ViT": # batch size: 64, epoch: 100
+    elif args.model == "ViT": # batch size: 64, epoch: 200
+        lr = 0.001
+        optimizer = optim.Adam(net.parameters(), lr=lr)
+        milestones = []
+    elif args.model == "MLPMixer": # batch size: 64, epoch: 200
         lr = 0.001
         optimizer = optim.Adam(net.parameters(), lr=lr)
         milestones = []
     criterion = nn.CrossEntropyLoss()
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epoch)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=epoch)
     # scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=milestones, gamma=0.1)
 
     # Initialize tensorboard writer
