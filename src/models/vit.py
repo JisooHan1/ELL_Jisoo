@@ -52,19 +52,20 @@ class MSA(nn.Module):
 
         # Wq, Wk, Wv in one tensor
         self.qkv_matrix = nn.Linear(embed_dim, 3 * embed_dim)
-        self.softmax = nn.Softmax(dim=-2)  # sum of each row is 1
+        self.softmax = nn.Softmax(dim=-1)  # sum of each col is 1
 
         self.linear = nn.Linear(embed_dim, embed_dim)
 
     def forward(self, x):
         batch_size, num_patches, embed_dim = x.shape
 
-        # => (batch_size, num_patches, 3 * embed_dim)
+        # (batch_size, num_patches, 3 * embed_dim)
         qkv = self.qkv_matrix(x)
-        qkv = qkv.view(batch_size, num_patches, self.heads, 3 * self.head_dim)
+        qkv = qkv.view(batch_size, num_patches, 3, self.heads, self.head_dim)
 
         # (batch_size, num_patches, heads, head_dim) x3
-        Wq, Wk, Wv = torch.chunk(qkv, 3, dim=-1)
+        Wq, Wk, Wv = torch.chunk(qkv, 3, dim=2)
+        Wq, Wk, Wv = Wq.squeeze(2), Wk.squeeze(2), Wv.squeeze(2)
 
         scores = torch.einsum("bihd,bjhd->bhij", Wq, Wk)  # (batch_size, heads, num_patches, num_patches)
         attention_weights = self.softmax(scores / self.head_dim**0.5)  # (batch_size, heads, num_patches, num_patches)
