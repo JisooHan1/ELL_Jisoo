@@ -4,6 +4,7 @@ from .densenet import DenseNet
 from .fractalnet import FractalNet
 from .vit import ViT
 from .mlpmixer import MLPMixer
+from .convmixer import ConvMixer
 
 def load_model(name, input_channels, image_size):
     if name == "LeNet":
@@ -18,5 +19,7 @@ def load_model(name, input_channels, image_size):
         return ViT(input_channels, image_size)
     elif name == "MLPMixer":
         return MLPMixer(input_channels, image_size)
+    elif name == "ConvMixer":
+        return ConvMixer(input_channels, image_size)
     else:
         raise ValueError("Invalid model name")

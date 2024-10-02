@@ -4,5 +4,6 @@ from .densenet import DenseNet
 from .fractalnet import FractalNet
 from .vit import ViT
 from .mlpmixer import MLPMixer
+from .convmixer import ConvMixer
 
 from .utils import load_model

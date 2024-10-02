@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from datasets import load_dataset
-from models import LeNet, ResNet, DenseNet, FractalNet, ViT, MLPMixer, load_model
+from models import LeNet, ResNet, DenseNet, FractalNet, ViT, MLPMixer, ConvMixer, load_model
 
 import argparse
 from torch.utils.tensorboard import SummaryWriter
@@ -139,6 +139,10 @@ def main():
         optimizer = optim.Adam(net.parameters(), lr=lr)
         milestones = []
     elif args.model == "MLPMixer": # batch size: 64, epoch: 200
+        lr = 0.001
+        optimizer = optim.Adam(net.parameters(), lr=lr)
+        milestones = []
+    elif args.model == "ConvMixer": # batch size: 64, epoch: 200
         lr = 0.001
         optimizer = optim.Adam(net.parameters(), lr=lr)
         milestones = []
