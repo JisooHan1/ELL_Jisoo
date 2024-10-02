@@ -20,6 +20,6 @@ def load_model(name, input_channels, image_size):
     elif name == "MLPMixer":
         return MLPMixer(input_channels, image_size)
     elif name == "ConvMixer":
-        return ConvMixer(input_channels, image_size)
+        return ConvMixer(input_channels)
     else:
         raise ValueError("Invalid model name")
