@@ -46,12 +46,19 @@ class ConvMixer(nn.Module):
             self.patch_embeddings = PatchEmbedding(in_channels, P, h)
             self.mix_layer = nn.Sequential(*(MixBlock(h) for _ in range(N)))
 
+            self.ln = nn.LayerNorm(h)
             self.GAP = nn.AdaptiveAvgPool2d(1)
             self.fc = nn.Linear(h, 10)
+
 
         def forward(self, x):
             x = self.patch_embeddings(x)
             x = self.mix_layer(x)
+
+             # Applying Layer Normalization
+            x = x.permute(0, 2, 3, 1)  # (batch_size, num_patches, num_patches, h)
+            x = self.ln(x)
+            x = x.permute(0, 3, 1, 2)  # (batch_size, h, num_patches, num_patches)
 
             # global average pooling & fc
             x = self.GAP(x)  # (batch_size, h, num_patches, num_patches) -> (batch-size, h, 1, 1)

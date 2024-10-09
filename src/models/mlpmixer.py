@@ -65,12 +65,13 @@ class MLPMixer(nn.Module):
             self.patch_embeddings = PatchEmbedding(in_channels, patch_size, C)
             self.mix_layer = nn.Sequential(*(MixBlock(S, dim_s, C, dim_c) for _ in range(N)))
 
+            self.ln = nn.LayerNorm(C)
             self.fc = nn.Linear(C, 10)
 
         def forward(self, x):
 
             x = self.patch_embeddings(x)
-            x = self.mix_layer(x)
+            x = self.ln(self.mix_layer(x))
 
             # globla average pooling & fc
             x = torch.mean(x, dim=1)  # (batch size, S, C) -> (batch-size, C)
