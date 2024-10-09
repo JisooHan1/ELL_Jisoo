@@ -120,8 +120,8 @@ def main():
         milestones = [epoch*0.5, epoch*0.75]
     elif args.model == "ResNet": # batch size: 64, epoch: 300
         lr = 0.001
-        optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
-        milestones = [epoch*0.5, epoch*0.75]
+        optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
+        # milestones = [epoch*0.5, epoch*0.75]
     elif args.model == "DenseNet": # batch size: 64, epoch: 300
         lr = 0.1
         optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
