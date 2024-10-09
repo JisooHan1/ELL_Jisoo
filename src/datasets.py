@@ -43,8 +43,8 @@ def load_dataset(name):
         "SVHN": {
             # 32x32x3
             # 10 class
-            # ~73,000 training images
-            # ~26,000 test images
+            # 73257 training images
+            # 26032 test images
             "dataset": torchvision.datasets.SVHN,
             "image size": 32,
             "input channel": 3,

@@ -7,7 +7,8 @@ from models import LeNet, ResNet, DenseNet, FractalNet, ViT, MLPMixer, ConvMixer
 import argparse
 from torch.utils.tensorboard import SummaryWriter
 import sys
-import math
+import os
+from datetime import datetime
 
 # check gpu
 def get_device():
@@ -164,9 +165,12 @@ def main():
     print(f"Number of Parameters in {args.model}: {num_of_pars}")
 
     # save trained model
+    os.makedirs(f'logs/{args.model}/trained_model', exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    save_path = f'logs/{args.model}/trained_model/trained_resnet_{timestamp}.pth'
     net.to('cpu')
-    torch.save(net.state_dict(), f'logs/{args.model}/trained_model')
-    print(f"Model saved in logs/{args.model}/trained_model")
+    torch.save(net.state_dict(), save_path)
+    print(f"Model saved in {save_path}")
 
 
 if __name__ == "__main__":

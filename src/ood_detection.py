@@ -15,7 +15,7 @@ def load_model(model_path):
 
     return net
 
-def is_ood(input_data, model):
+def get_MSP(input_data, model):
     # 모델을 평가 모드로 설정
     model.eval()
 
@@ -63,8 +63,8 @@ def main():
     ood_loader = torch.utils.data.DataLoader(ood_testset, batch_size=1, shuffle=True)
 
     # ID와 OOD 데이터에 대한 Softmax 스코어 수집
-    id_scores = [is_ood(data[0].to(device), model) for data in id_loader]
-    ood_scores = [is_ood(data[0].to(device), model) for data in ood_loader]
+    id_scores = [get_MSP(data[0].to(device), model) for data in id_loader]
+    ood_scores = [get_MSP(data[0].to(device), model) for data in ood_loader]
 
     # AUROC와 AUPR 계산 및 출력
     evaluate_ood_detection(id_scores, ood_scores)
