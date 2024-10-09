@@ -119,4 +119,4 @@ class ViT(nn.Module):
         x = self.patch_embeddings(x)
         x = self.ln(self.transformer_layer(x))
         class_token_output = x[:, 0]  # (batch_size, dim)
-        return self.fc(self.class_token_output)
+        return self.fc(class_token_output)
