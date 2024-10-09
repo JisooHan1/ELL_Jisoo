@@ -7,8 +7,6 @@ from sklearn.metrics import roc_auc_score, precision_recall_curve, auc
 
 def load_model(model_path):
     net = ResNet(3)  # input channels
-
-    # 저장된 모델 가중치 로드
     net.load_state_dict(torch.load(model_path, map_location='cpu'))
     net.eval()
 
@@ -16,7 +14,7 @@ def load_model(model_path):
 
 def get_MSP(input_data, model):
 
-    model.eval()  # no dropouts
+    model.eval()
 
     with torch.no_grad():
         outputs = model(input_data)
