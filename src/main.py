@@ -129,9 +129,6 @@ def main():
     elif args.model == "FractalNet": # batch size: 64, epoch: 100
         lr = 0.1
         optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
-        # lr = 0.02
-        # optimizer = optim.Adam(net.parameters(), lr=lr)
-        # # milestones = [epoch*0.5, epoch*0.75]
         # milestones = [epoch // 2**i for i in range(1, int(math.log2(epoch)) + 1)]
         # milestones.reverse()
     elif args.model == "ViT": # batch size: 64, epoch: 200
@@ -151,7 +148,7 @@ def main():
     # scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=milestones, gamma=0.1)
 
     # Initialize tensorboard writer
-    writer = SummaryWriter(log_dir=f'logs/{args.model}')
+    writer = SummaryWriter(log_dir=f'logs/{args.model}/tensorboard_logs')
 
     # train & test
     for epoch in range(1, epoch+1):
@@ -163,9 +160,14 @@ def main():
     # Compute total number of parameters of the model
     num_of_pars = sum(p.numel() for p in net.parameters())
 
-
     print("Finished Training & Testing\n")
     print(f"Number of Parameters in {args.model}: {num_of_pars}")
+
+    # save trained model
+    net.to('cpu')
+    torch.save(net.state_dict(), f'logs/{args.model}/trained_model')
+    print(f"Model saved in logs/{args.model}/trained_model")
+
 
 if __name__ == "__main__":
     main()
