@@ -27,7 +27,7 @@ def evaluate_ood_detection(id_scores, ood_scores):
     # generates list of label: ID = 0, OOD = 1
     id_label = [0] * len(id_scores)
     ood_label = [1] * len(ood_scores)
-    labels = id_label.extend(ood_label)
+    labels = labels = id_label + ood_label
 
     scores = id_scores + ood_scores
 
