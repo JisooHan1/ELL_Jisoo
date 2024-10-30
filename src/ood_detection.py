@@ -49,8 +49,6 @@ def run_ood_detection(args):
     id_scores = torch.tensor([], device=device)
     ood_scores = torch.tensor([], device=device)
 
-    ood_method = ood_method
-
     for data in id_loader:
         scores = MSP(data[0].to(device), model)
         id_scores = torch.cat([id_scores, scores])
