@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-def MSP(input_data, model):
+def msp_score(input_data, model):
     with torch.no_grad():
         outputs = model(input_data)
         softmax_scores = F.softmax(outputs, dim=1)  # (batch_size, num_class)

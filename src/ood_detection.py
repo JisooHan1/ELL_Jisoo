@@ -3,8 +3,9 @@ import torch.nn.functional as F
 from datasets import load_dataset
 from models import ResNet
 import argparse
-from ood_methods.msp import MSP
 from torcheval.metrics import BinaryAUROC, BinaryAUPRC
+from ood_methods import get_ood_methods
+
 
 def load_model(model_path):
     # Recover trained model
@@ -49,12 +50,14 @@ def run_ood_detection(args):
     id_scores = torch.tensor([], device=device)
     ood_scores = torch.tensor([], device=device)
 
+    ood_method = get_ood_methods(args.method)
+
     for data in id_loader:
-        scores = MSP(data[0].to(device), model)
+        scores = ood_method(data[0].to(device), model)
         id_scores = torch.cat([id_scores, scores])
 
     for data in ood_loader:
-        scores = MSP(data[0].to(device), model)
+        scores = ood_method(data[0].to(device), model)
         ood_scores = torch.cat([ood_scores, scores])
 
     # get AUROC and AUPR
@@ -66,6 +69,7 @@ if __name__ == "__main__":
     parser.add_argument("-bs", "--batch_size", type=int, required=True, help="Batch size")
     parser.add_argument("-id", "--id_dataset", type=str, required=True, help="ID dataset CIFAR10")
     parser.add_argument("-ood", "--ood_dataset", type=str, required=True, help="OOD dataset SVHN")
+    parser.add_argument("-m", "--method", type=str, help="OOD method to use")
     args = parser.parse_args()
 
     run_ood_detection(args)
