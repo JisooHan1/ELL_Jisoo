@@ -4,11 +4,9 @@ import torch.nn.functional as F
 def odin_score(input_data, model, temperature=1000, epsilon=0.001):
     input_data.requires_grad = True
 
-    model.eval()
-
     outputs_1 =  model(input_data) / temperature
     softmax_scores = F.softmax(outputs_1, dim=1)
-    max_score_1, pred_class = torch.max(softmax_scores, dim=1)
+    _, pred_class = torch.max(softmax_scores, dim=1)
 
     log_softmax_scores = F.log_softmax(outputs_1, dim=1)
     negative_log_softmax = -log_softmax_scores[range(len(pred_class)), pred_class]
