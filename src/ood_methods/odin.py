@@ -10,10 +10,12 @@ def odin_score(input_data, model, temperature=1000, epsilon=0.001):
 
     log_softmax_scores = F.log_softmax(outputs_1, dim=1)
     negative_log_softmax = -log_softmax_scores[range(len(pred_class)), pred_class]
+
     negative_log_softmax.sum().backward()
 
     gradient = input_data.grad
     processed_input_data = input_data - epsilon * torch.sign(gradient)
+    processed_input_data = processed_input_data.detach()
 
     outputs_2 = model(processed_input_data) / temperature
     calibrated_softmax_scores = F.softmax(outputs_2, dim=1)
