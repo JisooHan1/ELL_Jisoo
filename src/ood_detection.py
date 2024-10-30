@@ -3,49 +3,50 @@ import torch.nn.functional as F
 from datasets import load_dataset
 from models import ResNet
 import argparse
-from sklearn.metrics import roc_auc_score, precision_recall_curve, auc
+from torcheval.metrics import BinaryAUROC, BinaryAUPRC
 
 def load_model(model_path):
-    model = ResNet(3)  # input channels
-    model.load_state_dict(torch.load(model_path, map_location='cpu'))
+    # Recover trained model
+    model = ResNet(3)
+    model.load_state_dict(torch.load(model_path, map_location='cpu')) # pram. recovery
     model.eval()
     return model
 
 def get_MSP(input_data, model):
-
-    model.eval()
-
     with torch.no_grad():
         outputs = model(input_data)
-        softmax_scores = F.softmax(outputs, dim=1)
-        max_score, _ = torch.max(softmax_scores, dim=1)  # gets MSP
+        softmax_scores = F.softmax(outputs, dim=1)  # (batch_size, num_class)
+        max_score, _ = torch.max(softmax_scores, dim=1)  # output: MSP, index - (batch_size)
 
-    return max_score.item()
+    return max_score  # type: tensor
 
 def evaluate_ood_detection(id_scores, ood_scores):
     # generate list of label: ID = 1, OOD = 0
-    id_label = [1] * len(id_scores)
-    ood_label = [0] * len(ood_scores)
-    labels = labels = id_label + ood_label
+    labels = torch.cat([torch.ones_like(id_scores), torch.zeros_like(ood_scores)])
+    scores = torch.cat([id_scores, ood_scores])
 
-    scores = id_scores + ood_scores
+    # Use Binary metrics for OOD detection
+    binary_auroc = BinaryAUROC()
+    binary_auroc.update(scores, labels)
+    binary_auprc = BinaryAUPRC()
+    binary_auprc.update(scores, labels)
 
-    auroc = roc_auc_score(labels, scores)  # AUROC
-
-    precision, recall, _ = precision_recall_curve(labels, scores)
-    aupr = auc(recall, precision)  # AUPR
+    auroc = binary_auroc.compute()
+    aupr = binary_auprc.compute()
 
     print(f'AUROC: {auroc:.4f}')
     print(f'AUPR: {aupr:.4f}')
 
 def main():
-    parser = argparse.ArgumentParser(description="OOD detection")
+    parser = argparse.ArgumentParser(description="OOD detection-MSP")
     parser.add_argument("-md", "--model_path", type=str, required=True, help="Path to the trained model file")
+    parser.add_argument("-bs", "--batch_size", type=int, required=True, help="Batch size")
     parser.add_argument("-id", "--id_dataset", type=str, required=True, help="ID dataset CIFAR10")
     parser.add_argument("-ood", "--ood_dataset", type=str, required=True, help="OOD dataset SVHN")
     args = parser.parse_args()
 
     model = load_model(args.model_path)
+    batch_size = args.batch_size
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
 
@@ -54,62 +55,23 @@ def main():
     _, ood_testset = load_dataset(args.ood_dataset)
 
     # DataLoader, only use test data
-    id_loader = torch.utils.data.DataLoader(id_testset, batch_size=1, shuffle=True)
-    ood_loader = torch.utils.data.DataLoader(ood_testset, batch_size=1, shuffle=True)
+    id_loader = torch.utils.data.DataLoader(id_testset, batch_size=batch_size, shuffle=True)
+    ood_loader = torch.utils.data.DataLoader(ood_testset, batch_size=batch_size, shuffle=True)
 
     # get softmax
-    id_scores = [get_MSP(data[0].to(device), model) for data in id_loader]
-    ood_scores = [get_MSP(data[0].to(device), model) for data in ood_loader]
+    id_scores = torch.tensor([], device=device)
+    ood_scores = torch.tensor([], device=device)
 
-    # get, AUROC AUPR
+    for data in id_loader:
+        scores = get_MSP(data[0].to(device), model)
+        id_scores = torch.cat([id_scores, scores])
+
+    for data in ood_loader:
+        scores = get_MSP(data[0].to(device), model)
+        ood_scores = torch.cat([ood_scores, scores])
+
+    # get AUROC and AUPR
     evaluate_ood_detection(id_scores, ood_scores)
 
 if __name__ == "__main__":
     main()
-
-
-# import torch
-# import torch.nn.functional as F
-# from datasets import load_dataset
-# from models import ResNet
-# import argparse
-
-# def load_model(model_path):
-#     model = ResNet(3)  # 입력 채널 수가 3인 ResNet 모델 초기화
-#     model.load_state_dict(torch.load(model_path, map_location='cpu'))
-#     model.eval()
-#     return model
-
-# def evaluate_model(model, test_loader, device):
-#     model.eval()
-#     correct = 0
-#     total = 0
-
-#     with torch.no_grad():
-#         for data, target in test_loader:
-#             data, target = data.to(device), target.to(device)
-#             outputs = model(data)
-#             _, predicted = torch.max(outputs.data, 1)
-#             total += target.size(0)
-#             correct += (predicted == target).sum().item()
-
-#     accuracy = 100 * correct / total
-#     print(f'Test Accuracy: {accuracy:.2f}%')
-
-# def main():
-#     parser = argparse.ArgumentParser(description="CIFAR-10 Test Evaluation")
-#     parser.add_argument("-md", "--model_path", type=str, required=True, help="Path to the trained model file")
-#     args = parser.parse_args()
-
-#     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-#     model = load_model(args.model_path)
-#     model.to(device)
-
-#     _, testset = load_dataset("CIFAR10")
-#     test_loader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False, num_workers=2)
-
-#     evaluate_model(model, test_loader, device)
-
-# if __name__ == "__main__":
-#     main()
