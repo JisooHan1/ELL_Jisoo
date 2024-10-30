@@ -7,4 +7,4 @@ ood_methods = {
 }
 
 def get_ood_methods(ood_method):
-    return ood_method[ood_method]
+    return ood_methods[ood_method]
