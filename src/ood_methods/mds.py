@@ -1,17 +1,25 @@
 import torch
 import torch.nn.functional as F
 from datasets import load_dataset
-from models import ResNet, DenseNet
+from models import ResNet
 import argparse
 from torcheval.metrics import BinaryAUROC, BinaryAUPRC
 from ood_methods import get_ood_methods
 
 
+features = None
+def hook(module, input, output):
+    global features
+    features = output
+
 def load_model(model_path):
     # Recover trained model
-    model = DenseNet(3)
+    model = ResNet(3)
     model.load_state_dict(torch.load(model_path, map_location='cpu')) # pram. recovery
     model.eval()
+
+    model.GAP.register_forward_hook(hook)
+
     return model
 
 def evaluate_ood_detection(id_scores, ood_scores):
@@ -30,6 +38,27 @@ def evaluate_ood_detection(id_scores, ood_scores):
 
     print(f'AUROC: {auroc:.4f}')
     print(f'AUPR: {aupr:.4f}')
+
+    def mds_score(data, model, cls_means, covar):
+        global features
+        model.eval()
+        with torch.no_grad():
+            _ = model(data)
+
+        distances = []
+        for mean in cls_means:
+            diff = features - mean
+            inverse_covar = torch.inverse(covar)
+            distance = torch.sqrt(torch.mm(torch.mm(diff.)))
+
+    def calculate_stats(model, dataloader, device):
+        global features
+        model.eval()
+        features_list = []
+        labels_list = []
+
+
+
 
 def run_ood_detection(args):
     # load model
