@@ -6,7 +6,7 @@ from .vit import ViT
 from .mlpmixer import MLPMixer
 from .convmixer import ConvMixer
 
-def load_model(name, input_channels, image_size):
+def load_pretrained_model(name, input_channels, image_size):
     if name == "LeNet":
         return LeNet(input_channels, image_size)
     elif name == "ResNet":

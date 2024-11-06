@@ -6,4 +6,4 @@ from .vit import ViT
 from .mlpmixer import MLPMixer
 from .convmixer import ConvMixer
 
-from .utils import load_model
+from .utils import load_pretrained_model
