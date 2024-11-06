@@ -75,10 +75,49 @@ if __name__ == '__main__':
 
         cls_covariances[layer] = sum(class_deviation_sums) / N
 
-    # Define mahalanobis distance and mds_score functions as you did before
-    # Rest of the code goes here...
+    def mahalanobis_distance(x, mean, inversed_covariance):
+        diff = x - mean
+        return torch.matmul(diff, torch.matmul(inversed_covariance, diff.T))
 
-    print("Execution completed successfully.")
+
+    def mds_score(model, test_sample, epsilon, cls_means, cls_covariances, num_layers, alpha_weights):
+        mds_score = []
+
+        for i in range(num_layers):
+            model.dense_layers[i].register_forward_hook(get_activation(f"layer_{i}", ood_layer_outputs))
+
+        model(test_sample)
+
+        for layer in range(num_layers):
+            ood_layer_output = ood_layer_outputs[f"layer_{layer}"]
+
+            min_distance = 0
+            closest_class = None
+            for cls in range(num_classes):
+                distance = mahalanobis_distance(ood_layer_output, cls_means[layer][cls], torch.inverse(cls_covariances[layer]))
+                if distance < min_distance:
+                    min_distance = distance
+                    closest_class = cls
+
+            gradient = test_sample.grad
+            processed_input_data = test_sample - epsilon * torch.sign(gradient)
+
+            max_score = 0
+            for cls in range(num_classes):
+                distance = mahalanobis_distance(processed_input_data, cls_means[layer][cls], torch.inverse(cls_covariances[layer]))
+                max_score = max(max_score, -distance)
+
+            mds_score.append(alpha_weights[layer] * max_score)
+
+        final_mds_score = sum(mds_score)
+        return final_mds_score
+
+# Example usage:
+alpha_weights = [1.0] * num_layers  # Define your layer-specific weights
+epsilon = 0.01  # Small noise level
+test_sample = torch.randn(3, 32, 32)  # Example test sample in CIFAR-10 format (3 channels, 32x32)
+confidence_score = mds_score(model, test_sample, epsilon, cls_means, cls_covariances, num_layers, alpha_weights)
+print("Confidence Score:", confidence_score)
 
 
 
