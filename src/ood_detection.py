@@ -12,7 +12,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Model loading function
 def load_pretrained_model(model_path):
-    model = DenseNet(3).to(device)
+    model = ResNet(3).to(device)
     state_dict = torch.load(model_path, map_location=device)
     model.load_state_dict(state_dict, strict=True)
     model.eval()
