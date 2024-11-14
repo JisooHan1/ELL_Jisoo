@@ -117,9 +117,14 @@ if __name__ == '__main__':
         final_mds_score = sum(mds_score)
         return final_mds_score
 
-# Example usage:
-alpha_weights = [1.0] * num_layers  # Define your layer-specific weights
-epsilon = 0.01  # Small noise level
-test_sample = torch.randn(3, 32, 32).to(device)  # Example test sample in CIFAR-10 format (3 channels, 32x32)
+
+
+
+
+
+
+alpha_weights = [1.0] * num_layers
+epsilon = 0.01
+test_sample = torch.randn(3, 32, 32).to(device)
 confidence_score = mds_score(model, test_sample, epsilon, cls_means, cls_covariances, num_layers, alpha_weights)
-print("Confidence Score:", confidence_score)
+print(f"Confidence Score: {confidence_score}")
