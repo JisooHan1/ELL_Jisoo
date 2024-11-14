@@ -10,7 +10,7 @@ def odin_score(input_data, model, temperature=1000, epsilon=0.001):
     _, pred_class = torch.max(softmax_scores, dim=1)
 
     # calculate negative_log_softmax socre
-    negative_log_softmax = F.cross_entropy(outputs_1, pred_class, reduction='none')
+    negative_log_softmax = F.cross_entropy(outputs_1, pred_class)
 
     negative_log_softmax.backward(torch.ones_like(negative_log_softmax))
 
