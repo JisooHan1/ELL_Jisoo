@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from models import ResNet
 from datasets import load_dataset
-from torcheval.metrics import BinaryAUROC, BinaryAUPRC
+from torcheval.metrics import BinaryAUROC, BinaryAUPRC, BinaryFPR
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -65,10 +65,13 @@ class ReActDetector:
         binary_auroc.update(scores, labels)
         binary_auprc = BinaryAUPRC().to(device)
         binary_auprc.update(scores, labels)
+        binary_fpr = BinaryFPR(thresholds=0.95).to(device)
+        binary_fpr.update(scores, labels)
 
         auroc = binary_auroc.compute()
         aupr = binary_auprc.compute()
-        return auroc, aupr
+        fpr95 = binary_fpr.compute()
+        return auroc, aupr, fpr95
 
 def main():
     # load datasets
@@ -90,9 +93,10 @@ def main():
     id_scores = detector.react(id_test_loader)
     ood_scores = detector.react(ood_test_loader)
 
-    auroc, aupr = detector.evaluate_ood_detection(id_scores, ood_scores)
+    auroc, aupr, fpr95 = detector.evaluate_ood_detection(id_scores, ood_scores)
     print(f'AUROC: {auroc:.4f}')
     print(f'AUPR: {aupr:.4f}')
+    print(f'FPR95: {fpr95:.4f}')
 
 if __name__ == "__main__":
     main()
