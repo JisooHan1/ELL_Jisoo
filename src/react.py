@@ -36,10 +36,7 @@ class ReActDetector:
                 self.model(x)
 
         penultimate = self.activations['penultimate'].flatten(1)
-        means = penultimate.mean(dim=0)
-        stds = penultimate.std(dim=0)
-        k = 1.28  # covers ~90% of data assuming normal distribution
-        self.c = (means + k * stds).to(device)
+        self.c = torch.quantile(penultimate, 0.9, dim=0).to(device)
 
     def react(self, dataloader):
         scores_list = []
