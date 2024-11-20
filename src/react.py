@@ -10,7 +10,7 @@ class ReActDetector:
     def __init__(self, model_path):
         self.model = self.load_model(model_path)
         self.activations = {}
-        self._register_hooks()
+        self.register_hooks()
         self.c = None
 
     def load_model(self, model_path):
