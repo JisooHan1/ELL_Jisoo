@@ -51,7 +51,7 @@ class ResNet(nn.Module):
         x = self.bundle2(x) # layer 6~9
         x = self.bundle3(x) # layer 10~13
         x = self.bundle4(x) # layer 14~17
-        x = self.GAP(x)
+        x = self.GAP(x)  # (batch, 512, 1, 1)
         x = torch.flatten(x, 1)
         x = self.fc(x) # layer 18
         return x
