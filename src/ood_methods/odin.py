@@ -2,24 +2,27 @@ import torch
 import torch.nn.functional as F
 
 def odin_score(input_data, model, temperature=1000, epsilon=0.001):
-    input_data.requires_grad = True
+    # make a copy of input_data
+    input_data = input_data.clone().detach().requires_grad_(True)
 
-    # get y_hat
-    outputs_1 =  model(input_data) / temperature
-    softmax_scores = F.softmax(outputs_1, dim=1)
-    _, pred_class = torch.max(softmax_scores, dim=1)
+    # forward pass with temperature scaling
+    outputs =  model(input_data) / temperature # (batch_size, num_classes)
 
-    # calculate negative_log_softmax socre
-    negative_log_softmax = F.cross_entropy(outputs_1, pred_class)
+    # get predicted class
+    softmax_scores = F.softmax(outputs, dim=1)
+    pred_class = torch.argmax(softmax_scores, dim=1)
 
-    negative_log_softmax.backward(torch.ones_like(negative_log_softmax))
+    # calculate loss and gradient
+    loss = F.cross_entropy(outputs, pred_class)
+    loss.backward()
 
-    gradient = input_data.grad
-    processed_input_data = input_data - epsilon * torch.sign(gradient)
+    # perturb input data (update input data)
+    perturbed_input = input_data - epsilon * torch.sign(input_data.grad)
 
+    # second forward pass with perturbed input
     with torch.no_grad():
-        outputs_2 = model(processed_input_data) / temperature
-        calibrated_softmax_scores = F.softmax(outputs_2, dim=1)
-        max_score_2, _ = torch.max(calibrated_softmax_scores, dim=1)
+        perturbed_output = model(perturbed_input) / temperature
+        calibrated_scores = F.softmax(perturbed_output, dim=1) # (batch_size, num_classes)
+        max_score = torch.max(calibrated_scores, dim=1)[0] # (batch_size)
 
-    return max_score_2
+    return max_score

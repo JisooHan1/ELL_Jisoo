@@ -8,34 +8,45 @@ import argparse
 from torcheval.metrics import BinaryAUROC, BinaryAUPRC
 from ood_methods import get_ood_methods
 
+
+# definition
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Definition
-id_layer_outputs = {}
-ood_layer_outputs = {}
+id_layer_outputs = {}  # {'layer1': (batch, channel), 'layer2': (batch, channel), ...}
+ood_layer_outputs = {}  # {'layer1': (batch, channel), 'layer2': (batch, channel), ...}
+
 num_classes = 10
 num_layers = 50  # 48 DenseBlock, 2 TransitionBlock
-class_features = {layer: {cls: [] for cls in range(num_classes)} for layer in range(num_layers)}
-cls_means = {layer: {cls: None for cls in range(num_classes)} for layer in range(num_layers)}
-cls_covariances = {layer: None for layer in range(num_layers)}
+
+class_features = {layer: {cls: [] for cls in range(num_classes)} for layer in range(num_layers)}  # {layer: {cls: [(channel), ...]}}
+cls_means = {layer: {cls: None for cls in range(num_classes)} for layer in range(num_layers)}  # {layer: {cls: mean (channel)}}
+cls_covariances = {layer: None for layer in range(num_layers)}  # {layer: covariance (channel, channel)}
+
 avg_pool = nn.AdaptiveAvgPool2d((1, 1))
 
-# Model loading function
+
+# load model
 def load_model(model_path):
     model = DenseNet(3).to(device)
+
+    # load pretrained weights to model
     state_dict = torch.load(model_path, map_location=device)
     model.load_state_dict(state_dict, strict=True)
+
+    # set model to evaluation mode
     model.eval()
+
+    # freeze model parameters
     for param in model.parameters():
         param.requires_grad = False
     return model
 
-# Main script execution
+
 if __name__ == '__main__':
-    # Load model
+    # load pretrained model
     model = load_model("logs/DenseNet/trained_model/trained_resnet_20241031_004039.pth")
 
-    # Load datasets
+    # load datasets
     id_trainset, id_testset = load_dataset("CIFAR10")
     ood_trainset, ood_testset = load_dataset("SVHN")
 
@@ -44,87 +55,75 @@ if __name__ == '__main__':
     ood_train_loader = torch.utils.data.DataLoader(ood_trainset, batch_size=64, shuffle=True, num_workers=0)
     ood_test_loader = torch.utils.data.DataLoader(ood_testset, batch_size=64, shuffle=False, num_workers=0)
 
-    # Layer activation hook function
+    # Obtain id_layer_outputs dictionary
+    # layer activation hook function
     def get_activation(layer_name, output_dict):
-        def hook(model, input, output):
-            pooled_output = avg_pool(output).squeeze(-1)  # (batch, channel, h, w) -> (batch, channel)
-            output_dict[layer_name] = pooled_output
-        return hook
+        def hook(_model, _input, output):
+            # (batch, channel, h, w) -> (batch, channel, 1, 1) -> (batch, channel)
+            pooled_output = avg_pool(output).squeeze().to(device)
 
-    # Register hook for each layer
+            output_dict[layer_name] = pooled_output.detach().to(device)  # Detach to save memory
+        return hook  # return hook 'function'
+
+    # register hooks for all layers
+    hooks = []
     for i in range(num_layers):
-        model.dense_layers[i].register_forward_hook(get_activation(f"layer_{i}", id_layer_outputs))
+        hook = model.dense_layers[i].register_forward_hook(
+            get_activation(f"layer_{i}", id_layer_outputs)
+        )
+        hooks.append(hook)
 
     # Compute class means and covariances
-    for inputs, labels in id_train_loader:
+    # forward pass
+    for inputs, labels in id_train_loader:  # (64, 3, 32, 32), (64)
         inputs, labels = inputs.to(device), labels.to(device)
-        model(inputs)
+        model(inputs)  # get id_layer_outputs
+
+        # obtain class_features dictionary
         for layer_index, (layer_name, output) in enumerate(id_layer_outputs.items()):
             for i, label in enumerate(labels):
                 class_index = label.item()
-                class_features[layer_index][class_index].append(output[i])
+                class_features[layer_index][class_index].append(output[i].to(device))
 
-    for layer in range(num_layers):
-        class_deviation_sums = []
-        N = sum(len(class_features[layer][cls]) for cls in range(num_classes))
-
-        for cls in range(num_classes):
-            class_data = torch.cat(class_features[layer][cls], dim=0).to(device)
-            cls_means[layer][cls] = torch.mean(class_data, dim=0)
-
-            deviations = class_data - cls_means[layer][cls]
-            sample_deviations = [torch.matmul(sample, sample.T) for sample in deviations]
-            class_deviation_sums.append(sum(sample_deviations))
-
-        cls_covariances[layer] = sum(class_deviation_sums) / N
-
-    def mahalanobis_distance(x, mean, inversed_covariance):
-        diff = x - mean
-        return torch.matmul(diff, torch.matmul(inversed_covariance, diff.T))
-
-
-    def mds_score(model, test_sample, epsilon, cls_means, cls_covariances, num_layers, alpha_weights):
-        mds_score = []
-
-        for i in range(num_layers):
-            model.dense_layers[i].register_forward_hook(get_activation(f"layer_{i}", ood_layer_outputs))
-
-        model(test_sample)
-
-        test_sample = test_sample.to(device)
-
+        # obtain cls_means and cls_covariances dictionaries
         for layer in range(num_layers):
-            ood_layer_output = ood_layer_outputs[f"layer_{layer}"].to(device)
-
-            min_distance = 0
-            closest_class = None
+            layer_data = []
             for cls in range(num_classes):
-                distance = mahalanobis_distance(ood_layer_output, cls_means[layer][cls], torch.inverse(cls_covariances[layer]))
-                if distance < min_distance:
-                    min_distance = distance
-                    closest_class = cls
+                class_data = torch.stack(class_features[layer][cls], dim=0).to(device)  # (n_samples, channel)
+                cls_means[layer][cls] = torch.mean(class_data, dim=0)  # (channel)
 
-            gradient = test_sample.grad
-            processed_input_data = test_sample - epsilon * torch.sign(gradient)
+                layer_data.append(class_data)
+            layer_data = torch.cat(layer_data, dim=0).to(device)  # (total_samples, channel)
+            layer_mean = torch.mean(layer_data, dim=0).to(device)  # (channel)
 
-            max_score = 0
-            for cls in range(num_classes):
-                distance = mahalanobis_distance(processed_input_data, cls_means[layer][cls], torch.inverse(cls_covariances[layer]))
-                max_score = max(max_score, -distance)
+            N = layer_data.shape[0]  # Total number of samples
+            deviations = layer_data - layer_mean.unsqueeze(0)  # (total_samples, channel)
+            covariance = torch.matmul(deviations.T, deviations) / (N - 1)  # (channel, channel)
+            cls_covariances[layer] = covariance
 
-            mds_score.append(alpha_weights[layer] * max_score)
+    # ... existing code ...
 
-        final_mds_score = sum(mds_score)
-        return final_mds_score
+    # Print debug information
+    print("\nDebug Information:")
 
+    # 1. Check layer outputs shape
+    print("\nLayer Outputs Shape:")
+    for layer_name, output in id_layer_outputs.items():
+        print(f"{layer_name}: {output.shape}")
 
+    # 2. Check class means for first layer
+    print("\nClass Means (Layer 0):")
+    for cls in range(num_classes):
+        print(f"Class {cls}: Mean shape = {cls_means[0][cls].shape}")
+        print(f"First few values: {cls_means[0][cls][:5]}")
 
+    # 3. Check covariance matrix for first layer
+    print("\nCovariance Matrix (Layer 0):")
+    print(f"Shape: {cls_covariances[0].shape}")
+    print("First 5x5 values:")
+    print(cls_covariances[0][:5, :5])
 
-
-
-
-alpha_weights = [1.0] * num_layers
-epsilon = 0.01
-test_sample = torch.randn(3, 32, 32).to(device)
-confidence_score = mds_score(model, test_sample, epsilon, cls_means, cls_covariances, num_layers, alpha_weights)
-print(f"Confidence Score: {confidence_score}")
+    # 4. Check number of samples per class in first layer
+    print("\nSamples per class (Layer 0):")
+    for cls in range(num_classes):
+        print(f"Class {cls}: {len(class_features[0][cls])} samples")
