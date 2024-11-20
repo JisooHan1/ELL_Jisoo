@@ -51,8 +51,15 @@ def react(x, c=1.0):
     penultimate = activations['penultimate']  # (batch, 512, 1, 1)
     penultimate = penultimate.flatten(1)      # (batch, 512)
 
+    # Calculate threshold c using mean + k*std of ID activations
+    # This is another way to set threshold covering majority of ID data
+    means = penultimate.mean(dim=0)  # (512,)
+    stds = penultimate.std(dim=0)    # (512,)
+    k = 1.28  # Covers ~90% of data assuming normal distribution
+    c = (means + k * stds).to(device)
+
     # Clamp values to be <= c
-    clamped = torch.clamp(penultimate, max=c)
+    clamped = torch.clamp(penultimate, max=c.unsqueeze(0))  # broadcast c to match batch dimension
 
     # Get logits and probabilities
     logits = model.fc(clamped)
