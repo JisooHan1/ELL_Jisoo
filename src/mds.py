@@ -71,6 +71,7 @@ class MDS:
 
         total_stack = torch.cat(class_stacks, dim=0).to(device)  # (total_samples, channel)
         total_mean = torch.mean(total_stack, dim=0).to(device)  # (channel)
+        class_stacks = torch.stack(class_stacks, dim=0).to(device)  # (num_classes, n_samples, channel)
 
         N = class_stacks.shape[0]  # Total number of samples
         deviations = class_stacks - total_mean.unsqueeze(0)  # (total_samples, channel)
