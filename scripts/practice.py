@@ -1,15 +1,36 @@
 import torch
 
-# penultimate 텐서의 모양: (4, 512) - 4개 샘플, 각각 512차원의 특성 벡터
-penultimate = torch.tensor([
-    [0.1, 0.2, 0.3, 0.4],    # 실제로는 512개의 값이 있음
-    [0.3, 0.4, 0.5, 0.6],    # 예시를 위해 4개만 표시
-    [0.5, 0.6, 0.7, 0.8],
-    [0.7, 0.8, 0.9, 1.0]
+# 예제 텐서 생성
+error = torch.tensor([1.0, 2.0, 3.0])
+cls_covariances = torch.tensor([
+    [4.0, 1.0, 2.0],
+    [1.0, 5.0, 3.0],
+    [2.0, 3.0, 6.0]
 ])
 
-# dim=0으로 90번째 백분위수 계산
-# dim=0은 수직(열) 방향으로 계산함을 의미
-result = torch.quantile(penultimate, 0.9, dim=0)
-print(result)
-# result의 모양: (512,) - 각 특성별로 90번째 백분위수 값을 가짐
+# einsum을 사용하여 이차 형식 계산
+# 'i,ij,j -> '는 i와 j 인덱스를 합쳐 결과를 스칼라로 만듭니다.
+result_einsum = torch.einsum('i,ij,j', error, cls_covariances, error)
+print("error^T * cls_covariances * error (einsum):", result_einsum)
+
+import torch
+
+# 예제 텐서 생성
+# error는 (n,) 형태의 벡터
+error = torch.tensor([1.0, 2.0, 3.0])
+
+# cls_covariances는 (n, n) 형태의 행렬
+cls_covariances = torch.tensor([
+    [4.0, 1.0, 2.0],
+    [1.0, 5.0, 3.0],
+    [2.0, 3.0, 6.0]
+])
+
+# 첫 번째 행렬 곱: cls_covariances * error
+intermediate = torch.matmul(cls_covariances, error)
+print("cls_covariances * error:\n", intermediate)
+
+# 두 번째 행렬 곱: error.T * (cls_covariances * error)
+result = torch.matmul(error, intermediate)
+print("\nerror.T * cls_covariances * error:", result)
+
