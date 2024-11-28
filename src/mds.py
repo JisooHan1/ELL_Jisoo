@@ -75,7 +75,7 @@ class MDS:
 
         N = class_stacks.shape[0]  # Total number of samples
         deviations = class_stacks - total_mean.unsqueeze(0)  # (total_samples, channel)
-        self.cls_covariances = torch.matmul(deviations.T, deviations) / N  # (channel, channel)
+        self.cls_covariances = torch.einsum('ij,ik->jk', deviations, deviations) / N  # (channel, channel)
         return self.cls_covariances
 
     def get_mds_scores(self, ood_dataloader, cls_means, cls_covariances, epsilon=0.001):

@@ -31,9 +31,9 @@ class ReActDetector:
     def calculate_threshold(self, dataloader):
         # get penultimate activations for ID data
         with torch.no_grad():
-            for x, _ in dataloader:
-                x = x.to(device)
-                self.model(x)
+            for inputs, _ in dataloader:
+                inputs = inputs.to(device)
+                self.model(inputs)
 
         penultimate = self.activations['penultimate'].flatten(1)
         self.c = torch.quantile(penultimate, 0.9, dim=0).to(device)
