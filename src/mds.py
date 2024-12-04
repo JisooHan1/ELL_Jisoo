@@ -17,8 +17,8 @@ class MDS:
         self.num_classes = 10
         self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
         self.class_features = {cls: [] for cls in range(self.num_classes)}
-        self.cls_means = torch.zeros(self.num_classes, device=device)
-        self.cls_covariances = torch.zeros(self.num_classes, self.num_classes, device=device)
+        self.cls_means = []
+        self.cls_covariances = None
 
     def load_model(self, model_path):
         model = DenseNet(3).to(device)
@@ -62,7 +62,7 @@ class MDS:
     def get_cls_means(self, class_features):
         for cls in range(self.num_classes):
             class_data = torch.stack(class_features[cls], dim=0)  # (sample, channel)
-            self.cls_means[cls] = torch.mean(class_data, dim=0)  # (channel)
+            self.cls_means.append(torch.mean(class_data, dim=0))  # (channel)
         return self.cls_means
 
     def get_cls_covariances(self, class_features):
@@ -93,7 +93,7 @@ class MDS:
             self.model(inputs)
             output = self.penultimate_outputs['penultimate']  # (batch, channel)
 
-            batch_deviations = output.unsqueeze(1) - cls_means.unsqueeze(0).unsqueeze(2)  # (batch, num_classes, channel)
+            batch_deviations = output.unsqueeze(1) - torch.stack(cls_means).unsqueeze(0).unsqueeze(2)  # (batch, num_classes, channel)
 
             mahalanobis_distances = torch.einsum('bij,jk,bik->bi', batch_deviations, inv_covariance, batch_deviations)  # (batch, num_classes)
             c_hat = torch.argmin(mahalanobis_distances, dim=1)  # (batch,)
@@ -111,7 +111,7 @@ class MDS:
             self.model(perturbed_inputs)
             perturbed_output = self.penultimate_outputs['penultimate']  # (batch, channel)
 
-            perturbed_batch_deviations = perturbed_output.unsqueeze(1) - cls_means.unsqueeze(0).unsqueeze(2)  # (batch, num_classes, channel)
+            perturbed_batch_deviations = perturbed_output.unsqueeze(1) - torch.stack(cls_means).unsqueeze(0).unsqueeze(2)  # (batch, num_classes, channel)
             perturbed_mahalanobis_distances = torch.einsum('bij,jk,bik->bi', perturbed_batch_deviations, inv_covariance, perturbed_batch_deviations)  # (batch, num_classes)
             score = torch.max(-perturbed_mahalanobis_distances, dim=1)[0]  # (batch,)
 
@@ -155,7 +155,7 @@ def main():
     # get class features, means, and covariances
     detector.get_class_features(id_train_loader)
     detector.get_cls_means(detector.class_features)
-    detector.get_cls_covariances(detector.class_features, detector.cls_means.to(device))
+    detector.get_cls_covariances(detector.class_features, detector.cls_means)
 
     # get mds scores
     id_scores = detector.get_mds_scores(id_test_loader, detector.cls_means, detector.cls_covariances).to(device)
