@@ -87,7 +87,7 @@ class MDS:
         inv_covariance = torch.inverse(cls_covariances)  # (channel, channel)
 
         for inputs, _ in test_dataloader:
-            inputs = inputs.clone().detach().requires_grad_(True)
+            inputs = inputs.to(device).detach().requires_grad_(True)
 
             self.model(inputs)
             output = self.penultimate_outputs['penultimate']  # (batch, channel)
