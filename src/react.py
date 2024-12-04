@@ -42,8 +42,8 @@ class ReActDetector:
         scores_list = []
         with torch.no_grad():
             for x, _ in dataloader:
-                x = x.to(device)
-                self.model(x)
+                inputs = inputs.to(device)
+                self.model(inputs)
 
                 penultimate = self.activations['penultimate'].flatten(1)
                 clamped = torch.clamp(penultimate, max=self.c.unsqueeze(0))
