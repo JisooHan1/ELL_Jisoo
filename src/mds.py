@@ -49,13 +49,12 @@ class MDS:
         for inputs, labels in id_dataloader:
             inputs, labels = inputs.to(device), labels.to(device)
 
-            with torch.no_grad():
-                self.model(inputs)
-                output = self.penultimate_outputs['penultimate']  # (batch, channel)
+            self.model(inputs)
+            output = self.penultimate_outputs['penultimate']  # (batch, channel)
 
-                for i, label in enumerate(labels):
-                    class_index = label.item()
-                    self.class_features[class_index].append(output[i])  # output[i] : (channel,)
+            for i, label in enumerate(labels):
+                class_index = label.item()
+                self.class_features[class_index].append(output[i])  # output[i] : (channel,)
 
         return self.class_features
 
@@ -88,7 +87,7 @@ class MDS:
         inv_covariance = torch.inverse(cls_covariances)  # (channel, channel)
 
         for inputs, _ in test_dataloader:
-            inputs = inputs.detach().requires_grad_(True).to(device)
+            inputs = inputs.clone().detach().requires_grad_(True)
 
             self.model(inputs)
             output = self.penultimate_outputs['penultimate']  # (batch, channel)
