@@ -31,8 +31,8 @@ class MDS:
 
     def get_activation(self, layer_name, output_dict):
         def hook(_model, _input, output):
-            pooled_output = self.avg_pool(output).squeeze().to(device)
-            output_dict[layer_name] = pooled_output.detach().to(device)
+            pooled_output = self.avg_pool(output).squeeze()
+            output_dict[layer_name] = pooled_output.detach()
         return hook
 
     def register_hook(self):
@@ -84,8 +84,8 @@ class MDS:
 
     def get_mds_scores(self, test_dataloader, cls_means, cls_covariances, epsilon=0.001):
         confidence_scores = torch.tensor([], device=device)
-        cls_means = [mean.clone().detach().to(device) for mean in cls_means]
-        cls_covariances = cls_covariances.clone().detach().to(device)
+        cls_means = [mean.clone().to(device) for mean in cls_means]
+        cls_covariances = cls_covariances.clone().to(device)
 
         inv_covariance = torch.inverse(cls_covariances)
 
