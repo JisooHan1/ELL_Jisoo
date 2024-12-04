@@ -84,13 +84,16 @@ class MDS:
 
     def get_mds_scores(self, test_dataloader, cls_means, cls_covariances, epsilon=0.001):
         confidence_scores = torch.tensor([], device=device)
-        cls_means = [mean.clone().detach().requires_grad_(True).to(device) for mean in cls_means]
-        cls_covariances = cls_covariances.clone().detach().requires_grad_(True).to(device)
+        cls_means = [mean.clone().detach().to(device) for mean in cls_means]
+        cls_covariances = cls_covariances.clone().detach().to(device)
 
         inv_covariance = torch.inverse(cls_covariances)
 
         for inputs, _ in test_dataloader:
             inputs = inputs.to(device).clone().detach().requires_grad_(True)
+
+            if inputs.grad is not None:
+                inputs.grad.zero_()
 
             self.model(inputs)
             output = self.penultimate_outputs['penultimate']  # (batch, channel)
