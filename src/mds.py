@@ -40,11 +40,6 @@ class MDS:
             self.get_activation('penultimate', self.penultimate_outputs)
         )
 
-    def remove_hook(self):
-        self.model.GAP.remove_forward_hook(
-            self.get_activation('penultimate', self.penultimate_outputs)
-        )
-
     def get_class_features(self, id_dataloader):
         for inputs, labels in id_dataloader:
             inputs, labels = inputs.to(device), labels.to(device)
@@ -166,10 +161,6 @@ def main():
     ood_scores = detector.get_mds_scores(ood_test_loader, detector.cls_means, detector.cls_covariances).to(device)
 
     evaluate_ood_detection(id_scores, ood_scores)
-
-    # remove hook
-    detector.remove_hook()
-
 
 if __name__ == '__main__':
     main()
