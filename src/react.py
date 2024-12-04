@@ -39,7 +39,7 @@ class ReActDetector:
         return self.samples  # (num_samples, 512)
 
     def calculate_threshold(self, samples):
-        self.c = torch.quantile(samples, 0.9, dim=0).to(device)  # (512,)
+        self.c = torch.quantile(samples, 0.8, dim=0).to(device)  # (512,)
 
     def react(self, dataloader):
         scores_list = []
