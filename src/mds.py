@@ -155,7 +155,7 @@ def main():
     # get class features, means, and covariances
     detector.get_class_features(id_train_loader)
     detector.get_cls_means(detector.class_features)
-    detector.get_cls_covariances(detector.class_features, detector.cls_means)
+    detector.get_cls_covariances(detector.class_features)
 
     # get mds scores
     id_scores = detector.get_mds_scores(id_test_loader, detector.cls_means, detector.cls_covariances).to(device)
