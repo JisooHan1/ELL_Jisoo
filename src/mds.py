@@ -90,7 +90,7 @@ class MDS:
         inv_covariance = torch.inverse(cls_covariances)
 
         for inputs, _ in test_dataloader:
-            inputs = inputs.to(device).detach().requires_grad_(True)
+            inputs = inputs.to(device).clone().detach().requires_grad_(True)
 
             self.model(inputs)
             output = self.penultimate_outputs['penultimate']  # (batch, channel)
@@ -108,16 +108,15 @@ class MDS:
             # perturbed data
             perturbed_inputs = inputs - epsilon * torch.sign(inputs.grad)
 
-            self.model(perturbed_inputs)
-            perturbed_output = self.penultimate_outputs['penultimate']  # (batch, channel)
+            with torch.no_grad():
+                self.model(perturbed_inputs)
+                perturbed_output = self.penultimate_outputs['penultimate']  # (batch, channel)
 
-            perturbed_batch_deviations = perturbed_output.unsqueeze(1) - torch.stack(cls_means).unsqueeze(0)  # (batch, num_classes, channel)
-            perturbed_mahalanobis_distances = torch.einsum('bij,jk,bik->bi', perturbed_batch_deviations, inv_covariance, perturbed_batch_deviations)  # (batch, num_classes)
-            score = torch.max(-perturbed_mahalanobis_distances, dim=1)[0]  # (batch,)
+                perturbed_batch_deviations = perturbed_output.unsqueeze(1) - torch.stack(cls_means).unsqueeze(0)  # (batch, num_classes, channel)
+                perturbed_mahalanobis_distances = torch.einsum('bij,jk,bik->bi', perturbed_batch_deviations, inv_covariance, perturbed_batch_deviations)  # (batch, num_classes)
+                score = torch.max(-perturbed_mahalanobis_distances, dim=1)[0]  # (batch,)
 
-            confidence_scores = torch.cat([confidence_scores, score])
-
-            inputs.grad = None
+                confidence_scores = torch.cat([confidence_scores, score])
 
         return confidence_scores
 
