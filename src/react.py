@@ -38,8 +38,8 @@ class ReActDetector:
             self.samples = torch.cat([self.samples, self.penultimate_layer['penultimate'].flatten(1)])
         return self.samples  # (num_samples, 512)
 
-    def calculate_threshold(self, samples):
-        self.c = torch.quantile(samples, 0.95, dim=0).to(device)  # (512,)
+    def calculate_threshold(self, samples, quantile=0.95):
+        self.c = torch.quantile(samples, quantile, dim=0).to(device)  # (512,)
 
     def react(self, dataloader):
         scores_list = []
@@ -86,13 +86,18 @@ def main():
     samples = detector.get_samples(id_train_loader)
     detector.calculate_threshold(samples)
 
-    # evaluate OOD detection
-    id_scores = detector.react(id_test_loader)
-    ood_scores = detector.react(ood_test_loader)
+    quantiles = [0.9, 0.95, 0.99]
+    for quantile in quantiles:
+        print(f'Quantile: {quantile}')
+        detector.calculate_threshold(samples, quantile)
 
-    auroc, aupr = detector.evaluate_ood_detection(id_scores, ood_scores)
-    print(f'AUROC: {auroc:.4f}')
-    print(f'AUPR: {aupr:.4f}')
+        # evaluate OOD detection
+        id_scores = detector.react(id_test_loader)
+        ood_scores = detector.react(ood_test_loader)
+
+        auroc, aupr = detector.evaluate_ood_detection(id_scores, ood_scores)
+        print(f'AUROC: {auroc:.4f}')
+        print(f'AUPR: {aupr:.4f}')
 
 if __name__ == "__main__":
     main()
