@@ -32,7 +32,7 @@ class MDS:
     def get_activation(self, layer_name, output_dict):
         def hook(_model, _input, output):
             pooled_output = self.avg_pool(output).squeeze()
-            output_dict[layer_name] = pooled_output.detach()
+            output_dict[layer_name] = pooled_output
         return hook
 
     def register_hook(self):
