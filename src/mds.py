@@ -47,7 +47,7 @@ class MDS:
 
     def get_class_features(self, id_dataloader):
         for inputs, labels in id_dataloader:
-            inputs, labels = inputs, labels
+            inputs, labels = inputs.to(device), labels.to(device)
 
             with torch.no_grad():
                 self.model(inputs)
