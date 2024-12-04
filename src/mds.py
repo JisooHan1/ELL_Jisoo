@@ -107,7 +107,6 @@ class MDS:
 
             # perturbed data
             perturbed_inputs = inputs - epsilon * torch.sign(inputs.grad)
-            inputs.grad = None
 
             self.model(perturbed_inputs)
             perturbed_output = self.penultimate_outputs['penultimate']  # (batch, channel)
@@ -117,6 +116,8 @@ class MDS:
             score = torch.max(-perturbed_mahalanobis_distances, dim=1)[0]  # (batch,)
 
             confidence_scores = torch.cat([confidence_scores, score])
+
+            inputs.grad = None
 
         return confidence_scores
 
