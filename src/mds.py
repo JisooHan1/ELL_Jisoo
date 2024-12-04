@@ -93,8 +93,7 @@ class MDS:
             self.model(inputs)
             output = self.penultimate_outputs['penultimate']  # (batch, channel)
 
-            batch_deviations = output.unsqueeze(1) - torch.stack(cls_means).unsqueeze(0).unsqueeze(2)  # (batch, num_classes, channel)
-
+            batch_deviations = output.unsqueeze(1) - torch.stack(cls_means).unsqueeze(0)  # (batch, num_classes, channel)
             mahalanobis_distances = torch.einsum('bij,jk,bik->bi', batch_deviations, inv_covariance, batch_deviations)  # (batch, num_classes)
             c_hat = torch.argmin(mahalanobis_distances, dim=1)  # (batch,)
 
@@ -111,7 +110,7 @@ class MDS:
             self.model(perturbed_inputs)
             perturbed_output = self.penultimate_outputs['penultimate']  # (batch, channel)
 
-            perturbed_batch_deviations = perturbed_output.unsqueeze(1) - torch.stack(cls_means).unsqueeze(0).unsqueeze(2)  # (batch, num_classes, channel)
+            perturbed_batch_deviations = perturbed_output.unsqueeze(1) - torch.stack(cls_means).unsqueeze(0)  # (batch, num_classes, channel)
             perturbed_mahalanobis_distances = torch.einsum('bij,jk,bik->bi', perturbed_batch_deviations, inv_covariance, perturbed_batch_deviations)  # (batch, num_classes)
             score = torch.max(-perturbed_mahalanobis_distances, dim=1)[0]  # (batch,)
 
