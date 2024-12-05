@@ -39,8 +39,8 @@ class ReActDetector:
         return self.samples  # (num_samples, 512)
 
     def calculate_threshold(self, samples, quantile=0.95):
-        self.c = torch.quantile(samples, quantile, dim=0).to(device)  # (512,)
-        self.c = self.c.median()
+        samples = samples.flatten()  # (num_samples * 512)
+        self.c = torch.quantile(samples, quantile).to(device)
         # c값과 입력 데이터의 분포 출력
         print(f"\nQuantile {quantile}:")
         print(f"Calculated threshold (c): {self.c.item():.4f}")
