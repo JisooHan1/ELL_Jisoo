@@ -61,20 +61,32 @@ class MDS:
         return self.cls_covariances
 
     def mds_score(self, inputs, model=None):
+        inputs = inputs.to(device).clone().detach().requires_grad_(True)
+        self.model(inputs)
+        output = self.penultimate_outputs['penultimate'].cpu()  # (batch, channel)
+        cls_means = torch.stack(self.cls_means).cpu()  # (class, channel)
+        cls_covariances = self.cls_covariances.cpu()  # (channel, channel)
+
+        batch_deviations = output.unsqueeze(1) - cls_means.unsqueeze(0)  # (batch, class, channel)
+        inv_covariance = torch.inverse(cls_covariances)  # (channel, channel)
+        mahalanobis_distances = torch.einsum('bij,jk,bik->bi', batch_deviations,
+                                             inv_covariance, batch_deviations)  # (batch, class)
+
+        c_hat = torch.argmin(mahalanobis_distances, dim=1)
+        closest_means = cls_means[c_hat]
+        closest_deviations = output - closest_means  # (batch, channel)
+        loss = torch.einsum('bi,ij,bj->b', closest_deviations, inv_covariance, closest_deviations)  # (batch)
+        loss.sum().backward()
+
+        perturbed_inputs = inputs + 0.01 * torch.sign(inputs.grad)
+
         with torch.no_grad():
-            inputs = inputs.to(device).clone().detach().requires_grad_(True)
-            self.model(inputs)
+            self.model(perturbed_inputs)
             output = self.penultimate_outputs['penultimate'].cpu()
-            cls_means = torch.stack([mean.cpu() for mean in self.cls_means])
-            cls_covariances = self.cls_covariances.cpu()
-
-            batch_deviations = output.unsqueeze(1) - cls_means.unsqueeze(0)  # (batch, sample, channel)
-            inv_covariance = torch.inverse(cls_covariances)  # (channel, channel)
+            batch_deviations = output.unsqueeze(1) - cls_means.unsqueeze(0)  # (batch, class, channel)
             mahalanobis_distances = torch.einsum('bij,jk,bik->bi', batch_deviations,
-                                             inv_covariance, batch_deviations)  # (batch, sample)
+                                                 inv_covariance, batch_deviations)  # (batch, class)
+            confidence_scores = -torch.max(mahalanobis_distances, dim=1)[0]
 
-            c_hat = torch.argmin(mahalanobis_distances, dim=1)
-            batch_size = mahalanobis_distances.shape[0]
-            confidence_scores = -mahalanobis_distances[torch.arange(batch_size), c_hat]
+        return confidence_scores
 
-            return confidence_scores
