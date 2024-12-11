@@ -1,57 +1,39 @@
 import torch
 import torch.nn.functional as F
-from models import ResNet
-from datasets import load_dataset
-from torcheval.metrics import BinaryAUROC, BinaryAUPRC
 import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-class REACT:
-    def __init__(self, model, quantile=0.9):
+class LogitNorm:
+    def __init__(self, model, temperature=1.0, eps=1e-7):
         self.model = model
-        self.penultimate_layer = {}
-        self.samples = torch.tensor([], device=device)
-        self.c = None
-        self.quantile = quantile
-        self.register_hooks()
+        self.temperature = temperature
+        self.eps = eps
 
-    def get_activation(self, layer_name):
-        def hook(_model, _input, output):
-            self.penultimate_layer[layer_name] = output
-        return hook
+    def logitnorm_score(self, inputs, model=None):
+        """
+        LogitNorm 점수를 계산합니다.
+        1. 로짓을 정규화 (L2 norm으로 나눔)
+        2. 온도 스케일링 적용
+        3. 소프트맥스 적용
+        """
+        inputs = inputs.to(next(self.model.parameters()).device)
 
-    def register_hooks(self):
-        self.model.GAP.register_forward_hook(self.get_activation('penultimate'))
+        with torch.no_grad():
+            # 로짓 계산
+            logits = self.model(inputs)
 
-    def get_samples(self, dataloader):
-        for inputs, _ in dataloader:
-            inputs = inputs.to(device)
-            self.model(inputs)
-            self.samples = torch.cat([self.samples, self.penultimate_layer['penultimate'].flatten(1)])
-        return self.samples  # (num_samples, 512)
+            # 로짓 정규화
+            norm = torch.norm(logits, p=2, dim=1, keepdim=True)
+            normalized_logits = logits / (norm + self.eps)
 
-    def calculate_threshold(self, samples):
-        samples_np = samples.flatten().cpu().numpy()
-        c_theshold = np.quantile(samples_np, self.quantile)
-        self.c = torch.tensor(c_theshold, device=device)
+            # 온도 스케일링 적용
+            scaled_logits = normalized_logits / self.temperature
 
-        # 통계 출력
-        print(f"\nQuantile {self.quantile}:")
-        print(f"Calculated threshold (c): {self.c.item():.4f}")
-        print(f"Input samples range: [{samples_np.min():.4f}, {samples_np.max():.4f}]")
-        print(f"Samples mean: {samples_np.mean():.4f}")
-        print(f"Samples std: {samples_np.std():.4f}")
+            # 소프트맥스 적용
+            probabilities = F.softmax(scaled_logits, dim=1)
 
-    def react_score(self, inputs, model=None):
-        inputs = inputs.to(device)
-        self.model(inputs)
+            # 최대 확률값을 신뢰도 점수로 사용
+            scores = torch.max(probabilities, dim=1)[0]
 
-        penultimate = self.penultimate_layer['penultimate'].flatten(1)  # (batch, 512)
-        clamped = torch.clamp(penultimate, max=self.c)  # (batch, 512)
-        logits = self.model.fc(clamped)  # (batch, 10)
-
-        softmax = F.softmax(logits, dim=1)  # (batch, 10)
-        scores = torch.max(softmax, dim=1)[0]  # (batch,)
-
-        return scores  # (num_samples,)
+        return scores

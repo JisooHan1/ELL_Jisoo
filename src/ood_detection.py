@@ -73,6 +73,8 @@ def run_ood_detection(args):
         ood_method.get_cls_means(class_features)
         ood_method.get_cls_covariances(class_features)
         score_func = ood_method.mds_score
+    elif args.method == "react":
+        score_func = ood_method.react_score
     else:
         score_func = ood_method
 
