@@ -9,11 +9,9 @@ def get_ood_methods(ood_method, model):
     elif ood_method == "odin":
         return odin_score
     elif ood_method == "mds":
-        detector = MDS(model)
-        return detector.mds_score
+        return MDS(model)
     elif ood_method == "react":
-        detector = REACT(model)
-        return detector.react_score
+        return REACT(model)
     else:
         raise ValueError(f"Unknown OOD method: {ood_method}")
 

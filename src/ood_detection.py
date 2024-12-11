@@ -72,14 +72,17 @@ def run_ood_detection(args):
         class_features = ood_method.get_class_features(id_loader)
         ood_method.get_cls_means(class_features)
         ood_method.get_cls_covariances(class_features)
+        score_func = ood_method.mds_score
+    else:
+        score_func = ood_method
 
     for data in id_loader:
-        scores = ood_method(data[0].to(device), model)
+        scores = score_func(data[0].to(device), model)
         id_scores.append(scores)
     id_scores = torch.cat(id_scores)
 
     for data in ood_loader:
-        scores = ood_method(data[0].to(device), model)
+        scores = score_func(data[0].to(device), model)
         ood_scores.append(scores)
     ood_scores = torch.cat(ood_scores)
 
