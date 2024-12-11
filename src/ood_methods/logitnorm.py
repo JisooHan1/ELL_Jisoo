@@ -17,13 +17,12 @@ class LogitNorm:
         2. 온도 스케일링 적용
         3. 소프트맥스 적용
         """
-        inputs = inputs.to(next(self.model.parameters()).device)
+        inputs = inputs.to(device)
 
         with torch.no_grad():
-            # 로짓 계산
+
             logits = self.model(inputs)
 
-            # 로짓 정규화
             norm = torch.norm(logits, p=2, dim=1, keepdim=True)
             normalized_logits = logits / (norm + self.eps)
 
