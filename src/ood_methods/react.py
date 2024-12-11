@@ -5,13 +5,12 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class REACT:
-    def __init__(self, model, quantiles=[0.8, 0.9, 0.95]):
+    def __init__(self, model, quantile=0.95):
         self.model = model
         self.penultimate_layer = {}
         self.samples = torch.tensor([], device=device)
         self.c = None
-        self.quantiles = quantiles
-        self.thresholds = {}
+        self.quantile = quantile
         self.register_hooks()
 
     def get_activation(self, layer_name):
@@ -31,21 +30,15 @@ class REACT:
 
     def calculate_threshold(self, samples):
         samples_np = samples.flatten().cpu().numpy()
+        c_theshold = np.quantile(samples_np, self.quantile)
+        self.c = torch.tensor(c_theshold, device=device)
 
-        print("\nQuantile statistics:")
-        for q in self.quantiles:
-            c_threshold = np.quantile(samples_np, q)
-            self.thresholds[q] = torch.tensor(c_threshold, device=device)
-
-            print(f"\nQuantile {q}:")
-            print(f"Calculated threshold (c): {c_threshold:.4f}")
-
-        # 공통 통계 출력
-        print(f"\nInput samples range: [{samples_np.min():.4f}, {samples_np.max():.4f}]")
+        # 통계 출력
+        print(f"\nQuantile {self.quantile}:")
+        print(f"Calculated threshold (c): {self.c.item():.4f}")
+        print(f"Input samples range: [{samples_np.min():.4f}, {samples_np.max():.4f}]")
         print(f"Samples mean: {samples_np.mean():.4f}")
         print(f"Samples std: {samples_np.std():.4f}")
-
-        self.c = self.thresholds[self.quantiles[0]]
 
     def react_score(self, inputs, model=None):
         inputs = inputs.to(device)
