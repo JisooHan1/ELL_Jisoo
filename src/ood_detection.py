@@ -68,6 +68,11 @@ def run_ood_detection(args):
 
     ood_method = get_ood_methods(args.method, model)
 
+    if args.method == "mds":
+        class_features = ood_method.get_class_features(id_loader)
+        ood_method.get_cls_means(class_features)
+        ood_method.get_cls_covariances(class_features)
+
     for data in id_loader:
         scores = ood_method(data[0].to(device), model)
         id_scores.append(scores)
