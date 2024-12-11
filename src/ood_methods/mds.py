@@ -104,27 +104,11 @@ class MDS:
 
         class_covariances = []
         for cls in range(self.num_classes):
-            deviations = total_stack - self.cls_means[cls].unsqueeze(0)  # (total_sample, channel)
+            deviations = class_stacks[cls] - self.cls_means[cls].unsqueeze(0)  # (sample, channel)
             class_covariances.append(torch.einsum('ni,nj->ij', deviations, deviations))
+
         self.cls_covariances = torch.stack(class_covariances).sum(dim=0) / N
-
         return self.cls_covariances
-
-    # def mds_score(self, inputs, model=None):
-    #     inputs = inputs.to(device).clone().detach().requires_grad_(True)
-
-    #     self.model(inputs)
-    #     output = self.penultimate_outputs['penultimate']
-
-    #     batch_deviations = output.unsqueeze(1) - torch.stack(self.cls_means).unsqueeze(0)
-    #     mahalanobis_distances = torch.einsum('bij,jk,bik->bi', batch_deviations,
-    #                                          torch.inverse(self.cls_covariances), batch_deviations)
-    #     c_hat = torch.argmin(mahalanobis_distances, dim=1)
-
-    #     batch_size = mahalanobis_distances.shape[0]
-    #     confidence_scores = mahalanobis_distances[torch.arange(batch_size), c_hat]
-
-    #     return confidence_scores
 
     def mds_score(self, inputs, model=None):
         with torch.no_grad():
