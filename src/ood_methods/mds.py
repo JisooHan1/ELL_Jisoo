@@ -134,14 +134,16 @@ class MDS:
             inputs = inputs.to(device).clone().detach().requires_grad_(True)
             self.model(inputs)
             output = self.penultimate_outputs['penultimate'].cpu()
+            cls_means = torch.stack([mean.cpu() for mean in self.cls_means])
+            cls_covariances = self.cls_covariances.cpu()
             print(f"Penultimate output shape: {output.shape}")
 
             print("Computing batch deviations")
-            batch_deviations = output.unsqueeze(1) - torch.stack(self.cls_means).unsqueeze(0)
+            batch_deviations = output.unsqueeze(1) - cls_means.unsqueeze(0)
             print(f"Batch deviations shape: {batch_deviations.shape}")
 
             print("Computing inverse of covariance matrix")
-            inv_covariance = torch.inverse(self.cls_covariances)
+            inv_covariance = torch.inverse(cls_covariances)
             print(f"Inverse covariance shape: {inv_covariance.shape}")
 
             print("Computing mahalanobis distances")
