@@ -5,14 +5,18 @@ import numpy as np
 from datasets import load_dataset
 from models import ResNet, DenseNet
 import argparse
-from torcheval.metrics import BinaryAUROC, BinaryAUPRC
+from sklearn.metrics import roc_curve, roc_auc_score, average_precision_score
 from ood_methods import get_ood_methods
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Model loading function
-def load_pretrained_model(model_path):
-    model = ResNet(3).to(device)
+def load_model(model_path, model_type):
+    if model_type == "ResNet":
+        model = ResNet(3).to(device)
+    elif model_type == "DenseNet":
+        model = DenseNet(3).to(device)
+
     state_dict = torch.load(model_path, map_location=device)
     model.load_state_dict(state_dict, strict=True)
     model.eval()
@@ -21,28 +25,33 @@ def load_pretrained_model(model_path):
     return model
 
 def evaluate_ood_detection(id_scores, ood_scores):
+    id_scores = id_scores.cpu().numpy()
+    ood_scores = ood_scores.cpu().numpy()
+
     # generate list of label: ID = 1, OOD = 0
-    labels = torch.cat([torch.ones_like(id_scores), torch.zeros_like(ood_scores)])
-    scores = torch.cat([id_scores, ood_scores])
+    labels = np.concatenate([np.ones(len(id_scores)), np.zeros(len(ood_scores))])
+    scores = np.concatenate([id_scores, ood_scores])  # (num_samples, 1)
 
-    # Use Binary metrics for OOD detection
-    binary_auroc = BinaryAUROC()
-    binary_auroc.update(scores, labels)
-    binary_auprc = BinaryAUPRC()
-    binary_auprc.update(scores, labels)
+    # FPR95
+    fprs, tprs, _ = roc_curve(labels, scores)
+    tpr_95_idx = np.argmin(np.abs(tprs - 0.95))
+    fpr95 = fprs[tpr_95_idx]
 
-    auroc = binary_auroc.compute()
-    aupr = binary_auprc.compute()
+    # AUROC, AUPRC
+    auroc = roc_auc_score(labels, scores)
+    aupr = average_precision_score(labels, scores)
 
+    print(f'FPR95: {fpr95:.4f}')
     print(f'AUROC: {auroc:.4f}')
     print(f'AUPR: {aupr:.4f}')
+
 
 def run_ood_detection(args):
     # load model
     if args.model == "ResNet":
-        model = load_pretrained_model("logs/ResNet/trained_model/trained_resnet_20241009_185530.pth")
+        model = load_model("logs/ResNet/trained_model/trained_resnet_20241009_185530.pth", "ResNet")
     elif args.model == "DenseNet":
-        model = load_pretrained_model("logs/DenseNet/trained_model/trained_resnet_20241031_004039.pth")
+        model = load_model("logs/DenseNet/trained_model/trained_densenet_20241211_161111.pth", "DenseNet")
     batch_size = args.batch_size
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
@@ -56,18 +65,20 @@ def run_ood_detection(args):
     ood_loader = torch.utils.data.DataLoader(ood_testset, batch_size=batch_size, shuffle=True)
 
     # get softmax
-    id_scores = torch.tensor([], device=device)
-    ood_scores = torch.tensor([], device=device)
+    id_scores = []
+    ood_scores = []
 
     ood_method = get_ood_methods(args.method)
 
     for data in id_loader:
         scores = ood_method(data[0].to(device), model)
-        id_scores = torch.cat([id_scores, scores])
+        id_scores.append(scores)
+    id_scores = torch.cat(id_scores)
 
     for data in ood_loader:
         scores = ood_method(data[0].to(device), model)
-        ood_scores = torch.cat([ood_scores, scores])
+        ood_scores.append(scores)
+    ood_scores = torch.cat(ood_scores)
 
     # get AUROC and AUPR
     evaluate_ood_detection(id_scores, ood_scores)

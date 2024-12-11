@@ -96,7 +96,7 @@ def main():
     device = get_device()
 
     # Parsing command 정의
-    parser = argparse.ArgumentParser(description="Executes deep learning using CCN")
+    parser = argparse.ArgumentParser(description="Executes deep learning")
     parser.add_argument("-md", "--model", type=str, required=True, help="type of model: LeNet5, ResNet18, DensNet100, FractalNet")
     parser.add_argument("-ds", "--dataset", type=str, required=True, help="type of dataset: CIFAR-10, MNIST, STL-10")
     parser.add_argument("-ep", "--num_epochs", type=int, required=True, help="number of epochs")
@@ -167,7 +167,7 @@ def main():
     # save trained model
     os.makedirs(f'logs/{args.model}/trained_model', exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    save_path = f'logs/{args.model}/trained_model/trained_resnet_{timestamp}.pth'
+    save_path = f'logs/{args.model}/trained_model/trained_{args.model}_{timestamp}.pth'
 
     net.to('cpu')
     torch.save(net.state_dict(), save_path)

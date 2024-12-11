@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class ResBlock(nn.Module):
-    def __init__(self, in_channel, out_channel, stride): # par for first layer in a block.
+    def __init__(self, in_channel, out_channel, stride):
         super(ResBlock, self).__init__()
 
         self.bn1 = nn.BatchNorm2d(in_channel)
@@ -35,6 +35,7 @@ class ResNet(nn.Module):
         self.bundle2 = self.repeat_block(64, 128, 2)
         self.bundle3 = self.repeat_block(128, 256, 2)
         self.bundle4 = self.repeat_block(256, 512, 2)
+        self.bn = nn.BatchNorm2d(512)
 
         self.fc = nn.Linear(512, 10)
 
@@ -51,7 +52,9 @@ class ResNet(nn.Module):
         x = self.bundle2(x) # layer 6~9
         x = self.bundle3(x) # layer 10~13
         x = self.bundle4(x) # layer 14~17
+        x = F.relu(self.bn(x))  # batch normalization and relu added before fc
         x = self.GAP(x)  # (batch, 512, 1, 1)
+
         x = torch.flatten(x, 1)  # (batch, 512)
         x = self.fc(x) # layer 18
         return x
