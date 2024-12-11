@@ -1,6 +1,4 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 from datasets import load_dataset
 from models import ResNet, DenseNet
@@ -11,7 +9,7 @@ from ood_methods import get_ood_methods
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Model loading function
-def load_model(model_path, model_type):
+def load_trained_model(model_path, model_type):
     if model_type == "ResNet":
         model = ResNet(3).to(device)
     elif model_type == "DenseNet":
@@ -49,9 +47,9 @@ def evaluate_ood_detection(id_scores, ood_scores):
 def run_ood_detection(args):
     # load model
     if args.model == "ResNet":
-        model = load_model("logs/ResNet/trained_model/trained_resnet_20241009_185530.pth", "ResNet")
+        model = load_trained_model("logs/ResNet/trained_model/trained_ResNet_20241211_162024.pth", "ResNet")
     elif args.model == "DenseNet":
-        model = load_model("logs/DenseNet/trained_model/trained_densenet_20241211_161111.pth", "DenseNet")
+        model = load_trained_model("logs/DenseNet/trained_model/trained_DenseNet_20241211_154102.pth", "DenseNet")
     batch_size = args.batch_size
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
@@ -68,7 +66,7 @@ def run_ood_detection(args):
     id_scores = []
     ood_scores = []
 
-    ood_method = get_ood_methods(args.method)
+    ood_method = get_ood_methods(args.method, model)
 
     for data in id_loader:
         scores = ood_method(data[0].to(device), model)
