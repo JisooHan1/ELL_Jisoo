@@ -5,7 +5,7 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class REACT:
-    def __init__(self, model, quantile=0.95):
+    def __init__(self, model, quantile=1):
         self.model = model
         self.penultimate_layer = {}
         self.samples = torch.tensor([], device=device)
