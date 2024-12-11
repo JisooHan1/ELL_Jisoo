@@ -128,32 +128,19 @@ class MDS:
 
     def mds_score(self, inputs, model=None):
         with torch.no_grad():
-            print("Starting mds_score")
-            print(f"Input shape: {inputs.shape}")
-
             inputs = inputs.to(device).clone().detach().requires_grad_(True)
             self.model(inputs)
             output = self.penultimate_outputs['penultimate'].cpu()
             cls_means = torch.stack([mean.cpu() for mean in self.cls_means])
             cls_covariances = self.cls_covariances.cpu()
-            print(f"Penultimate output shape: {output.shape}")
 
-            print("Computing batch deviations")
             batch_deviations = output.unsqueeze(1) - cls_means.unsqueeze(0)
-            print(f"Batch deviations shape: {batch_deviations.shape}")
-
-            print("Computing inverse of covariance matrix")
             inv_covariance = torch.inverse(cls_covariances)
-            print(f"Inverse covariance shape: {inv_covariance.shape}")
-
-            print("Computing mahalanobis distances")
             mahalanobis_distances = torch.einsum('bij,jk,bik->bi', batch_deviations,
                                              inv_covariance, batch_deviations)
-            print(f"Mahalanobis distances shape: {mahalanobis_distances.shape}")
 
             c_hat = torch.argmin(mahalanobis_distances, dim=1)
             batch_size = mahalanobis_distances.shape[0]
             confidence_scores = mahalanobis_distances[torch.arange(batch_size), c_hat]
 
-            print("Finished mds_score")
             return confidence_scores
