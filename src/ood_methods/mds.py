@@ -56,7 +56,7 @@ class MDS:
         for cls in range(self.num_classes):
             deviations = total_stack - self.cls_means[cls].unsqueeze(0)  # (total_sample, channel)
             class_covariances.append(torch.einsum('ni,nj->ij', deviations, deviations))
-        self.cls_covariances = class_covariances.sum() / N
+        self.cls_covariances = torch.stack(class_covariances).sum(dim=0) / N
 
         return self.cls_covariances
 
