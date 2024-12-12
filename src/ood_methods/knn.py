@@ -5,7 +5,7 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class KNN:
-    def __init__(self, model, k=10):
+    def __init__(self, model, k=50):
         self.model = model
         self.penultimate_layer = {}
         self.features = torch.tensor([], device=device)

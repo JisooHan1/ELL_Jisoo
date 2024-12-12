@@ -24,12 +24,8 @@ class LogitNorm:
             inputs = inputs.to(device)
             self.model(inputs)
             self.samples = torch.cat([self.samples, self.penultimate_layer['penultimate'].flatten(1)])
-        return self.samples  # (num_samples, 512)
-
-    def calculate_threshold(self, samples):
-        samples_np = samples.flatten().cpu().numpy()
-        c_theshold = np.quantile(samples_np, self.quantile)
-        self.c = torch.tensor(c_theshold, device=device)
+            self.l2_samples = F.normalize(self.samples, p=2, dim=1)
+        return self.l2_samples  # (num_samples, 512)
 
     def logitnorm_score(self, inputs, model=None):
         inputs = inputs.to(device)

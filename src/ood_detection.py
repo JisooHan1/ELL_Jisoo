@@ -77,6 +77,9 @@ def run_ood_detection(args):
         ood_method.get_samples(id_loader)
         ood_method.calculate_threshold(ood_method.samples)
         score_func = ood_method.react_score
+    elif args.method == "knn":
+        ood_method.get_features(id_loader)
+        score_func = ood_method.knn_score
     else:
         score_func = ood_method
 
