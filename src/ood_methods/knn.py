@@ -26,19 +26,19 @@ class KNN:
             inputs = inputs.to(device)
             self.model(inputs)
 
-            self.features = torch.cat([self.features, self.penultimate_layer['penultimate'].flatten(1)])  # (num_samples, 512)
-            self.l2_features = F.normalize(self.features, p=2, dim=1)  # (num_samples, 512)
-        return self.l2_features  # (num_samples, 512)
+            self.features = torch.cat([self.features, self.penultimate_layer['penultimate'].flatten(1)])  # (batch, 512)
+            self.l2_features = F.normalize(self.features, p=2, dim=1)  # (batch, 512)
+        return self.l2_features  # (batch, 512)
 
     def knn_score(self, inputs, model=None):
         inputs = inputs.to(device)
         self.model(inputs)
 
-        ood_features = self.penultimate_layer['penultimate'].flatten(1)  # (batch, 512)
-        l2_ood_features = F.normalize(ood_features, p=2, dim=1)
+        features = self.penultimate_layer['penultimate'].flatten(1)  # (batch, 512)
+        l2_features = F.normalize(features, p=2, dim=1)
 
-        distances = torch.cdist(self.l2_features, l2_ood_features)  # (batch, num_samples)
-        distances, indices = torch.sort(distances, dim=1, descending=False)
+        distances = torch.cdist(self.l2_features, l2_features)  # (batch, batch)
+        distances, _ = torch.sort(distances, dim=1, descending=False)
 
         kth_distance = distances[self.k -1]
 
