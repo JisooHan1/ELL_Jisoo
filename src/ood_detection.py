@@ -94,10 +94,15 @@ def run_ood_detection(args):
         ood_method.get_features(id_loader)
         score_func = ood_method.knn_score
 
-        id_data = torch.cat([data[0] for data in id_loader]).to(device)
-        id_scores = score_func(id_data, model)
-        ood_data = torch.cat([data[0] for data in ood_loader]).to(device)
-        ood_scores = score_func(ood_data, model)
+        for data in id_loader:
+            scores = score_func(data[0].to(device), model)
+            id_scores.append(scores)
+        id_scores = torch.cat(id_scores)
+
+        for data in ood_loader:
+            scores = score_func(data[0].to(device), model)
+            ood_scores.append(scores)
+        ood_scores = torch.cat(ood_scores)
 
     # get AUROC and AUPR
     evaluate_ood_detection(id_scores, ood_scores)
