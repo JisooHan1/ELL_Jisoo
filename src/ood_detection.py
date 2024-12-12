@@ -77,9 +77,7 @@ def run_ood_detection(args):
         ood_method.get_samples(id_loader)
         ood_method.calculate_threshold(ood_method.samples)
         score_func = ood_method.react_score
-    elif args.method == "knn":
-        ood_method.get_features(id_loader)
-        score_func = ood_method.knn_score
+
     else:
         score_func = ood_method
 
@@ -92,6 +90,15 @@ def run_ood_detection(args):
         scores = score_func(data[0].to(device), model)
         ood_scores.append(scores)
     ood_scores = torch.cat(ood_scores)
+
+    if args.method == "knn":
+        ood_method.get_features(id_loader)
+        score_func = ood_method.knn_score
+
+        id_data = torch.cat([data[0] for data in id_loader]).to(device)
+        id_scores = score_func(id_data, model)
+        ood_data = torch.cat([data[0] for data in ood_loader]).to(device)
+        ood_scores = score_func(ood_data, model)
 
     # get AUROC and AUPR
     evaluate_ood_detection(id_scores, ood_scores)

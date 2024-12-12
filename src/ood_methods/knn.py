@@ -27,7 +27,7 @@ class KNN:
             self.model(inputs)
 
             self.features = torch.cat([self.features, self.penultimate_layer['penultimate'].flatten(1)])  # (batch, 512)
-            self.l2_features = F.normalize(self.features, p=2, dim=1)  # (batch, 512)
+        self.l2_features = F.normalize(self.features, p=2, dim=1)  # (batch, 512)
         return self.l2_features  # (batch, 512)
 
     def knn_score(self, inputs, model=None):
