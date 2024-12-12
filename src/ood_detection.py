@@ -77,19 +77,18 @@ def run_ood_detection(args):
         ood_method.get_samples(id_loader)
         ood_method.calculate_threshold(ood_method.samples)
         score_func = ood_method.react_score
-
     else:
         score_func = ood_method
 
-    for data in id_loader:
-        scores = score_func(data[0].to(device), model)
-        id_scores.append(scores)
-    id_scores = torch.cat(id_scores)
+    # for data in id_loader:
+    #     scores = score_func(data[0].to(device), model)
+    #     id_scores.append(scores)
+    # id_scores = torch.cat(id_scores)
 
-    for data in ood_loader:
-        scores = score_func(data[0].to(device), model)
-        ood_scores.append(scores)
-    ood_scores = torch.cat(ood_scores)
+    # for data in ood_loader:
+    #     scores = score_func(data[0].to(device), model)
+    #     ood_scores.append(scores)
+    # ood_scores = torch.cat(ood_scores)
 
     if args.method == "knn":
         ood_method.get_features(id_loader)
