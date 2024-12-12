@@ -4,7 +4,7 @@ import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-class REACT:
+class ReAct:
     def __init__(self, model, quantile=1):
         self.model = model
         self.penultimate_layer = {}
@@ -51,4 +51,4 @@ class REACT:
         softmax = F.softmax(logits, dim=1)  # (batch, 10)
         scores = torch.max(softmax, dim=1)[0]  # (batch,)
 
-        return scores  # (num_samples,)
+        return scores  # (batch,)

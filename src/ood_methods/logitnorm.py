@@ -5,34 +5,41 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class LogitNorm:
-    def __init__(self, model, temperature=1.0, eps=1e-7):
+    def __init__(self, model):
         self.model = model
-        self.temperature = temperature
-        self.eps = eps
+        self.penultimate_layer = {}
+        self.samples = torch.tensor([], device=device)
+        self.register_hooks()
+
+    def get_activation(self, layer_name):
+        def hook(_model, _input, output):
+            self.penultimate_layer[layer_name] = output
+        return hook
+
+    def register_hooks(self):
+        self.model.GAP.register_forward_hook(self.get_activation('penultimate'))
+
+    def get_samples(self, dataloader):
+        for inputs, _ in dataloader:
+            inputs = inputs.to(device)
+            self.model(inputs)
+            self.samples = torch.cat([self.samples, self.penultimate_layer['penultimate'].flatten(1)])
+        return self.samples  # (num_samples, 512)
+
+    def calculate_threshold(self, samples):
+        samples_np = samples.flatten().cpu().numpy()
+        c_theshold = np.quantile(samples_np, self.quantile)
+        self.c = torch.tensor(c_theshold, device=device)
 
     def logitnorm_score(self, inputs, model=None):
-        """
-        LogitNorm 점수를 계산합니다.
-        1. 로짓을 정규화 (L2 norm으로 나눔)
-        2. 온도 스케일링 적용
-        3. 소프트맥스 적용
-        """
         inputs = inputs.to(device)
+        self.model(inputs)
 
-        with torch.no_grad():
+        penultimate = self.penultimate_layer['penultimate'].flatten(1)  # (batch, 512)
+        clamped = torch.clamp(penultimate, max=self.c)  # (batch, 512)
+        logits = self.model.fc(clamped)  # (batch, 10)
 
-            logits = self.model(inputs)
+        softmax = F.softmax(logits, dim=1)  # (batch, 10)
+        scores = torch.max(softmax, dim=1)[0]  # (batch,)
 
-            norm = torch.norm(logits, p=2, dim=1, keepdim=True)
-            normalized_logits = logits / (norm + self.eps)
-
-            # 온도 스케일링 적용
-            scaled_logits = normalized_logits / self.temperature
-
-            # 소프트맥스 적용
-            probabilities = F.softmax(scaled_logits, dim=1)
-
-            # 최대 확률값을 신뢰도 점수로 사용
-            scores = torch.max(probabilities, dim=1)[0]
-
-        return scores
+        return scores  # (num_samples,)
