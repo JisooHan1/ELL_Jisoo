@@ -20,17 +20,24 @@ class ReAct(BaseOOD):
             self.id_activations = torch.cat([self.id_activations, self.penultimate_layer.flatten(1)])
         return self.id_activations  # (num_samples x 512)
 
-    def calculate_c(self, activations):
-        activations_np = activations.cpu().numpy()
-        c_theshold = np.quantile(activations_np, self.quantile)
-        self.c = torch.tensor(c_theshold, device=device)
+    def calculate_c(self, id_activations):
+        activations_np = id_activations.cpu().numpy()  # (num_samples x channel)
+        c_theshold = np.quantile(activations_np, self.quantile, axis=0)  # (channel)
+        self.c = torch.tensor(c_theshold, device=device)  # (channel)
 
-        # print statistics
-        print(f"\nQuantile {self.quantile}:")
-        print(f"Calculated threshold (c): {self.c.item():.4f}")
-        print(f"Input samples range: [{activations_np.min():.4f}, {activations_np.max():.4f}]")
-        print(f"Samples mean: {activations_np.mean():.4f}")
-        print(f"Samples std: {activations_np.std():.4f}")
+        # 채널별 통계 출력
+        print("\nChannel-wise statistics:")
+        print(f"Min values per channel: [{activations_np.min(axis=0).min():.4f}, {activations_np.min(axis=0).max():.4f}]")
+        print(f"Max values per channel: [{activations_np.max(axis=0).min():.4f}, {activations_np.max(axis=0).max():.4f}]")
+        print(f"Mean values per channel: [{activations_np.mean(axis=0).min():.4f}, {activations_np.mean(axis=0).max():.4f}]")
+        print(f"Std values per channel: [{activations_np.std(axis=0).min():.4f}, {activations_np.std(axis=0).max():.4f}]")
+
+        # Threshold 통계
+        print(f"\nThreshold (c) statistics:")
+        print(f"Min threshold: {self.c.min().item():.4f}")
+        print(f"Max threshold: {self.c.max().item():.4f}")
+        print(f"Mean threshold: {self.c.mean().item():.4f}")
+        print(f"Std threshold: {self.c.std().item():.4f}")
 
     # apply method
     def apply_method(self, id_loader):
@@ -43,9 +50,9 @@ class ReAct(BaseOOD):
 
         activations = self.penultimate_layer.flatten(1)  # (batch x channel)
         clamped = torch.clamp(activations, max=self.c)  # (batch x channel)
-        logits = self.model.fc(clamped)  # (batch x 10)
+        logits = self.model.fc(clamped)  # (batch x num_classes)
 
-        softmax = F.softmax(logits, dim=1)  # (batch x 10)
+        softmax = F.softmax(logits, dim=1)  # (batch x num_classes)
         scores = torch.max(softmax, dim=1)[0]  # (batch)
 
         return scores  # (batch)
