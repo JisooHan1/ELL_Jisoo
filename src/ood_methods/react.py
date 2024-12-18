@@ -6,7 +6,7 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class ReAct(BaseOOD):
-    def __init__(self, model, quantile=0.95):
+    def __init__(self, model, quantile=0.9):
         super().__init__(model)
         self.id_activations = torch.tensor([], device=device)
         self.c = None
@@ -17,13 +17,27 @@ class ReAct(BaseOOD):
         for inputs, _ in id_loader:
             inputs = inputs.to(device)
             self.model(inputs)
-            self.id_activations = torch.cat([self.id_activations, self.penultimate_layer.flatten(1)])
-        return self.id_activations  # (num_samples x 512)
+            self.id_activations = torch.cat([self.id_activations, self.penultimate_layer.flatten(1)])  # (num_samples x channel)
+            self.id_activations = self.id_activations.flatten()  # (num_samples * channel) = (total_channel)
+        return self.id_activations
 
     def calculate_c(self, id_activations):
-        activations_np = id_activations.cpu().numpy()  # (num_samples x channel)
-        c_theshold = np.quantile(activations_np, self.quantile, axis=0)  # (channel)
-        self.c = torch.tensor(c_theshold, device=device)  # (channel)
+        activations_np = id_activations.cpu().numpy()  # (total_channel)
+        c_theshold = np.quantile(activations_np, self.quantile)  # (1)
+        self.c = torch.tensor(c_theshold, device=device)
+
+
+    # def get_activations(self, id_loader):
+    #     for inputs, _ in id_loader:
+    #         inputs = inputs.to(device)
+    #         self.model(inputs)
+    #         self.id_activations = torch.cat([self.id_activations, self.penultimate_layer.flatten(1)])
+    #     return self.id_activations  # (num_samples x 512)
+
+    # def calculate_c(self, id_activations):
+    #     activations_np = id_activations.cpu().numpy()  # (num_samples x channel)
+    #     c_theshold = np.quantile(activations_np, self.quantile, axis=0)  # (channel)
+    #     self.c = torch.tensor(c_theshold, device=device)  # (channel)
 
         # # 채널별 통계 출력
         # print("\nChannel-wise statistics:")
