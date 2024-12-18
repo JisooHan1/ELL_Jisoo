@@ -49,9 +49,7 @@ class ReAct(BaseOOD):
         self.model(inputs)
 
         activations = self.penultimate_layer.flatten(1)  # (batch x channel)
-        print(f"activations dtype: {activations.dtype}")
-        print(f"self.c dtype: {self.c.dtype}")
-        clamped = torch.clamp(activations, max=self.c.unsqueeze(0))  # (batch x channel)
+        clamped = torch.clamp(activations, max=self.c.to(activations.dtype))  # (batch x channel)
         logits = self.model.fc(clamped)  # (batch x num_classes)
 
         softmax = F.softmax(logits, dim=1)  # (batch x num_classes)
