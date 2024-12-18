@@ -66,43 +66,18 @@ def run_ood_detection(args):
     id_scores = []
     ood_scores = []
 
-    ood_method = get_ood_methods(args.method, model)
+    ood_method = get_ood_methods(args.method)
+    ood_method.apply_method(id_loader)
 
-    if args.method == "mds":
-        class_features = ood_method.get_class_features(id_loader)
-        ood_method.get_cls_means(class_features)
-        ood_method.get_cls_covariances(class_features)
-        score_func = ood_method.mds_score
-    elif args.method == "react":
-        ood_method.get_samples(id_loader)
-        ood_method.calculate_threshold(ood_method.samples)
-        score_func = ood_method.react_score
-    else:
-        score_func = ood_method
+    for data in id_loader:
+        batch_id_scores = ood_method.ood_score(data.to(device))
+        id_scores.append(batch_id_scores)
+    id_scores = torch.cat(id_scores)
 
-    # for data in id_loader:
-    #     scores = score_func(data[0].to(device), model)
-    #     id_scores.append(scores)
-    # id_scores = torch.cat(id_scores)
-
-    # for data in ood_loader:
-    #     scores = score_func(data[0].to(device), model)
-    #     ood_scores.append(scores)
-    # ood_scores = torch.cat(ood_scores)
-
-    if args.method == "knn":
-        ood_method.get_features(id_loader)
-        score_func = ood_method.knn_score
-
-        for data in id_loader:
-            scores = score_func(data[0].to(device), model)
-            id_scores.append(scores)
-        id_scores = torch.cat(id_scores)
-
-        for data in ood_loader:
-            scores = score_func(data[0].to(device), model)
-            ood_scores.append(scores)
-        ood_scores = torch.cat(ood_scores)
+    for data in ood_loader:
+        batch_ood_scores = ood_method.ood_score(data.to(device))
+        ood_scores.append(batch_ood_scores)
+    ood_scores = torch.cat(ood_scores)
 
     # get AUROC and AUPR
     evaluate_ood_detection(id_scores, ood_scores)
