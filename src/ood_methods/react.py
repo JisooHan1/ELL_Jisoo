@@ -18,7 +18,7 @@ class ReAct(BaseOOD):
             inputs = inputs.to(device)
             self.model(inputs)
             self.id_activations = torch.cat([self.id_activations, self.penultimate_layer.flatten(1)])  # (num_samples x channel)
-            self.id_activations = self.id_activations.flatten()  # (num_samples * channel) = (total_channel)
+        self.id_activations = self.id_activations.flatten()  # (num_samples * channel) = (total_channel)
         return self.id_activations
 
     def calculate_c(self, id_activations):
