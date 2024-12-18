@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 class MSP(BaseOOD):
     def __init__(self, model):
-        super().__init__(model)
+        self.model = model
 
     def ood_score(self, inputs):
         outputs = self.model(inputs)  # (batch x num_class)

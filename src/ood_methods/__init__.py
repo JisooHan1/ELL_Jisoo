@@ -1,5 +1,5 @@
-from .msp import msp_score
-from .odin import odin_score
+from .msp import MSP
+from .odin import ODIN
 from .mds import MDS
 from .react import ReAct
 from .logitnorm import LogitNorm
@@ -7,9 +7,9 @@ from .knn import KNN
 
 def get_ood_methods(ood_method, model=None):
     if ood_method == "msp":
-        return msp_score
+        return MSP(model)
     elif ood_method == "odin":
-        return odin_score
+        return ODIN(model)
     elif ood_method == "mds":
         return MDS(model)
     elif ood_method == "react":

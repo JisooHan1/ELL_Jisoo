@@ -1,28 +1,30 @@
+from .base_ood import BaseOOD
 import torch
 import torch.nn.functional as F
 
-def odin_score(input_data, model, temperature=1000, epsilon=0.001):
-    # make a copy of input_data
-    input_data = input_data.clone().detach().requires_grad_(True)
+class ODIN(BaseOOD):
+    def __init__(self, model, temperature=1000, epsilon=0.001):
+        self.model = model
+        self.temperature = temperature
+        self.epsilon = epsilon
 
-    # forward pass with temperature scaling
-    outputs =  model(input_data) / temperature # (batch_size, num_classes)
+    def ood_score(self, inputs):
+        inputs = inputs.clone().detach().requires_grad_(True)
 
-    # get predicted class
-    softmax_scores = F.softmax(outputs, dim=1)
-    pred_class = torch.argmax(softmax_scores, dim=1)
 
-    # calculate loss and gradient
-    loss = F.cross_entropy(outputs, pred_class)
-    loss.backward()
+        outputs = self.model(inputs) / self.temperature # (batch_size, num_classes)
 
-    # perturb input data (update input data)
-    perturbed_input = input_data - epsilon * torch.sign(input_data.grad)
+        softmax_scores = F.softmax(outputs, dim=1)
+        pred_class = torch.argmax(softmax_scores, dim=1)
 
-    # second forward pass with perturbed input
-    with torch.no_grad():
-        perturbed_output = model(perturbed_input) / temperature
+        loss = F.cross_entropy(outputs, pred_class)
+        loss.backward()
+
+        perturbed_input = inputs - self.epsilon * torch.sign(inputs.grad)
+
+        with torch.no_grad():
+            perturbed_output = self.model(perturbed_input) / self.temperature
         calibrated_scores = F.softmax(perturbed_output, dim=1) # (batch_size, num_classes)
-        max_score = torch.max(calibrated_scores, dim=1)[0] # (batch_size)
+        odin_score = torch.max(calibrated_scores, dim=1)[0] # (batch_size)
 
-    return max_score
+        return odin_score
