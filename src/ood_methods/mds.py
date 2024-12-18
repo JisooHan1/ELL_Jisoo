@@ -14,22 +14,28 @@ class MDS(BaseOOD):
         self.id_cls_means = []
         self.id_cls_covariances = None
 
-    # hook
-    def hook_function(self):
-        def hook(_model, _input, output):
-            self.penultimate_layer = self.avg_pool(output).squeeze()  # (batch x channel)
-        return hook
+    # # hook
+    # def hook_function(self):
+    #     def hook(_model, _input, output):
+    #         self.penultimate_layer = self.avg_pool(output).squeeze()  # (batch x channel)
+    #     return hook
 
     # method
     def get_class_features(self, id_dataloader):
         for inputs, labels in id_dataloader:
             inputs, labels = inputs.to(device), labels.to(device)
             self.model(inputs)
-            output = self.penultimate_layer  # (batch x channel)
+            output = self.penultimate_layer.flatten(1)  # (batch x channel)
 
             for i, label in enumerate(labels):
                 class_index = label.item()
                 self.class_features[class_index].append(output[i])  # output[i] : (channel)
+
+        # Print first few class features for debugging
+        for cls in range(min(3, self.num_classes)):  # Show first 3 classes
+            print(f"Class {cls} features shape: {len(self.class_features[cls])}")
+            if len(self.class_features[cls]) > 0:
+                print(f"First feature shape: {self.class_features[cls][0].shape}")
         return self.class_features
 
     def get_cls_means(self, class_features):
