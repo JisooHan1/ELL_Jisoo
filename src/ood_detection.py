@@ -22,7 +22,7 @@ def load_trained_model(model_path, model_type):
         param.requires_grad = False
     return model
 
-def evaluate_ood_detection(id_scores, ood_scores):
+def evaluations(id_scores, ood_scores):
     id_scores = id_scores.cpu().numpy()
     ood_scores = ood_scores.cpu().numpy()
 
@@ -80,7 +80,7 @@ def run_ood_detection(args):
     ood_scores = torch.cat(ood_scores)
 
     # get AUROC and AUPR
-    evaluate_ood_detection(id_scores, ood_scores)
+    evaluations(id_scores, ood_scores)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="OOD detection")

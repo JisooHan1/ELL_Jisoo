@@ -1,10 +1,14 @@
+from .base_ood import BaseOOD
 import torch
 import torch.nn.functional as F
 
-def msp_score(input_data, model):
-    with torch.no_grad():
-        outputs = model(input_data)
-        softmax_scores = F.softmax(outputs, dim=1)  # (batch_size, num_class)
-        max_score, _ = torch.max(softmax_scores, dim=1)  # output: MSP, index - (batch_size)
+class MSP(BaseOOD):
+    def __init__(self, model):
+        super().__init__(model)
 
-    return max_score  # type: tensor
+    def ood_score(self, inputs):
+        outputs = self.model(inputs)  # (batch x num_class)
+        softmax_scores = F.softmax(outputs, dim=1)  # (batch x num_class)
+        msp, _ = torch.max(softmax_scores, dim=1)  # (batch)
+
+        return msp

@@ -34,6 +34,6 @@ class KNN(BaseOOD):
         distances = torch.cdist(l2_features, self.id_features)  # (batch x num_samples)
         distances, _ = torch.sort(distances, dim=1, descending=False)
 
-        kth_distance = distances[:,self.k - 1]
+        kth_distance = distances[:, self.k - 1]
 
         return -kth_distance  # (batch)

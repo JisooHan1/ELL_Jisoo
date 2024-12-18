@@ -6,7 +6,7 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class ReAct(BaseOOD):
-    def __init__(self, model, quantile=0.9):
+    def __init__(self, model, quantile=0.95):
         super().__init__(model)
         self.id_activations = torch.tensor([], device=device)
         self.c = None
