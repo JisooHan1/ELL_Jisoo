@@ -6,13 +6,15 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class ReAct(BaseOOD):
-    def __init__(self, model, quantile=0.87):
+    def __init__(self, model, quantile=0.9):
         super().__init__(model)
         self.id_activations = torch.tensor([], device=device)
         self.c = None
         self.quantile = quantile
 
     # method
+
+    # total channel
     # def get_activations(self, id_loader):
     #     for inputs, _ in id_loader:
     #         inputs = inputs.to(device)
@@ -27,6 +29,7 @@ class ReAct(BaseOOD):
     #     self.c = torch.tensor(c_theshold, device=device)
 
 
+    # each channel
     def get_activations(self, id_loader):
         for inputs, _ in id_loader:
             inputs = inputs.to(device)
@@ -39,12 +42,12 @@ class ReAct(BaseOOD):
         c_theshold = np.quantile(activations_np, self.quantile, axis=0)  # (channel)
         self.c = torch.tensor(c_theshold, device=device)  # (channel)
 
-        # # 채널별 통계 출력
-        # print("\nChannel-wise statistics:")
-        # print(f"Min values per channel: [{activations_np.min(axis=0).min():.4f}, {activations_np.min(axis=0).max():.4f}]")
-        # print(f"Max values per channel: [{activations_np.max(axis=0).min():.4f}, {activations_np.max(axis=0).max():.4f}]")
-        # print(f"Mean values per channel: [{activations_np.mean(axis=0).min():.4f}, {activations_np.mean(axis=0).max():.4f}]")
-        # print(f"Std values per channel: [{activations_np.std(axis=0).min():.4f}, {activations_np.std(axis=0).max():.4f}]")
+        # Activation 통계
+        print(f"\nActivation statistics:")
+        print(f"Min activation: {id_activations.min().item():.4f}")
+        print(f"Max activation: {id_activations.max().item():.4f}")
+        print(f"Mean activation: {id_activations.mean().item():.4f}")
+        print(f"Std activation: {id_activations.std().item():.4f}")
 
         # Threshold 통계
         print(f"\nThreshold (c) statistics:")
