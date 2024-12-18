@@ -30,18 +30,16 @@ class MDS(BaseOOD):
             for i, label in enumerate(labels):
                 class_index = label.item()
                 self.class_features[class_index].append(output[i])  # output[i] : (channel)
-
-        # Print first few class features for debugging
-        for cls in range(min(3, self.num_classes)):  # Show first 3 classes
-            print(f"Class {cls} features shape: {len(self.class_features[cls])}")
-            if len(self.class_features[cls]) > 0:
-                print(f"First feature shape: {self.class_features[cls][0].shape}")
+        print(self.class_features)
+        print(self.class_features.shape)
         return self.class_features
 
     def get_cls_means(self, class_features):
         for cls in range(self.num_classes):
             class_data = torch.stack(class_features[cls], dim=0)  # (sample x channel)
             self.id_cls_means.append(torch.mean(class_data, dim=0))  # (channel)
+        print(self.id_cls_means)
+        print(self.id_cls_means.shape)
         return self.id_cls_means
 
     def get_cls_covariances(self, class_features):
