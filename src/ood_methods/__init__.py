@@ -5,7 +5,7 @@ from .react import ReAct
 from .logitnorm import LogitNorm
 from .knn import KNN
 
-def get_ood_methods(ood_method, model):
+def get_ood_methods(ood_method, model=None):
     if ood_method == "msp":
         return msp_score
     elif ood_method == "odin":

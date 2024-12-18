@@ -66,7 +66,7 @@ def run_ood_detection(args):
     id_scores = []
     ood_scores = []
 
-    ood_method = get_ood_methods(args.method)
+    ood_method = get_ood_methods(args.method, model=model)
     ood_method.apply_method(id_loader)
 
     for data in id_loader:
