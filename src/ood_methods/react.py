@@ -25,12 +25,12 @@ class ReAct(BaseOOD):
         c_theshold = np.quantile(activations_np, self.quantile, axis=0)  # (channel)
         self.c = torch.tensor(c_theshold, device=device)  # (channel)
 
-        # 채널별 통계 출력
-        print("\nChannel-wise statistics:")
-        print(f"Min values per channel: [{activations_np.min(axis=0).min():.4f}, {activations_np.min(axis=0).max():.4f}]")
-        print(f"Max values per channel: [{activations_np.max(axis=0).min():.4f}, {activations_np.max(axis=0).max():.4f}]")
-        print(f"Mean values per channel: [{activations_np.mean(axis=0).min():.4f}, {activations_np.mean(axis=0).max():.4f}]")
-        print(f"Std values per channel: [{activations_np.std(axis=0).min():.4f}, {activations_np.std(axis=0).max():.4f}]")
+        # # 채널별 통계 출력
+        # print("\nChannel-wise statistics:")
+        # print(f"Min values per channel: [{activations_np.min(axis=0).min():.4f}, {activations_np.min(axis=0).max():.4f}]")
+        # print(f"Max values per channel: [{activations_np.max(axis=0).min():.4f}, {activations_np.max(axis=0).max():.4f}]")
+        # print(f"Mean values per channel: [{activations_np.mean(axis=0).min():.4f}, {activations_np.mean(axis=0).max():.4f}]")
+        # print(f"Std values per channel: [{activations_np.std(axis=0).min():.4f}, {activations_np.std(axis=0).max():.4f}]")
 
         # Threshold 통계
         print(f"\nThreshold (c) statistics:")
@@ -49,7 +49,7 @@ class ReAct(BaseOOD):
         self.model(inputs)
 
         activations = self.penultimate_layer.flatten(1)  # (batch x channel)
-        clamped = torch.clamp(activations, max=self.c)  # (batch x channel)
+        clamped = torch.clamp(activations, max=self.c.unsqueeze(0))  # (batch x channel)
         logits = self.model.fc(clamped)  # (batch x num_classes)
 
         softmax = F.softmax(logits, dim=1)  # (batch x num_classes)
