@@ -13,6 +13,7 @@ class KNN(BaseOOD):
     # get normalized id features
     def get_features(self, id_loader):
         for inputs, _ in id_loader:
+            inputs = inputs.to(device)
             self.model(inputs)
             self.id_features = torch.cat([self.id_features, self.penultimate_layer.flatten(1)])
         self.id_features = F.normalize(self.id_features, p=2, dim=1)  # (num_samples x channel)
