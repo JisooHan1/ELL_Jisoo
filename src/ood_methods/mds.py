@@ -1,6 +1,7 @@
 from .base_ood import BaseOOD
 import torch
 import torch.nn as nn
+from sklearn.covariance import EmpiricalCovariance
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -52,11 +53,6 @@ class MDS(BaseOOD):
             class_covariances.append(torch.einsum('ni,nj->ij', deviations, deviations))
 
         self.id_cls_covariances = torch.stack(class_covariances).sum(dim=0) / N
-
-        # Add small epsilon to diagonal for numerical stability
-        epsilon = 1e-6
-        identity_matrix = torch.eye(self.id_cls_covariances.size(0), device=self.id_cls_covariances.device)
-        self.id_cls_covariances += epsilon * identity_matrix
         return self.id_cls_covariances
 
     # apply method

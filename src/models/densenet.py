@@ -47,6 +47,7 @@ class DenseNet(nn.Module):
 
         # dense layers total 98: 96(dense) + 2(trans)
         self.dense_layers = self.repeat_block(in_channel=24, growth_rate=12, bundle_structure= [16, 16, 16])
+        self.bn = nn.BatchNorm2d(342)
 
         # final fully-connected layer total 1
         self.GAP = nn.AdaptiveAvgPool2d(1)
@@ -76,6 +77,7 @@ class DenseNet(nn.Module):
 
         # dense layers
         x = self.dense_layers(x)
+        x = F.relu(self.bn(x))
 
         # flatten, classification layer
         x = self.GAP(x) # shape: (batch-size, 342, 8, 8) -> (batch-size, 342, 1, 1)
