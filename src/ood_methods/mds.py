@@ -62,6 +62,7 @@ class MDS(BaseOOD):
 
     # compute ood score
     def ood_score(self, inputs):
+        inputs = inputs.to(device)
         self.model(inputs)
         output = self.penultimate_layer.cpu()  # (batch x channel)
         cls_means = torch.stack(self.id_cls_means).cpu()  # (class x channel)
