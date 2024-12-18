@@ -1,6 +1,8 @@
 from .base_ood import BaseOOD
 import torch
 import torch.nn as nn
+from sklearn.covariance import EmpiricalCovariance
+import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -12,7 +14,6 @@ class MDS(BaseOOD):
         self.class_features = {cls: [] for cls in range(self.num_classes)}
         self.id_cls_means = []
         self.id_cls_covariances = None
-        self.global_mean = None
 
     # hook
     def hook_function(self):
@@ -22,24 +23,14 @@ class MDS(BaseOOD):
 
     # method
     def get_class_features(self, id_dataloader):
-        all_features = []
-
         for inputs, labels in id_dataloader:
             inputs, labels = inputs.to(device), labels.to(device)
             self.model(inputs)
             output = self.penultimate_layer  # (batch x channel)
 
-            all_features.append(output)
             for i, label in enumerate(labels):
                 class_index = label.item()
-                self.class_features[class_index].append(output[i])
-
-        all_features = torch.cat(all_features, dim=0)
-        self.global_mean = torch.mean(all_features, dim=0)
-
-        for cls in range(self.num_classes):
-            self.class_features[cls] = [feat - self.global_mean for feat in self.class_features[cls]]
-
+                self.class_features[class_index].append(output[i])  # output[i] : (channel)
         return self.class_features
 
     def get_cls_means(self, class_features):
@@ -55,14 +46,24 @@ class MDS(BaseOOD):
             class_stacks.append(class_data)
 
         total_stack = torch.cat(class_stacks, dim=0)  # (total_sample, channel)
-        N = total_stack.shape[0]
+        # N = total_stack.shape[0]
 
-        class_covariances = []
-        for cls in range(self.num_classes):
-            deviations = class_stacks[cls] - self.id_cls_means[cls].unsqueeze(0)  # (sample x channel)
-            class_covariances.append(torch.einsum('ni,nj->ij', deviations, deviations))
+        # class_covariances = []
+        # for cls in range(self.num_classes):
+        #     deviations = class_stacks[cls] - self.id_cls_means[cls].unsqueeze(0)  # (sample x channel)
+        #     class_covariances.append(torch.einsum('ni,nj->ij', deviations, deviations))
 
-        self.id_cls_covariances = torch.stack(class_covariances).sum(dim=0) / N
+        # self.id_cls_covariances = torch.stack(class_covariances).sum(dim=0) / N
+
+
+        # Convert to numpy for sklearn
+        total_stack_np = total_stack.cpu().numpy()
+
+        # Fit EmpiricalCovariance
+        emp_cov = EmpiricalCovariance().fit(total_stack_np)
+
+        # Convert covariance matrix back to torch tensor
+        self.id_cls_covariances = torch.from_numpy(emp_cov.covariance_).float().to(device)
         return self.id_cls_covariances
 
     # apply method
@@ -77,8 +78,6 @@ class MDS(BaseOOD):
         self.model(inputs)
 
         output = self.penultimate_layer  # (batch x channel)
-        output = output - self.global_mean
-
         id_cls_means = torch.stack(self.id_cls_means)  # (class x channel)
         id_cls_covariances = self.id_cls_covariances  # (channel x channel)
 
