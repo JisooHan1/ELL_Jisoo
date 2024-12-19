@@ -30,12 +30,6 @@ class MDS(BaseOOD):
             for i, label in enumerate(labels):
                 class_index = label.item()
                 self.class_features[class_index].append(output[i])  # output[i] : (channel)
-
-        # self.class_features is a dictionary, so we can't directly print its shape
-        # Instead, let's print the shape of each class's features
-        for cls in range(self.num_classes):
-            print(f"Class {cls} features shape: {len(self.class_features[cls])} samples")
-
         return self.class_features
 
     def get_cls_means(self, class_features):
