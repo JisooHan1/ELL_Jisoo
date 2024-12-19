@@ -75,27 +75,58 @@ class MDS(BaseOOD):
     def ood_score(self, inputs):
         inputs = inputs.to(device)
         self.model(inputs)
-
         output = self.penultimate_layer.flatten(1)  # (batch x channel)
+
+        # id_cls_means = self.id_cls_means  # (class x channel)
+        # id_cls_covariances = self.id_cls_covariances  # (channel x channel)
+        # print("output shape:", output.shape)
+        # print("id_cls_means shape:", id_cls_means.shape)
+        # print("id_cls_covariances shape:", id_cls_covariances.shape)
+
+        # det = torch.det(id_cls_covariances)
+        # if abs(det) < 1e-6:
+        #     print("determinant too small")
+
+
+        # batch_deviations = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
+        # inv_covariance = torch.linalg.inv(id_cls_covariances)  # (channel x channel)
+        # print("batch_deviations shape:", batch_deviations.shape)
+        # print("inv_covariance shape:", inv_covariance.shape)
+        # mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', batch_deviations,
+        #                                      inv_covariance, batch_deviations)  # (batch x class)
+
+        # confidence_scores = torch.max(-mahalanobis_distances, dim=1)[0]
+        # return confidence_scores
         id_cls_means = self.id_cls_means  # (class x channel)
-        id_cls_covariances = self.id_cls_covariances  # (channel x channel)
-        print("output shape:", output.shape)
-        print("id_cls_means shape:", id_cls_means.shape)
-        print("id_cls_covariances shape:", id_cls_covariances.shape)
+        channel_dim = id_cls_means.shape[1]
 
-        det = torch.det(id_cls_covariances)
-        if abs(det) < 1e-6:
-            print("determinant too small")
+        # 1. 항등행렬을 사용한 Mahalanobis distance
+        identity_matrix = torch.eye(channel_dim, device=device)
+        batch_deviations = output.unsqueeze(1) - id_cls_means.unsqueeze(0)
+        identity_distances = torch.einsum('bci,ij,bcj->bc', batch_deviations,
+                                        identity_matrix, batch_deviations)
 
+        # 2. 유클리드 거리의 제곱 직접 계산
+        euclidean_distances = torch.sum((output.unsqueeze(1) - id_cls_means.unsqueeze(0)) ** 2, dim=2)
 
-        batch_deviations = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
-        inv_covariance = torch.linalg.inv(id_cls_covariances)  # (channel x channel)
-        print("batch_deviations shape:", batch_deviations.shape)
-        print("inv_covariance shape:", inv_covariance.shape)
-        mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', batch_deviations,
-                                             inv_covariance, batch_deviations)  # (batch x class)
+        # 결과 비교
+        print("\n첫 번째 샘플의 결과 비교:")
+        print("Identity matrix distances:", identity_distances[0])
+        print("Euclidean distances squared:", euclidean_distances[0])
 
-        confidence_scores = torch.max(-mahalanobis_distances, dim=1)[0]
+        # 차이 확인
+        diff = torch.abs(identity_distances - euclidean_distances)
+        print("\n차이 분석:")
+        print("Max difference:", torch.max(diff))
+        print("Mean difference:", torch.mean(diff))
+        print("Are they equal?", torch.allclose(identity_distances, euclidean_distances, rtol=1e-5))
+
+        # 원래 방식(공분산 사용)으로 계산
+        inv_covariance = torch.linalg.inv(self.id_cls_covariances)
+        covariance_distances = torch.einsum('bci,ij,bcj->bc', batch_deviations,
+                                          inv_covariance, batch_deviations)
+
+        confidence_scores = torch.max(-covariance_distances, dim=1)[0]
         return confidence_scores
 
 
