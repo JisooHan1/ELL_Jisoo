@@ -77,7 +77,7 @@ class MDS(BaseOOD):
         self.model(inputs)
 
         output = self.penultimate_layer  # (batch x channel)
-        id_cls_means = torch.stack(self.id_cls_means)  # (class x channel)
+        id_cls_means = self.id_cls_means  # (class x channel)
         id_cls_covariances = self.id_cls_covariances  # (channel x channel)
 
         det = torch.det(id_cls_covariances)
