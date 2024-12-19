@@ -79,6 +79,9 @@ class MDS(BaseOOD):
         output = self.penultimate_layer  # (batch x channel)
         id_cls_means = self.id_cls_means  # (class x channel)
         id_cls_covariances = self.id_cls_covariances  # (channel x channel)
+        print("output shape:", output.shape)
+        print("id_cls_means shape:", id_cls_means.shape)
+        print("id_cls_covariances shape:", id_cls_covariances.shape)
 
         det = torch.det(id_cls_covariances)
         if abs(det) < 1e-6:
