@@ -30,16 +30,22 @@ class MDS(BaseOOD):
             for i, label in enumerate(labels):
                 class_index = label.item()
                 self.class_features[class_index].append(output[i])  # output[i] : (channel)
-        print(self.class_features)
-        print(self.class_features.shape)
+
+        # self.class_features is a dictionary, so we can't directly print its shape
+        # Instead, let's print the shape of each class's features
+        for cls in range(self.num_classes):
+            print(f"Class {cls} features shape: {len(self.class_features[cls])} samples")
+
         return self.class_features
 
     def get_cls_means(self, class_features):
         for cls in range(self.num_classes):
             class_data = torch.stack(class_features[cls], dim=0)  # (sample x channel)
             self.id_cls_means.append(torch.mean(class_data, dim=0))  # (channel)
-        print(self.id_cls_means)
-        print(self.id_cls_means.shape)
+
+        self.id_cls_means = torch.stack(self.id_cls_means)  # Convert list to tensor
+        print(f"Class means tensor shape: {self.id_cls_means.shape}")  # (num_classes x channel)
+
         return self.id_cls_means
 
     def get_cls_covariances(self, class_features):
@@ -51,12 +57,12 @@ class MDS(BaseOOD):
         total_stack = torch.cat(class_stacks, dim=0)  # (total_sample, channel)
         N = total_stack.shape[0]
 
-        class_covariances = []
+        class_deviations = torch.tensor([], device=device)
         for cls in range(self.num_classes):
             deviations = class_stacks[cls] - self.id_cls_means[cls].unsqueeze(0)  # (sample x channel)
-            class_covariances.append(torch.einsum('ni,nj->ij', deviations, deviations))
+            class_deviations = torch.cat([class_deviations, deviations], dim=0)  # (total_sample x channel)
 
-        self.id_cls_covariances = torch.stack(class_covariances).sum(dim=0) / N
+        self.id_cls_covariances = torch.einsum('ni,nj->ij', class_deviations, class_deviations) / N  # (channel x channel)
         return self.id_cls_covariances
 
     # apply method
@@ -80,7 +86,7 @@ class MDS(BaseOOD):
 
 
         batch_deviations = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch, class, channel)
-        inv_covariance = torch.inverse(id_cls_covariances)  # (channel, channel)
+        inv_covariance = torch.linalg.inv(id_cls_covariances)  # (channel, channel)
         mahalanobis_distances = torch.einsum('bij,jk,bik->bi', batch_deviations,
                                              inv_covariance, batch_deviations)  # (batch, class)
 
