@@ -85,10 +85,12 @@ class MDS(BaseOOD):
             print("determinant too small")
 
 
-        batch_deviations = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch, class, channel)
-        inv_covariance = torch.linalg.inv(id_cls_covariances)  # (channel, channel)
-        mahalanobis_distances = torch.einsum('bij,jk,bik->bi', batch_deviations,
-                                             inv_covariance, batch_deviations)  # (batch, class)
+        batch_deviations = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
+        inv_covariance = torch.linalg.inv(id_cls_covariances)  # (channel x channel)
+        print("batch_deviations shape:", batch_deviations.shape)
+        print("inv_covariance shape:", inv_covariance.shape)
+        mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', batch_deviations,
+                                             inv_covariance, batch_deviations)  # (batch x class)
 
         confidence_scores = torch.max(-mahalanobis_distances, dim=1)[0]
         return confidence_scores
