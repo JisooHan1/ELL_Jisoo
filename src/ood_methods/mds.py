@@ -76,7 +76,7 @@ class MDS(BaseOOD):
         inputs = inputs.to(device)
         self.model(inputs)
 
-        output = self.penultimate_layer  # (batch x channel)
+        output = self.penultimate_layer.flatten(1)  # (batch x channel)
         id_cls_means = self.id_cls_means  # (class x channel)
         id_cls_covariances = self.id_cls_covariances  # (channel x channel)
         print("output shape:", output.shape)
