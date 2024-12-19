@@ -49,14 +49,15 @@ class MDS(BaseOOD):
             class_stacks.append(class_data)
 
         total_stack = torch.cat(class_stacks, dim=0)  # (total_sample, channel)
-        N = total_stack.shape[0]
 
-        class_deviations = torch.tensor([], device=device)
-        for cls in range(self.num_classes):
-            deviations = class_stacks[cls] - self.id_cls_means[cls].unsqueeze(0)  # (sample x channel)
-            class_deviations = torch.cat([class_deviations, deviations], dim=0)  # (total_sample x channel)
 
-        self.id_cls_covariances = torch.einsum('ni,nj->ij', class_deviations, class_deviations) / (N-1)  # (channel x channel)
+        group_lasso = EmpiricalCovariance(assume_centered=False)
+        X = total_stack.cpu().numpy()
+        group_lasso.fit(X)
+
+
+        self.id_cls_covariances = torch.from_numpy(group_lasso.covariance_).float().to(device)
+
         return self.id_cls_covariances
 
     # apply method
