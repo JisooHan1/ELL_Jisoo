@@ -1,9 +1,17 @@
 from .base_ood import BaseOOD
 import torch
 import torch.nn as nn
-from sklearn.covariance import EmpiricalCovariance
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+'''
+값 찍어보기 모든 함수
+- get_class_features
+- get_cls_means
+- get_cls_covariances
+- ood_score
+'''
 
 class MDS(BaseOOD):
     def __init__(self, model):
@@ -24,12 +32,17 @@ class MDS(BaseOOD):
     def get_class_features(self, id_dataloader):
         for inputs, labels in id_dataloader:
             inputs, labels = inputs.to(device), labels.to(device)
+            print("input shape: ", inputs.shape)
+            print("labels shape: ", labels.shape)
             self.model(inputs)
             output = self.penultimate_layer.flatten(1)  # (batch x channel)
+            print("output shape: ", output.shape)
 
             for i, label in enumerate(labels):
                 class_index = label.item()
-                self.class_features[class_index].append(output[i])  # output[i] : (channel)
+                print("class_index shpae: ", class_index.shape)
+                self.class_features[class_index].append(output[i])  # {output[i] : (channel)}
+        print(self.class_features.shape)
         return self.class_features
 
     def get_cls_means(self, class_features):
@@ -38,7 +51,6 @@ class MDS(BaseOOD):
             self.id_cls_means.append(torch.mean(class_data, dim=0))  # (channel)
 
         self.id_cls_means = torch.stack(self.id_cls_means)  # Convert list to tensor
-        print(f"Class means tensor shape: {self.id_cls_means.shape}")  # (num_classes x channel)
 
         return self.id_cls_means
 
@@ -74,19 +86,14 @@ class MDS(BaseOOD):
 
         id_cls_means = self.id_cls_means  # (class x channel)
         id_cls_covariances = self.id_cls_covariances  # (channel x channel)
-        print("output shape:", output.shape)
-        print("id_cls_means shape:", id_cls_means.shape)
-        print("id_cls_covariances shape:", id_cls_covariances.shape)
 
-        det = torch.det(id_cls_covariances)
-        if abs(det) < 1e-6:
-            print("determinant too small")
+        # det = torch.det(id_cls_covariances)
+        # if abs(det) < 1e-6:
+        #     print("determinant too small")
 
 
         batch_deviations = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
         inv_covariance = torch.linalg.inv(id_cls_covariances)  # (channel x channel)
-        print("batch_deviations shape:", batch_deviations.shape)
-        print("inv_covariance shape:", inv_covariance.shape)
         mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', batch_deviations,
                                              inv_covariance, batch_deviations)  # (batch x class)
 

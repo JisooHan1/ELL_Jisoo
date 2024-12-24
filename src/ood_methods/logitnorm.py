@@ -4,6 +4,14 @@ import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+'''
+값 찍어보기 모든 함수
+- get_activation
+- register_hooks
+- get_samples
+- logitnorm_score
+'''
+
 class LogitNorm:
     def __init__(self, model):
         self.model = model
