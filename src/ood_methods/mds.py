@@ -40,9 +40,8 @@ class MDS(BaseOOD):
 
             for i, label in enumerate(labels):
                 class_index = label.item()
-                print("class_index shpae: ", class_index.shape)
                 self.class_features[class_index].append(output[i])  # {output[i] : (channel)}
-        print(self.class_features.shape)
+        print("Number of classes with features: ", len(self.class_features))
         return self.class_features
 
     def get_cls_means(self, class_features):
