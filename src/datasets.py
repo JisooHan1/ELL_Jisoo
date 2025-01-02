@@ -1,8 +1,20 @@
 import torchvision
 import torchvision.transforms as transforms
 
+
+'''
+- 랜덤 텐서 데이터 추가
+- 항등행렬 데이터 추가
+'''
+
 def load_dataset(name):
     dataset_config = {
+
+        "RANDOM": {
+          "image size": 32,
+          "input channel": 3,
+          "num_classes": 10,
+        },
 
         "CIFAR10": {
             # 32x32x3

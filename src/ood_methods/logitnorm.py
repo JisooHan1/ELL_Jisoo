@@ -1,47 +1,54 @@
+from .base_ood import BaseOOD
 import torch
 import torch.nn.functional as F
-import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 '''
-값 찍어보기 모든 함수
-- get_activation
-- register_hooks
-- get_samples
-- logitnorm_score
+training method
+
+1. output of the model: logit_vector = f => 클래스 차원의 벡터
+2. f_i = ||f||*f_i: 클래스-i 차원의 값
+3. decompose the logit: logit_vector = ||f|| * f/||f||
+4. f_hat = f/||f||
+
+<code-flow>
+1. load the model
+2. load the data
+3. get the output of the model
+4. normalize the output
+5. get the score
 '''
 
-class LogitNorm:
+class LogitNorm(BaseOOD):
     def __init__(self, model):
-        self.model = model
-        self.penultimate_layer = {}
-        self.samples = torch.tensor([], device=device)
-        self.register_hooks()
+        super().__init__(model)
+        self.tau = None
 
-    def get_activation(self, layer_name):
-        def hook(_model, _input, output):
-            self.penultimate_layer[layer_name] = output
-        return hook
+    # def get_normalized_outputs(self, dataloader):
+    #     for images, _ in dataloader:
+    #         images = images.to(device)
+    #         self.model(images)
 
-    def register_hooks(self):
-        self.model.GAP.register_forward_hook(self.get_activation('penultimate'))
+    #         outputs = []
+    #         outputs.append(self.penultimate_layer.flatten(1))
 
-    def get_samples(self, dataloader):
-        for inputs, _ in dataloader:
-            inputs = inputs.to(device)
-            self.model(inputs)
-            self.samples = torch.cat([self.samples, self.penultimate_layer['penultimate'].flatten(1)])
-            self.l2_samples = F.normalize(self.samples, p=2, dim=1)
-        return self.l2_samples  # (num_samples, 512)
+    #     outputs = torch.cat(outputs, dim=0)
+    #     self.normalized_outputs = F.normalize(outputs, p=2, dim=1)
+    #     return self.normalized_outputs  # (num_samples, 512)
 
-    def logitnorm_score(self, inputs, model=None):
-        inputs = inputs.to(device)
-        self.model(inputs)
+    def get_normalized_outputs(self, batch_images):
+        self.model(batch_images)
+        outputs = []
+        outputs.append(self.penultimate_layer.flatten(1))
+        outputs = torch.cat(outputs, dim=0)
+        self.normalized_outputs = F.normalize(outputs, p=2, dim=1)
+        return self.normalized_outputs  # (num_samples, 512)
 
-        penultimate = self.penultimate_layer['penultimate'].flatten(1)  # (batch, 512)
-        clamped = torch.clamp(penultimate, max=self.c)  # (batch, 512)
-        logits = self.model.fc(clamped)  # (batch, 10)
+    def ood_score(self, batch_images, model=None):
+        batch_images = batch_images.to(device)
+        self.get_normalized_outputs(batch_images)
+        logits = self.model.fc(self.normalized_outputs)  # (batch, 10)
 
         softmax = F.softmax(logits, dim=1)  # (batch, 10)
         scores = torch.max(softmax, dim=1)[0]  # (batch,)

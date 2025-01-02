@@ -1,16 +1,47 @@
 import torch
+import math
 
-# 2D 텐서 (3x4)
-tensor = torch.tensor([[1, 2, 3, 4],
-                       [0, 1, 2, 1],
-                       [2, 0, 1, 2]])
-min_values, min_indices = torch.min(tensor, dim=1)
+a = torch.tensor([[1.0,2.0],
+                  [3.0,4.0]])
+b = torch.tensor([[5.0,6.0],
+                  [7.0,8.0]])
+c = torch.cat([a,b], dim=0)
+print("c: ", c)
+# print(c.shape)
+d = torch.nn.functional.normalize(c, p=2, dim=1)
+print(d)
+print(d.shape)
+sum=0
+for i in range(1,9):
+    sum += i**2
+print(sum)
+print(c/math.sqrt(sum))
+print(0.4472**2 + 0.8944**2)
 
-print(tensor.shape)          # torch.Size([3, 4])
-print(min_values.shape)      # torch.Size([4])
-print(min_indices.shape)     # torch.Size([4])
-print(min_values)           # tensor([0, 0, 1, 1])
-print(min_indices)          # tensor([1, 2, 2, 1])
+
+# b = torch.einsum('ni, nj -> ij', a, a)
+
+# print("shape of einsum: ",b.shape)
+# print("einsum: ", b)
+
+
+
+
+
+# # 2D 텐서 (3x4)
+# tensor = torch.tensor([[1, 2, 3, 4],
+#                        [0, 1, 2, 1],
+#                        [2, 0, 1, 2]])
+# min_values, min_indices = torch.min(tensor, dim=1)
+
+# print(tensor.shape)          # torch.Size([3, 4])
+# print(min_values.shape)      # torch.Size([4])
+# print(min_indices.shape)     # torch.Size([4])
+# print(min_values)           # tensor([0, 0, 1, 1])
+# print(min_indices)          # tensor([1, 2, 2, 1])
+
+
+
 
 # t1 = torch.tensor([[1, 2],
 #                    [3, 4]])  # shape: (2, 2)
