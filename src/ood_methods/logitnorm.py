@@ -1,5 +1,5 @@
-from .base_ood import BaseOOD
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -20,37 +20,17 @@ training method
 5. get the score
 '''
 
-class LogitNorm(BaseOOD):
-    def __init__(self, model):
-        super().__init__(model)
-        self.tau = None
+class LogitNormLoss(nn.Module):
+    def __init__(self, tau=0.04):
+        super(LogitNormLoss, self).__init__()
+        self.tau = tau
 
-    # def get_normalized_outputs(self, dataloader):
-    #     for images, _ in dataloader:
-    #         images = images.to(device)
-    #         self.model(images)
+    def forward(self, logits, labels):
+        logits = logits.to(device)
+        labels = labels.to(device)
 
-    #         outputs = []
-    #         outputs.append(self.penultimate_layer.flatten(1))
+        magnitude = torch.norm(logits, p=2, dim=1)
+        logit_norm = logits / (magnitude + 1e-7)
 
-    #     outputs = torch.cat(outputs, dim=0)
-    #     self.normalized_outputs = F.normalize(outputs, p=2, dim=1)
-    #     return self.normalized_outputs  # (num_samples, 512)
-
-    def get_normalized_outputs(self, batch_images):
-        self.model(batch_images)
-        outputs = []
-        outputs.append(self.penultimate_layer.flatten(1))
-        outputs = torch.cat(outputs, dim=0)
-        self.normalized_outputs = F.normalize(outputs, p=2, dim=1)
-        return self.normalized_outputs  # (num_samples, 512)
-
-    def ood_score(self, batch_images, model=None):
-        batch_images = batch_images.to(device)
-        self.get_normalized_outputs(batch_images)
-        logits = self.model.fc(self.normalized_outputs)  # (batch, 10)
-
-        softmax = F.softmax(logits, dim=1)  # (batch, 10)
-        scores = torch.max(softmax, dim=1)[0]  # (batch,)
-
-        return scores  # (num_samples,)
+        logit_norm_loss = F.cross_entropy(logit_norm / self.tau, labels)
+        return logit_norm_loss

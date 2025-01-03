@@ -7,8 +7,8 @@ def evaluations(id_scores, ood_scores):
     ood_scores = ood_scores.cpu().numpy()
 
     # generate list of label: ID = 1, OOD = 0
-    labels = np.array([1] * len(id_scores) + [0] * len(ood_scores))
-    scores = np.array(id_scores + ood_scores)
+    labels = np.concatenate([np.ones(len(id_scores)), np.zeros(len(ood_scores))])
+    scores = np.concatenate([id_scores, ood_scores])
 
     # FPR95
     fprs, tprs, _ = roc_curve(labels, scores)

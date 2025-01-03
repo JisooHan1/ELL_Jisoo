@@ -14,10 +14,10 @@ def main():
     parser.add_argument("--ood_dataset", type=str, required=True, help="ood dataset")
     parser.add_argument("--method", type=str, help="ood method")
 
-    # training arguments
-    # parser.add_argument("--epoch", type=int, required=True, help="epoch")
-    # parser.add_argument("--lr", type=float, required=True, help="learning rate")
-    # parser.add_argument("--milestones", type=list, help="milestones")
+    # ood_training arguments
+    parser.add_argument("--epoch", type=int, default=None, required=False, help="epoch")
+    parser.add_argument("--lr", type=float, default=None, required=False, help="learning rate")
+    parser.add_argument("--milestones", type=list, default=None, required=False, help="milestones")
 
     args = parser.parse_args()
 

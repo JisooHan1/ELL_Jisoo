@@ -1,9 +1,7 @@
 import torch
-import numpy as np
 from datasets import load_dataset
 from ood_utils.ood_metrics import evaluations
 from models import ResNet, DenseNet
-import argparse
 from ood_methods import get_ood_methods
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -20,6 +18,7 @@ def load_trained_model(model_path, model_type):
     for param in model.parameters():
         param.requires_grad = False
     return model
+
 
 def ood_posthoc(args):
     model = args.model  # ResNet, DenseNet
