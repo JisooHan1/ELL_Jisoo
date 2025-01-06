@@ -13,6 +13,7 @@ def main():
     parser.add_argument("--id_dataset", type=str, required=True, help="id dataset")
     parser.add_argument("--ood_dataset", type=str, required=True, help="ood dataset")
     parser.add_argument("--method", type=str, help="ood method")
+    parser.add_argument("--train", type=bool, help="train or not")
 
     args = parser.parse_args()
 

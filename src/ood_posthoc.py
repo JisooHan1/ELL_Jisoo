@@ -3,6 +3,7 @@ from datasets import load_dataset
 from ood_utils.ood_metrics import evaluations
 from models import ResNet, DenseNet
 from ood_methods import get_ood_methods
+import torchvision.models as models
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -30,10 +31,14 @@ def ood_posthoc(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # load model
-    if model == "ResNet":
+    if model == "ResNet":  # trained resnet18
         model = load_trained_model("logs/ResNet/trained_model/trained_ResNet_20241211_162024.pth", "ResNet")
-    elif model == "DenseNet":
+    elif model == "ResNet-imported":  # pytorch-pre-trained resnet18 for debugging
+        model = models.resnet18(pretrained=True)
+    elif model == "DenseNet":  # trained densenet100
         model = load_trained_model("logs/DenseNet/trained_model/trained_DenseNet_20241211_154102.pth", "DenseNet")
+    elif model == "DenseNet-imported":  # pytorch-pre-trained densenet100 for debugging
+        model = models.densenet100(pretrained=True)
     model.to(device)
 
     # load ID, OOD data
