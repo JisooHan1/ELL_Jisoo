@@ -2,10 +2,6 @@ import numpy as np
 from sklearn.metrics import roc_curve, roc_auc_score, average_precision_score
 
 def evaluations(id_scores, ood_scores):
-    # convert to numpy array
-    id_scores = id_scores.cpu().numpy()
-    ood_scores = ood_scores.cpu().numpy()
-
     # generate list of label: ID = 1, OOD = 0
     labels = np.concatenate([np.ones(len(id_scores)), np.zeros(len(ood_scores))])
     scores = np.concatenate([id_scores, ood_scores])

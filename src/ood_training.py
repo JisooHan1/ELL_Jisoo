@@ -46,7 +46,7 @@ def evaluate(model, id_test_loader, ood_test_loader):
         for images, _ in id_test_loader:
             images = images.to(device)
             output = model(images)  # (batch x channel)
-            batch_id_msp = F.softmax(output, dim=1).max(dim=1).values  # (batch)
+            batch_id_msp = F.softmax(output, dim=1).max(dim=1).values.cpu().numpy()  # (batch)
             id_msp_score.append(batch_id_msp)
 
     # ood_test_set msp score
@@ -54,7 +54,7 @@ def evaluate(model, id_test_loader, ood_test_loader):
         for images, _ in ood_test_loader:
             images = images.to(device)
             output = model(images)  # (batch x channel)
-            batch_ood_msp = F.softmax(output, dim=1).max(dim=1).values  # (batch)
+            batch_ood_msp = F.softmax(output, dim=1).max(dim=1).values.cpu().numpy()  # (batch)
             ood_msp_score.append(batch_ood_msp)
 
     # compute, return FPR95, AUROC, AUPR
