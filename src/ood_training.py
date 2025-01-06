@@ -40,7 +40,7 @@ def ood_training(args):
 
     # option
     # train model
-    if args.train:
+    if args.train.lower() == 'true':
         print("Training...")
         method = args.method  # logitnorm, oe, moe ...
 
