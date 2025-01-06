@@ -59,7 +59,7 @@ def ood_training(args):
         print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
     print("Training completed")
 
-    torch.save(model.state_dict(), f'ood_logs/trained_{model}_{id_dataset}_{ood_dataset}_{method}.pth')
+    torch.save(model.state_dict(), f'logs/{args.model}/trained_model/ood_{method}_{id_dataset}_{ood_dataset}.pth')
     print("Model saved")
 
     # test

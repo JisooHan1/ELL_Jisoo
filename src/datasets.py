@@ -10,12 +10,6 @@ import torchvision.transforms as transforms
 def load_dataset(name):
     dataset_config = {
 
-        "RANDOM": {
-          "image size": 32,
-          "input channel": 3,
-          "num_classes": 10,
-        },
-
         "CIFAR10": {
             # 32x32x3
             # 10 class
@@ -55,24 +49,50 @@ def load_dataset(name):
         "SVHN": {
             # 32x32x3
             # 10 class
-            # 73257 training images
-            # 26032 test images
+            # 73,257 training images
+            # 26,032 test images
             "dataset": torchvision.datasets.SVHN,
             "image size": 32,
             "input channel": 3,
             "train option": {"split": 'train'},
             "test option": {"split": 'test'}
+        },
+
+        "CIFAR100": {
+            # 32x32x3
+            # 100 class
+            # 50,000 training images
+            # 10,000 test images
+            "dataset": torchvision.datasets.CIFAR100,
+            "image size": 32,
+            "input channel": 3,
+            "train option": {"train": True},
+            "test option": {"train": False}
+        },
+
+        "LSUN": {
+            # 256x256x3
+            # 10 class
+            # 10,000 training images
+            # 10,000 test images
+            "dataset": torchvision.datasets.LSUN,
+            "image size": 32,
+            "input channel": 3,
+            "train option": {"classes": 'train'},
+            "test option": {"classes": 'val'}
         }
     }
 
+    # get dataset, configuration
     if name not in dataset_config:
         raise ValueError("Invalid dataset name")
     config = dataset_config[name]
 
+    # normalization parameters
     mean = (0.5,) * config["input channel"]
     std = mean
 
-    # transform parameter definition
+    # transformation parameters
     transform_pars = [
         transforms.ToTensor(),
         transforms.Normalize(mean, std)]
@@ -83,12 +103,17 @@ def load_dataset(name):
     test_transform_pars = transform_pars + [
         transforms.Resize(config["image size"])]
 
-    if name in ["CIFAR10", "STL10", "SVHN"]:
+    # additional transformation
+    if name in ["CIFAR10", "STL10", "SVHN", "CIFAR100", "LSUN"]:
         train_transform_pars.append(transforms.RandomHorizontalFlip())
 
+    # transformation pipeline
     train_transform = transforms.Compose(train_transform_pars)
     test_transform = transforms.Compose(test_transform_pars)
+
+    # load datasets with transformations
     trainset = config["dataset"](root='./datasets', **config["train option"], download=True, transform=train_transform)
     testset = config["dataset"](root='./datasets', **config["test option"], download=True, transform=test_transform)
 
+    # return datasets and their properties
     return trainset, testset, config["input channel"], config["image size"]
