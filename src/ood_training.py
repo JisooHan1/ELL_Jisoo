@@ -40,7 +40,7 @@ def ood_training(args):
 
     # option
     # train model
-    if args.train == 'train':
+    if args.train:
         print("Training...")
         method = args.method  # logitnorm, oe, moe ...
 
@@ -80,7 +80,7 @@ def ood_training(args):
 
     # load trained model
     else:
-        model = load_saved_model(f'logs/{args.model}/trained_model/ood_{method}_{args.id_dataset}_{args.ood_dataset}.pth', model)
+        model = load_saved_model(f'logs/{args.model}/trained_model/ood_{args.method}_{args.id_dataset}_{args.ood_dataset}.pth', model)
 
     return model, id_test_loader, ood_test_loader
 
