@@ -26,11 +26,15 @@ class LogitNormLoss(nn.Module):
         self.tau = tau
 
     def forward(self, logits, labels):
-        logits = logits.to(device)
-        labels = labels.to(device)
+        # get output(logits) of the model
+        logits = logits.to(device)  # (batch x channel)
+        labels = labels.to(device)  # (batch)
 
-        magnitude = torch.norm(logits, p=2, dim=1)
-        logit_norm = logits / (magnitude + 1e-7)
+        # normalize the output
+        magnitude = torch.norm(logits, p=2, dim=1)  # (batch)
+        magnitude = magnitude.unsqueeze(1)  # (batch x 1)
+        logit_norm = logits / (magnitude + 1e-7)  # (batch x channel)
 
+        # logit_norm_loss
         logit_norm_loss = F.cross_entropy(logit_norm / self.tau, labels)
         return logit_norm_loss

@@ -4,8 +4,6 @@ from .mds import MDS
 from .react import ReAct
 from .logitnorm import LogitNormLoss
 from .knn import KNN
-from .outlier_exposure import OELoss
-from .mixture_outlier_exposure import MOELoss
 
 def get_ood_methods(ood_method, model=None):
     if ood_method == "msp":

@@ -68,8 +68,7 @@ def load_dataset(name):
     if name not in dataset_config:
         raise ValueError("Invalid dataset name")
     config = dataset_config[name]
-    load_dataset.input_channels = config["input channel"]
-    load_dataset.image_size = config["image size"]
+
     mean = (0.5,) * config["input channel"]
     std = mean
 
@@ -92,4 +91,4 @@ def load_dataset(name):
     trainset = config["dataset"](root='./datasets', **config["train option"], download=True, transform=train_transform)
     testset = config["dataset"](root='./datasets', **config["test option"], download=True, transform=test_transform)
 
-    return trainset, testset
+    return trainset, testset, config["input channel"], config["image size"]

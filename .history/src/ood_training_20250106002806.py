@@ -6,43 +6,46 @@ from ood_methods import get_ood_methods
 from ood_utils.ood_metrics import evaluations
 
 
+
 def ood_training(args):
-    # load dataset
+    # common arguments
+    model = args.model  # ResNet, DenseNet
+    batch_size = args.batch_size  # 16, 32, 64
     id_dataset = args.id_dataset  # CIFAR10, STL10, CIFAR100, SVHN, LSUN, LSUN-resize, ImageNet, ImageNet-resize
     ood_dataset = args.ood_dataset  # CIFAR10, STL10, CIFAR100, SVHN, LSUN, LSUN-resize, ImageNet, ImageNet-resize
-    id_trainset, id_testset, id_input_channels, id_image_size = load_dataset(id_dataset)
-    _, ood_testset, _, _ = load_dataset(ood_dataset)
 
-    # data loader
-    batch_size = args.batch_size  # 16, 32, 64
+    method = args.method  # msp, odin, mds, react, logitnorm, knn
+    if method == 'logitnorm':
+        from ood_methods.logitnorm import LogitNormLoss
+        criterion = LogitNormLoss(tau=tau)
+    elif method == 'oe':
+        from ood_methods.oe import OutlierExposureLoss
+        criterion = OutlierExposureLoss(alpha=0.5)
+    elif method == 'moe':
+        from ood_methods.mixtureoe import MixtureOutlierExposureLoss
+        criterion = MixtureOutlierExposureLoss(alpha=0.5, beta=0.5)
+
+    # training methods arguments
+    epoch = args.epoch  # 100
+    lr = args.lr  # 0.001
+    milestones = args.milestones  # [50, 75]
+
+    # logitnorm arguments
+    tau = args.tau  # 0.04
+
+    # load dataset
+    id_trainset, id_testset = load_dataset(id_dataset)
+    _, ood_testset = load_dataset(ood_dataset)
     id_train_loader = torch.utils.data.DataLoader(id_trainset, batch_size=batch_size, shuffle=True)
     id_test_loader = torch.utils.data.DataLoader(id_testset, batch_size=batch_size, shuffle=True)
     ood_test_loader = torch.utils.data.DataLoader(ood_testset, batch_size=batch_size, shuffle=True)
 
     # load model
-    model = load_model(args.model, id_input_channels, id_image_size)  # ResNet, DenseNet
-
-    # training methods config
-    method = args.method  # msp, odin, mds, react, knn, logitnorm, oe, moe
-    if method == 'logitnorm':
-        from ood_methods.logitnorm import LogitNormLoss
-        criterion = LogitNormLoss(tau=0.04)
-        lr = 0.1
-        weight_decay = 5e-4
-        momentum = 0.9
-        epochs = 200
-        optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum)
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[80, 140], gamma=0.1)
-
-    elif method == 'oe':
-        from ood_methods.outlier_exposure import OutlierExposureLoss
-        criterion = OutlierExposureLoss(alpha=0.5)
-    elif method == 'moe':
-        from ood_methods.mixture_outlier_exposure import MixtureOutlierExposureLoss
-        criterion = MixtureOutlierExposureLoss(alpha=0.5, beta=0.5)
+    model = load_model(model, load_dataset.input_channels, load_dataset.image_size)
 
     # train
-    for epoch in range(epochs):
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    for epoch in range(epoch):
         model.train()
         for images, labels in id_train_loader:
             optimizer.zero_grad()  # initialize the gradients to '0'
@@ -50,15 +53,10 @@ def ood_training(args):
             loss = criterion(outputs, labels)  # average loss "over the batch"
             loss.backward()  # back propagation
             optimizer.step()  # update weights
-        scheduler.step()
-        print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
-    print("Training completed")
 
     torch.save(model.state_dict(), f'ood_logs/trained_{model}_{id_dataset}_{ood_dataset}_{method}.pth')
-    print("Model saved")
 
     # test
-    print("Testing...")
     model.eval()
     id_msp_score = []
     ood_msp_score = []
@@ -75,7 +73,6 @@ def ood_training(args):
         batch_ood_msp = F.softmax(output)
         ood_msp_score.append(batch_ood_msp)
 
-    # compute, return FPR95, AUROC, AUPR
-    print("logitnorm evaluation results: ")
+    # compute, return evalutaion metrics
     results = evaluations(id_msp_score, ood_msp_score)
     print(results)

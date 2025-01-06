@@ -37,8 +37,8 @@ def ood_posthoc(args):
     model.to(device)
 
     # load ID, OOD data
-    _, id_testset, _, _ = load_dataset(id_dataset)
-    _, ood_testset, _, _ = load_dataset(ood_dataset)
+    _, id_testset = load_dataset(id_dataset)
+    _, ood_testset = load_dataset(ood_dataset)
     id_loader = torch.utils.data.DataLoader(id_testset, batch_size=batch_size, shuffle=True)
     ood_loader = torch.utils.data.DataLoader(ood_testset, batch_size=batch_size, shuffle=True)
 

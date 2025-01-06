@@ -37,8 +37,8 @@ def ood_posthoc(args):
     model.to(device)
 
     # load ID, OOD data
-    _, id_testset, _, _ = load_dataset(id_dataset)
-    _, ood_testset, _, _ = load_dataset(ood_dataset)
+    _, id_testset = load_dataset(id_dataset)
+    _, ood_testset = load_dataset(ood_dataset)
     id_loader = torch.utils.data.DataLoader(id_testset, batch_size=batch_size, shuffle=True)
     ood_loader = torch.utils.data.DataLoader(ood_testset, batch_size=batch_size, shuffle=True)
 
@@ -48,17 +48,15 @@ def ood_posthoc(args):
     ood_method = get_ood_methods(method, model)
     ood_method.apply_method(id_loader)
 
-    # get id_scores
     for inputs, _ in id_loader:
         batch_id_scores = ood_method.ood_score(inputs.to(device))
         id_scores.append(batch_id_scores)
-    # id_scores = torch.cat(id_scores)
+    id_scores = torch.cat(id_scores)
 
-    # get ood_scores
     for inputs, _ in ood_loader:
         batch_ood_scores = ood_method.ood_score(inputs.to(device))
         ood_scores.append(batch_ood_scores)
-    # ood_scores = torch.cat(ood_scores)
+    ood_scores = torch.cat(ood_scores)
 
     # get FPR95, AUROC and AUPR
     results = evaluations(id_scores, ood_scores)

@@ -56,7 +56,7 @@ class ReAct(BaseOOD):
         print(f"Mean threshold: {self.c.mean().item():.4f}")
         print(f"Std threshold: {self.c.std().item():.4f}")
 
-    # apply method: preprocessing before computing ood score
+    # apply method
     def apply_method(self, id_loader):
         self.get_activations(id_loader)
         self.calculate_c(self.id_activations)

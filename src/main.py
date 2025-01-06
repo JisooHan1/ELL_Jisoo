@@ -104,8 +104,8 @@ def main():
     args = parser.parse_args()
 
     # Parsing 변수 정의
-    trainset, testset = load_dataset(args.dataset)
-    net = load_model(args.model, load_dataset.input_channels, load_dataset.image_size)
+    trainset, testset, input_channels, image_size = load_dataset(args.dataset)
+    net = load_model(args.model, input_channels, image_size)
     net.to(device)
     epoch = args.num_epochs
     batch_size = args.batch_size
