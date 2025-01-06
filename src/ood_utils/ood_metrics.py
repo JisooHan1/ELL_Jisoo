@@ -2,9 +2,11 @@ import numpy as np
 from sklearn.metrics import roc_curve, roc_auc_score, average_precision_score
 
 def evaluations(id_scores, ood_scores):
+    # concatenate list of batch scores to scores
+    id_scores = np.concatenate(id_scores)
+    ood_scores = np.concatenate(ood_scores)
+
     # generate list of label: ID = 1, OOD = 0
-    id_scores = id_scores.numpy()
-    ood_scores = ood_scores.numpy()
     labels = np.concatenate([np.ones(len(id_scores)), np.zeros(len(ood_scores))])
     scores = np.concatenate([id_scores, ood_scores])
 
