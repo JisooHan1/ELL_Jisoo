@@ -8,6 +8,7 @@ from ood_utils.ood_metrics import evaluations
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
+# load data
 def load_data(id_dataset, ood_dataset, batch_size):   # CIFAR10, STL10, CIFAR100, SVHN, LSUN...
     id_trainset, id_testset, id_input_channels, id_image_size = load_dataset(id_dataset)
     _, ood_testset, _, _ = load_dataset(ood_dataset)
@@ -17,10 +18,12 @@ def load_data(id_dataset, ood_dataset, batch_size):   # CIFAR10, STL10, CIFAR100
     ood_test_loader = torch.utils.data.DataLoader(ood_testset, batch_size=batch_size, shuffle=True)
     return id_train_loader, id_test_loader, ood_test_loader, id_input_channels, id_image_size
 
+# save model
 def save_model(model, model_path):
     torch.save(model.state_dict(), model_path)
     print(f"Model saved to {model_path}")
 
+# load saved model
 def load_saved_model(model_path, model):
     state_dict = torch.load(model_path, map_location=device)
     model.load_state_dict(state_dict, strict=True)
@@ -29,6 +32,36 @@ def load_saved_model(model_path, model):
         param.requires_grad = False
     print(f"Model loaded from {model_path}")
     return model
+
+# evaluate ood score
+def evaluate(model, id_test_loader, ood_test_loader):
+    # test
+    print("Testing...")
+    model.eval()
+    id_msp_score = []
+    ood_msp_score = []
+
+    # id_test_set msp score
+    with torch.no_grad():
+        for images, _ in id_test_loader:
+            images = images.to(device)
+            output = model(images)
+            batch_id_msp = F.softmax(output)
+            id_msp_score.append(batch_id_msp)
+
+    # ood_test_set msp score
+    with torch.no_grad():
+        for images, _ in ood_test_loader:
+            images = images.to(device)
+            output = model(images)
+            batch_ood_msp = F.softmax(output)
+            ood_msp_score.append(batch_ood_msp)
+
+    # compute, return FPR95, AUROC, AUPR
+    print("evaluation results: ")
+    results = evaluations(id_msp_score, ood_msp_score)
+    print(results)
+    return results
 
 # ood training
 def ood_training(args):
@@ -81,34 +114,4 @@ def ood_training(args):
     # load trained model
     else:
         model = load_saved_model(f'logs/{args.model}/trained_model/ood_{args.method}_{args.id_dataset}_{args.ood_dataset}.pth', model)
-
-    return model, id_test_loader, ood_test_loader
-
-def evaluate(model, id_test_loader, ood_test_loader):
-    # test
-    print("Testing...")
-    model.eval()
-    id_msp_score = []
-    ood_msp_score = []
-
-    # id_test_set msp score
-    with torch.no_grad():
-        for images, _ in id_test_loader:
-            images = images.to(device)
-            output = model(images)
-            batch_id_msp = F.softmax(output)
-            id_msp_score.append(batch_id_msp)
-
-    # ood_test_set msp score
-    with torch.no_grad():
-        for images, _ in ood_test_loader:
-            images = images.to(device)
-            output = model(images)
-            batch_ood_msp = F.softmax(output)
-            ood_msp_score.append(batch_ood_msp)
-
-    # compute, return FPR95, AUROC, AUPR
-    print("evaluation results: ")
-    results = evaluations(id_msp_score, ood_msp_score)
-    print(results)
-    return results
+        evaluate(model, id_test_loader, ood_test_loader)
