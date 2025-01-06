@@ -45,16 +45,16 @@ def evaluate(model, id_test_loader, ood_test_loader):
     with torch.no_grad():
         for images, _ in id_test_loader:
             images = images.to(device)
-            output = model(images)
-            batch_id_msp = F.softmax(output)
+            output = model(images)  # (batch x channel)
+            batch_id_msp = F.softmax(output, dim=1)  # (batch x channel)
             id_msp_score.append(batch_id_msp)
 
     # ood_test_set msp score
     with torch.no_grad():
         for images, _ in ood_test_loader:
             images = images.to(device)
-            output = model(images)
-            batch_ood_msp = F.softmax(output)
+            output = model(images)  # (batch x channel)
+            batch_ood_msp = F.softmax(output, dim=1)  # (batch x channel)
             ood_msp_score.append(batch_ood_msp)
 
     # compute, return FPR95, AUROC, AUPR
