@@ -5,6 +5,8 @@ from models import ResNet, DenseNet, load_model
 from ood_methods import get_ood_methods
 from ood_utils.ood_metrics import evaluations
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
 def ood_training(args):
     # load dataset
@@ -21,6 +23,7 @@ def ood_training(args):
 
     # load model
     model = load_model(args.model, id_input_channels, id_image_size)  # ResNet, DenseNet
+    model.to(device)
 
     # training methods config
     method = args.method  # msp, odin, mds, react, knn, logitnorm, oe, moe
@@ -45,6 +48,8 @@ def ood_training(args):
     for epoch in range(epochs):
         model.train()
         for images, labels in id_train_loader:
+            images = images.to(device)
+            labels = labels.to(device)
             optimizer.zero_grad()  # initialize the gradients to '0'
             outputs = model(images)  # Forward pass => softmax not applied
             loss = criterion(outputs, labels)  # average loss "over the batch"
