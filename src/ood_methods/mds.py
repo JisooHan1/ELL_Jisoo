@@ -111,7 +111,7 @@ class MDS(BaseOOD):
         mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', batch_deviations,
                                              inv_covariance, batch_deviations)  # (batch x class)
 
-        confidence_scores = torch.max(-mahalanobis_distances, dim=1)[0]
+        confidence_scores = torch.max(-mahalanobis_distances, dim=1)[0]  # (batch)
         return confidence_scores
 
 
