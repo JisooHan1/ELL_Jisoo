@@ -54,15 +54,17 @@ def ood_posthoc(args):
     ood_method.apply_method(id_loader)
 
     # get id_scores
-    for inputs, _ in id_loader:
-        batch_id_scores = ood_method.ood_score(inputs.to(device)).cpu().numpy()  # (batch)
-        id_scores.append(batch_id_scores)
+    with torch.no_grad():
+        for inputs, _ in id_loader:
+            batch_id_scores = ood_method.ood_score(inputs.to(device)).cpu().numpy()  # (batch)
+            id_scores.append(batch_id_scores)
     # id_scores = torch.cat(id_scores)
 
     # get ood_scores
-    for inputs, _ in ood_loader:
-        batch_ood_scores = ood_method.ood_score(inputs.to(device)).cpu().numpy()  # (batch)
-        ood_scores.append(batch_ood_scores)
+    with torch.no_grad():
+        for inputs, _ in ood_loader:
+            batch_ood_scores = ood_method.ood_score(inputs.to(device)).cpu().numpy()  # (batch)
+            ood_scores.append(batch_ood_scores)
     # ood_scores = torch.cat(ood_scores)
 
     # get FPR95, AUROC and AUPR
