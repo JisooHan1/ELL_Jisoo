@@ -1,6 +1,5 @@
 from .base_ood import BaseOOD
 import torch
-import torch.nn as nn
 import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -19,14 +18,6 @@ class MDS(BaseOOD):
         def hook(_model, _input, output):
             self.penultimate_layer = output.flatten(1)  # (batch x channel)
         return hook
-
-    # def register_hook(self, layer_name="GAP"):
-    #     for name, module in self.model.named_modules():
-    #         if name == layer_name:
-    #             module.register_forward_hook(self.hook_function())
-    #             break
-    #     else:
-    #         raise ValueError(f"Layer {layer_name} not found in the model.")
 
     # mds method
     def get_class_features(self, id_dataloader):
@@ -47,7 +38,7 @@ class MDS(BaseOOD):
         self.all_labels = np.concatenate(all_labels, axis=0)
         return self.all_features, self.all_labels
 
-    def compute_gaussian_params(self, all_features, all_labels):
+    def get_id_mean_cov(self, all_features, all_labels):
         means = []
         covariances = []
 
@@ -64,26 +55,25 @@ class MDS(BaseOOD):
     # apply method
     def apply_method(self, id_loader):
         self.get_class_features(id_loader)
-        self.compute_gaussian_params(self.all_features, self.all_labels)
+        self.get_id_mean_cov(self.all_features, self.all_labels)
 
-    # OOD 점수 계산
+    # compute ood score
     def ood_score(self, images):
         self.model.eval()
         images = images.to(device)
 
-        # Forward pass
         _ = self.model(images)
-
         output = self.penultimate_layer  # (batch x channel)
 
         id_cls_means = self.id_cls_means  # (class x channel)
         id_covariances = self.id_covariances  # (class x channel x channel)
 
-        # Mahalanobis 거리 계산
+        # compute mahalanobis distance
         batch_deviations = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
         inv_covariances = torch.linalg.inv(id_covariances)  # (class x channel x channel)
         mahalanobis_distances = torch.einsum('bci,cij,bcj->bc', batch_deviations, inv_covariances, batch_deviations)  # (batch x class)
 
+        # compute confidence score
         confidence_scores = torch.max(-mahalanobis_distances, dim=1)[0]  # (batch)
         return confidence_scores
 
