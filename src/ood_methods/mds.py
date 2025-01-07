@@ -33,7 +33,7 @@ class MDS(BaseOOD):
 
                 for i, label in enumerate(labels):
                     class_index = label.item()
-                    self.class_features[class_index].append(output[i].cpu())  # {output[i] : (channel)}
+                    self.class_features[class_index].append(output[i])  # {output[i] : (channel)}
 
                 for class_idx, features in self.class_features.items():
                     print(f"Class {class_idx}: Number of features = {len(features)}")
