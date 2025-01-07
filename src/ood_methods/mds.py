@@ -21,18 +21,22 @@ class MDS(BaseOOD):
 
     # method
     def get_class_features(self, id_dataloader):
-        for images, labels in id_dataloader:
-            images, labels = images.to(device), labels.to(device)  # (batch)
-            print("input shape: ", images.shape)
-            print("labels shape: ", labels.shape)
-            self.model(images)
-            output = self.penultimate_layer.flatten(1)  # (batch x channel)
-            print("output shape: ", output.shape)
+        self.model.eval()
+        with torch.no_grad():
+            for images, labels in id_dataloader:
+                images, labels = images.to(device), labels.to(device)  # (batch)
+                print("input shape: ", images.shape)
+                print("labels shape: ", labels.shape)
+                _ = self.model(images)
+                output = self.penultimate_layer.flatten(1)  # (batch x channel x 1 x 1) -> (batch x channel)
+                print("output shape: ", output.shape)
 
-            for i, label in enumerate(labels):
-                class_index = label.item()
-                self.class_features[class_index].append(output[i])  # {output[i] : (channel)}
-                # print("check if class_index, output[i] matches!")
+                for i, label in enumerate(labels):
+                    class_index = label.item()
+                    self.class_features[class_index].append(output[i].cpu())  # {output[i] : (channel)}
+
+                for class_idx, features in self.class_features.items():
+                    print(f"Class {class_idx}: Number of features = {len(features)}")
         return self.class_features
 
     def get_cls_means(self, class_features):

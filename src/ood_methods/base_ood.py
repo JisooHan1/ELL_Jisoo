@@ -11,8 +11,8 @@ class BaseOOD:
         return hook
 
     def register_hooks(self):
-        # self.model.avgpool.register_forward_hook(self.hook_function())  # for pytorch imported resnet
-        self.model.GAP.register_forward_hook(self.hook_function())  # for manual resnet
+        # self.model.avgpool.register_forward_hook(self.hook_function())  # for pytorch imported resnet (for debugging)
+        self.model.GAP.register_forward_hook(self.hook_function())  # for manual resnet (batch x channel x 1 x 1)
 
     # apply method
     def apply_method(self, id_loader):

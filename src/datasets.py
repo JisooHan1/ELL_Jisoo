@@ -1,3 +1,4 @@
+import torch
 import torchvision
 import torchvision.transforms as transforms
 
@@ -83,37 +84,51 @@ def load_dataset(name):
         }
     }
 
+    def random_dataset(num_samples=1000, image_size=32, num_classes=10, input_channel=3):
+        random_images = torch.randn(num_samples, input_channel, image_size, image_size)
+        random_labels = torch.randint(0, num_classes, (num_samples,))
+        dataset = torch.utils.data.TensorDataset(random_images, random_labels)
+        return dataset
+
     # get dataset, configuration
-    if name not in dataset_config:
-        raise ValueError("Invalid dataset name")
-    config = dataset_config[name]
+    if name == "Random":
+        config = {
+            "image size": 32,
+            "input channel": 3
+        }
+        trainset = random_dataset(num_samples=1000, num_classes=10, image_size=config["image size"], input_channel=config["input channel"])
+        testset = random_dataset(num_samples=200, num_classes=10, image_size=config["image size"], input_channel=config["input channel"])
 
-    # normalization parameters
-    mean = (0.5,) * config["input channel"]
-    std = mean
+    else:
+        config = dataset_config[name]
+        # if name not in dataset_config:
+        #     raise ValueError("Invalid dataset name")
+        # normalization parameters
+        mean = (0.5,) * config["input channel"]
+        std = mean
 
-    # transformation parameters
-    transform_pars = [
-        transforms.ToTensor(),
-        transforms.Normalize(mean, std)]
+        # transformation parameters
+        transform_pars = [
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)]
 
-    # train/test set config
-    train_transform_pars = transform_pars + [
-        transforms.RandomResizedCrop(config["image size"])]
-    test_transform_pars = transform_pars + [
-        transforms.Resize(config["image size"])]
+        # train/test set config
+        train_transform_pars = transform_pars + [
+            transforms.RandomResizedCrop(config["image size"])]
+        test_transform_pars = transform_pars + [
+            transforms.Resize(config["image size"])]
 
-    # additional transformation
-    if name in ["CIFAR10", "STL10", "SVHN", "CIFAR100", "LSUN"]:
-        train_transform_pars.append(transforms.RandomHorizontalFlip())
+        # additional transformation
+        if name in ["CIFAR10", "STL10", "SVHN", "CIFAR100", "LSUN"]:
+            train_transform_pars.append(transforms.RandomHorizontalFlip())
 
-    # transformation pipeline
-    train_transform = transforms.Compose(train_transform_pars)
-    test_transform = transforms.Compose(test_transform_pars)
+        # transformation pipeline
+        train_transform = transforms.Compose(train_transform_pars)
+        test_transform = transforms.Compose(test_transform_pars)
 
-    # load datasets with transformations
-    trainset = config["dataset"](root='./datasets', **config["train option"], download=True, transform=train_transform)
-    testset = config["dataset"](root='./datasets', **config["test option"], download=True, transform=test_transform)
+        # load datasets with transformations
+        trainset = config["dataset"](root='./datasets', **config["train option"], download=True, transform=train_transform)
+        testset = config["dataset"](root='./datasets', **config["test option"], download=True, transform=test_transform)
 
     # return datasets and their properties
     return trainset, testset, config["input channel"], config["image size"]
