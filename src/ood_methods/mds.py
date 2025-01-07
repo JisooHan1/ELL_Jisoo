@@ -13,15 +13,22 @@ class MDS(BaseOOD):
         self.all_labels = []
         self.id_cls_means = []
         self.id_covariances = []
-        self.penultimate_layer = None  # Hook에서 설정될 변수
 
-    # Hook 함수: penultimate_layer에 특징 저장
+    # hook
     def hook_function(self):
         def hook(_model, _input, output):
             self.penultimate_layer = output.flatten(1)  # (batch x channel)
         return hook
 
-    # 특징 추출
+    # def register_hook(self, layer_name="GAP"):
+    #     for name, module in self.model.named_modules():
+    #         if name == layer_name:
+    #             module.register_forward_hook(self.hook_function())
+    #             break
+    #     else:
+    #         raise ValueError(f"Layer {layer_name} not found in the model.")
+
+    # mds method
     def get_class_features(self, id_dataloader):
         self.model.eval()
         all_features = []
@@ -31,13 +38,7 @@ class MDS(BaseOOD):
             for images, labels in id_dataloader:
                 images, labels = images.to(device), labels.to(device)
 
-                # Forward pass
                 _ = self.model(images)
-
-                # penultimate_layer에서 특징 추출
-                if self.penultimate_layer is None:
-                    raise ValueError("Hook is not properly registered. Penultimate layer is None.")
-
                 output = self.penultimate_layer  # (batch x channel)
                 all_features.append(output.cpu().numpy())
                 all_labels.append(labels.cpu().numpy())
@@ -46,15 +47,12 @@ class MDS(BaseOOD):
         self.all_labels = np.concatenate(all_labels, axis=0)
         return self.all_features, self.all_labels
 
-    # 클래스별 평균 및 공분산 계산
     def compute_gaussian_params(self, all_features, all_labels):
         means = []
         covariances = []
 
         for cls in range(self.num_classes):
             cls_features = all_features[all_labels == cls]
-            if cls_features.shape[0] == 0:
-                raise ValueError(f"No features found for class {cls}. Check your dataset or labels.")
 
             means.append(np.mean(cls_features, axis=0))
             covariances.append(np.cov(cls_features, rowvar=False))
@@ -63,7 +61,7 @@ class MDS(BaseOOD):
         self.id_covariances = torch.tensor(np.array(covariances), dtype=torch.float32, device=device)
         return self.id_cls_means, self.id_covariances
 
-    # 데이터 로더를 사용하여 매서드 적용
+    # apply method
     def apply_method(self, id_loader):
         self.get_class_features(id_loader)
         self.compute_gaussian_params(self.all_features, self.all_labels)
@@ -75,8 +73,6 @@ class MDS(BaseOOD):
 
         # Forward pass
         _ = self.model(images)
-        if self.penultimate_layer is None:
-            raise ValueError("Hook is not properly registered. Penultimate layer is None.")
 
         output = self.penultimate_layer  # (batch x channel)
 
@@ -91,11 +87,3 @@ class MDS(BaseOOD):
         confidence_scores = torch.max(-mahalanobis_distances, dim=1)[0]  # (batch)
         return confidence_scores
 
-    # Hook 등록
-    def register_hook(self, layer_name="avgpool"):
-        for name, module in self.model.named_modules():
-            if name == layer_name:
-                module.register_forward_hook(self.hook_function())
-                break
-        else:
-            raise ValueError(f"Layer {layer_name} not found in the model.")

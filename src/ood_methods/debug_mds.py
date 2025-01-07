@@ -1,4 +1,4 @@
-from mds import MDS
+from ood_methods.mds import MDS
 import torch
 
 class DummyModel(torch.nn.Module):
