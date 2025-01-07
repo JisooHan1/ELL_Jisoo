@@ -11,7 +11,7 @@ class BaseOOD:
         return hook
 
     def register_hooks(self):
-        self.model.GAP.register_forward_hook(self.hook_function())
+        self.model.avgpool.register_forward_hook(self.hook_function())
 
     # apply method
     def apply_method(self, id_loader):
