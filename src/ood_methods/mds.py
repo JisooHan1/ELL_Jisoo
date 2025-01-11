@@ -1,79 +1,82 @@
 from .base_ood import BaseOOD
 import torch
-import numpy as np
+import torch.nn as nn
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class MDS(BaseOOD):
-    def __init__(self, model, num_classes=10):
+    def __init__(self, model):
         super().__init__(model)
-        self.num_classes = num_classes
-        self.all_features = []
-        self.all_labels = []
-        self.id_cls_means = []
-        self.id_covariances = []
+        self.num_classes = 10
+        self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.penul_dict = {cls: [] for cls in range(self.num_classes)}
+        self.id_train_cls_means = []
+        self.id_train_covariances = None
+        self.inverse_id_train_cov = None
 
-    # hook
-    def hook_function(self):
-        def hook(_model, _input, output):
-            self.penultimate_layer = output.flatten(1)  # (batch x channel)
-        return hook
+    # method
+    def get_class_features(self, id_train_loader):
+        for images, labels in id_train_loader:
+            images, labels = images.to(device), labels.to(device)  # (batch)
+            print("input shape: ", images.shape)
+            print("labels shape: ", labels.shape)
+            self.model(images)
+            output = self.penultimate_layer  # (batch x channel)
+            print("output shape: ", output.shape)
 
-    # mds method
-    def get_class_features(self, id_dataloader):
-        self.model.eval()
-        all_features = []
-        all_labels = []
+            for i, label in enumerate(labels):
+                cls_index = label.item()
+                self.penul_dict[cls_index].append(output[i])  # {output[i] : (channel)}
 
-        with torch.no_grad():
-            for images, labels in id_dataloader:
-                images, labels = images.to(device), labels.to(device)
+        for class_idx, features in self.penul_dict.items():
+                print(f"Class {class_idx}: Number of features = {len(features)}")
+        return self.penul_dict
 
-                _ = self.model(images)
-                output = self.penultimate_layer  # (batch x channel)
-                all_features.append(output.cpu().numpy())
-                all_labels.append(labels.cpu().numpy())
-
-        self.all_features = np.concatenate(all_features, axis=0)
-        self.all_labels = np.concatenate(all_labels, axis=0)
-        return self.all_features, self.all_labels
-
-    def get_id_mean_cov(self, all_features, all_labels):
-        means = []
-        covariances = []
+    def get_id_mean_cov(self, class_features):
+        cls_datas = []  # list of cls_data for each cls
+        cls_devs = []  # list of cls_dev for each cls
 
         for cls in range(self.num_classes):
-            cls_features = all_features[all_labels == cls]
+            cls_data = torch.stack(class_features[cls], dim=0)  # (num_samples_in_cls x channel)
+            cls_mean = torch.mean(cls_data, dim=0)  # (channel)
+            self.id_train_cls_means.append(cls_mean)  # list of cls_mean for each cls
 
-            means.append(np.mean(cls_features, axis=0))
-            covariances.append(np.cov(cls_features, rowvar=False))
+            cls_datas.append(cls_data)
+            cls_dev = cls_data - cls_mean.unsqueeze(0)  # (num_samples_in_cls x channel)
+            print(f"shape of cls_dev {cls}: ", cls_dev.shape)
+            cls_devs.append(cls_dev)
 
-        self.id_cls_means = torch.tensor(np.array(means), dtype=torch.float32, device=device)
-        self.id_covariances = torch.tensor(np.array(covariances), dtype=torch.float32, device=device)
-        return self.id_cls_means, self.id_covariances
+        self.id_train_cls_means = torch.stack(self.id_train_cls_means, dim=0)  # Convert list to tensor
+        print("shape of id_cls_means: ", self.id_train_cls_means.shape)  # (num_class x channel)
+
+        total_stack = torch.cat(cls_datas, dim=0)  # (total_id_trainset_samples x channel)
+        N = total_stack.shape[0]  # number of total_id_trainset_samples; cifar10 => (50,000)
+        print("N = ", N)
+
+        total_devs = torch.cat(cls_devs, dim=0)
+        print("shape of total_devs: ", total_devs.shape)  # (N x 512)??  cifar10: (50,000 x 512)?
+        total_einsum = torch.einsum("Ni, Nj -> ij", total_devs, total_devs)
+
+        self.id_train_covariances = total_einsum / N  # (channel x channel)
+        self.inverse_id_train_cov = torch.linalg.inv(self.id_train_covariances)
 
     # apply method
-    def apply_method(self, id_loader):
-        self.get_class_features(id_loader)
-        self.get_id_mean_cov(self.all_features, self.all_labels)
+    def apply_method(self, id_train_loader):
+        self.get_class_features(id_train_loader)
+        self.get_id_mean_cov(self.penul_dict)
 
     # compute ood score
     def ood_score(self, images):
-        self.model.eval()
         images = images.to(device)
+        self.model(images)
 
-        _ = self.model(images)
+        id_cls_means = self.id_train_cls_means  # (class x channel)
+        inv_covariance = self.inverse_id_train_cov
+
         output = self.penultimate_layer  # (batch x channel)
+        test_devs = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
+        mahalanobis_distances = torch.einsum('bci, ij, bcj -> bc', test_devs,
+                                             inv_covariance, test_devs)  # (batch x class)
 
-        id_cls_means = self.id_cls_means  # (class x channel)
-        id_covariances = self.id_covariances  # (class x channel x channel)
-
-        # compute mahalanobis distance
-        batch_deviations = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
-        inv_covariances = torch.linalg.inv(id_covariances)  # (class x channel x channel)
-        mahalanobis_distances = torch.einsum('bci,cij,bcj->bc', batch_deviations, inv_covariances, batch_deviations)  # (batch x class)
-
-        # compute confidence score
-        confidence_scores = torch.max(-mahalanobis_distances, dim=1)[0]  # (batch)
-        return confidence_scores
-
+        mds_scores, _ = torch.max(-mahalanobis_distances, dim=1)  # (batch)
+        return mds_scores

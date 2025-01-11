@@ -7,31 +7,32 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class KNN(BaseOOD):
     def __init__(self, model, k=50):
         super().__init__(model)
-        self.id_features = torch.tensor([], device=device)
-        self.k = k
+        self.k = k  # number of neighbors
 
-    # get normalized id features
-    def get_features(self, id_loader):
-        for inputs, _ in id_loader:
-            inputs = inputs.to(device)
-            self.model(inputs)
-            self.id_features = torch.cat([self.id_features, self.penultimate_layer.flatten(1)])
-        self.id_features = F.normalize(self.id_features, p=2, dim=1)  # (num_samples x channel)
-        return self.id_features
+    # get normalized id_trainset features
+    def get_features(self, id_train_loader):
+        id_train_features = []
+        for images, _ in id_train_loader:
+            images = images.to(device)
+            self.model(images)
+            id_train_features.append(self.penultimate_layer)
+        id_train_features = torch.cat(id_train_features, dim=0)  # (id_train_samples x channel)
+        self.id_train_features = F.normalize(id_train_features, p=2, dim=1)  # (id_train_samples x channel)
+        return self.id_train_features
 
-    # apply method
-    def apply_method(self, id_loader):
-        self.get_features(id_loader)
+    # apply method (pre-processing)
+    def apply_method(self, id_train_loader):
+        self.get_features(id_train_loader)
 
     # compute ood score
-    def ood_score(self, inputs):
-        inputs = inputs.to(device)
-        self.model(inputs)
+    def ood_score(self, images):  # id_testset/ood_testset
+        images = images.to(device)
+        self.model(images)
 
-        features = self.penultimate_layer.flatten(1)  # (batch x channel)
+        features = self.penultimate_layer  # (batch x channel)
         l2_features = F.normalize(features, p=2, dim=1)
 
-        distances = torch.cdist(l2_features, self.id_features)  # (batch x num_samples)
+        distances = torch.cdist(l2_features, self.id_train_features)  # (batch x id_train_samples)
         distances, _ = torch.sort(distances, dim=1, descending=False)
 
         kth_distance = distances[:, self.k - 1]

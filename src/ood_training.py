@@ -89,12 +89,12 @@ def ood_training(args):
             scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[80, 140], gamma=0.1)
 
         elif method == 'oe':
-            from ood_methods.outlier_exposure import OutlierExposureLoss
-            criterion = OutlierExposureLoss(alpha=0.5)
+            from ood_methods.outlier_exposure import OELoss
+            criterion = OELoss(alpha=0.5)
 
         elif method == 'moe':
-            from ood_methods.mixture_outlier_exposure import MixtureOutlierExposureLoss
-            criterion = MixtureOutlierExposureLoss(alpha=0.5, beta=0.5)
+            from ood_methods.mixture_outlier_exposure import MOELoss
+            criterion = MOELoss(alpha=0.5, beta=0.5)
 
         # train
         for epoch in range(epochs):

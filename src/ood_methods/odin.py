@@ -8,23 +8,27 @@ class ODIN(BaseOOD):
         self.temperature = temperature
         self.epsilon = epsilon
 
-    def ood_score(self, inputs):
-        inputs = inputs.clone().detach().requires_grad_(True)
+    def apply_method(self, id_train_loader):
+        pass
 
+    def ood_score(self, images):
+        with torch.set_grad_enabled(True):
+            images = images.clone().detach().requires_grad_(True)
 
-        outputs = self.model(inputs) / self.temperature # (batch_size, num_classes)
+            # temperature scaling applied output
+            outputs = self.model(images) / self.temperature # (batch x num_class); channel == num_class
 
-        softmax_scores = F.softmax(outputs, dim=1)
-        pred_class = torch.argmax(softmax_scores, dim=1)
+            softmax_scores = F.softmax(outputs, dim=1)
+            pred_class = torch.argmax(softmax_scores, dim=1)
 
-        loss = F.cross_entropy(outputs, pred_class)
-        loss.backward()
-
-        perturbed_input = inputs - self.epsilon * torch.sign(inputs.grad)
+            # adding preturbation to input images
+            loss = F.cross_entropy(outputs, pred_class)
+            loss.backward()
+            perturbed_images = images - self.epsilon * torch.sign(images.grad)
 
         with torch.no_grad():
-            perturbed_output = self.model(perturbed_input) / self.temperature
-        calibrated_scores = F.softmax(perturbed_output, dim=1) # (batch_size, num_classes)
-        odin_score = torch.max(calibrated_scores, dim=1)[0] # (batch_size)
+            perturbed_output = self.model(perturbed_images) / self.temperature
+            calibrated_scores = F.softmax(perturbed_output, dim=1) # (batch x num_class)
+            odin_score, _ = torch.max(calibrated_scores, dim=1) # (batch)
 
         return odin_score

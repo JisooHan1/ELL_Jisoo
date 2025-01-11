@@ -15,7 +15,7 @@ class LogitNormLoss(nn.Module):
         labels = labels.to(device)  # (batch)
 
         # normalize the output
-        magnitude = torch.norm(logits, p=2, dim=1, keepdim=True)  # (batch x 1)
+        magnitude = F.normalize(logits, p=2, dim=1)  # (batch x 1)
         logit_norm = logits / (magnitude + 1e-7)  # (batch x channel)
 
         # logit_norm_loss
