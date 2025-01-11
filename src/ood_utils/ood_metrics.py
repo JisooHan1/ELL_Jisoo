@@ -8,9 +8,8 @@ def evaluations(id_scores, ood_scores):
 
     print("id scores: ", id_scores)
     print("ood scores: ", ood_scores)
-    # id_scores가 ood_scores보다 큰 경우의 개수 계산
-    count = np.sum(id_scores - ood_scores > 0)
-    print("Count of (id_scores - ood_scores > 0): ", count)
+    print(np.mean(id_scores))
+    print(np.mean(ood_scores))
 
     # generate list of label: ID = 1, OOD = 0
     labels = np.concatenate([np.ones(len(id_scores)), np.zeros(len(ood_scores))])
