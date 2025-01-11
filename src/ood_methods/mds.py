@@ -77,8 +77,8 @@ class MDS(BaseOOD):
                                              inv_covariance, test_devs)  # (batch x class)
         # print(mahalanobis_distances.shape)
         # print(mahalanobis_distances)
-        print(torch.max(-mahalanobis_distances, dim=1)[0])
-        print(torch.min(mahalanobis_distances, dim=1)[0])
+        # print(torch.max(-mahalanobis_distances, dim=1)[0])
+        # print(torch.min(mahalanobis_distances, dim=1)[0])
 
         mds_scores, _ = torch.max(-mahalanobis_distances, dim=1)  # (batch)
         # mds_scores, _ = torch.min(mahalanobis_distances, dim=1)  # (batch)
