@@ -43,6 +43,7 @@ class MDS(BaseOOD):
 
             for i in range(cls_data.shape[0]):
                 cls_dev = cls_data[i] - cls_mean  # (channel)
+                print("cls_dev.shape: ", cls_dev.shape)
                 cls_dev = cls_dev.unsqueeze(-1)  # (channel x 1)
                 cls_cov = torch.einsum('i, j -> ij', cls_dev, cls_dev)
                 cls_covs += cls_cov
