@@ -19,7 +19,7 @@ def load_trained_model(model_path, model_type):
     model.eval()
     return model
 
-@torch.no_grad
+@torch.no_grad()
 def run_ood_posthoc_method(args):
     model = args.model  # ResNet, DenseNet
     batch_size = args.batch_size  # 16, 32, 64
