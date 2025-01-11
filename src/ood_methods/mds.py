@@ -75,8 +75,8 @@ class MDS(BaseOOD):
         test_devs = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
         mahalanobis_distances = torch.einsum('bci, ij, bcj -> bc', test_devs,
                                              inv_covariance, test_devs)  # (batch x class)
-        print(mahalanobis_distances.shape)
-        print(mahalanobis_distances)
+        # print(mahalanobis_distances.shape)
+        # print(mahalanobis_distances)
         print(torch.max(-mahalanobis_distances, dim=1)[0])
         print(torch.min(mahalanobis_distances, dim=1)[0])
 
