@@ -64,7 +64,7 @@ def evaluate(model, id_test_loader, ood_test_loader):
     return results
 
 # ood training
-def ood_training(args):
+def run_ood_training_method(args):
     # load data
     id_train_loader, id_test_loader, ood_test_loader, id_input_channels, id_image_size = load_data(args.id_dataset, args.ood_dataset, args.batch_size)
 

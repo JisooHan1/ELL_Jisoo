@@ -1,6 +1,6 @@
 import argparse
-from ood_posthoc import ood_posthoc
-from ood_training import ood_training
+from ood_posthoc import run_ood_posthoc_method
+from ood_training import run_ood_training_method
 
 def main():
     parser = argparse.ArgumentParser(description="OOD Detection")
@@ -20,12 +20,12 @@ def main():
     # ood_posthoc
     if args.mode == 'ood_posthoc':
         print("Starting posthoc method...")
-        ood_posthoc(args)
+        run_ood_posthoc_method(args)
 
     # ood_training
     elif args.mode == 'ood_training':
         print("Starting training method...")
-        ood_training(args)
+        run_ood_training_method(args)
 
 
 if __name__ == "__main__":

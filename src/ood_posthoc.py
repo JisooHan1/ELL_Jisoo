@@ -20,7 +20,7 @@ def load_trained_model(model_path, model_type):
     return model
 
 @torch.no_grad
-def ood_posthoc(args):
+def run_ood_posthoc_method(args):
     model = args.model  # ResNet, DenseNet
     batch_size = args.batch_size  # 16, 32, 64
     id_dataset = args.id_dataset  # CIFAR10, STL10, CIFAR100, SVHN, LSUN, LSUN-resize, ImageNet, ImageNet-resize
