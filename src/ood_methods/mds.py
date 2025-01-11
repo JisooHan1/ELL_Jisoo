@@ -18,11 +18,8 @@ class MDS(BaseOOD):
     def get_cls_features(self, id_train_loader):
         for images, labels in id_train_loader:
             images, labels = images.to(device), labels.to(device)  # (batch)
-            print("input shape: ", images.shape)
-            print("labels shape: ", labels.shape)
             self.model(images)
             output = self.penultimate_layer  # (batch x channel)
-            print("output shape: ", output.shape)
 
             for i, label in enumerate(labels):
                 cls_index = label.item()
@@ -55,9 +52,10 @@ class MDS(BaseOOD):
 
         total_devs = torch.cat(cls_devs, dim=0)  # (total_id_trainset_samples x channel)
         print("shape of total_devs: ", total_devs.shape)  # (N x 512)  cifar10: (50,000 x 512)
-        total_einsum = torch.einsum("nC, mC -> nm", total_devs, total_devs)  # (N x N)
+        total_einsum = torch.einsum("Ni, Nj -> ij", total_devs, total_devs)  # (channel x channel)
+        print("shape of total_einsum: ", total_einsum.shape)
 
-        self.id_train_covariances = total_einsum / N
+        self.id_train_covariances = total_einsum / N  # (channel x channel)
         self.inverse_id_train_cov = torch.linalg.inv(self.id_train_covariances)
 
     # apply method
@@ -78,5 +76,6 @@ class MDS(BaseOOD):
         mahalanobis_distances = torch.einsum('bci, ij, bcj -> bc', test_devs,
                                              inv_covariance, test_devs)  # (batch x class)
 
-        mds_scores, _ = torch.max(-mahalanobis_distances, dim=1)  # (batch)
+        # mds_scores, _ = torch.max(-mahalanobis_distances, dim=1)  # (batch)
+        mds_scores, _ = torch.min(mahalanobis_distances, dim=1)  # (batch)
         return mds_scores
