@@ -15,7 +15,7 @@ class MDS(BaseOOD):
         self.inverse_id_train_cov = None
 
     # method
-    def get_class_features(self, id_train_loader):
+    def get_cls_features(self, id_train_loader):
         for images, labels in id_train_loader:
             images, labels = images.to(device), labels.to(device)  # (batch)
             print("input shape: ", images.shape)
@@ -41,10 +41,10 @@ class MDS(BaseOOD):
             cls_mean = torch.mean(cls_data, dim=0)  # (channel)
             self.id_train_cls_means.append(cls_mean)  # list of cls_mean for each cls
 
-            cls_datas.append(cls_data)
             cls_dev = cls_data - cls_mean.unsqueeze(0)  # (num_samples_in_cls x channel)
             print(f"shape of cls_dev {cls}: ", cls_dev.shape)
             cls_devs.append(cls_dev)
+            cls_datas.append(cls_data)
 
         self.id_train_cls_means = torch.stack(self.id_train_cls_means, dim=0)  # Convert list to tensor
         print("shape of id_cls_means: ", self.id_train_cls_means.shape)  # (num_class x channel)
@@ -53,16 +53,16 @@ class MDS(BaseOOD):
         N = total_stack.shape[0]  # number of total_id_trainset_samples; cifar10 => (50,000)
         print("N = ", N)
 
-        total_devs = torch.cat(cls_devs, dim=0)
-        print("shape of total_devs: ", total_devs.shape)  # (N x 512)??  cifar10: (50,000 x 512)?
-        total_einsum = torch.einsum("Ni, Nj -> ij", total_devs, total_devs)
+        total_devs = torch.cat(cls_devs, dim=0)  # (total_id_trainset_samples x channel)
+        print("shape of total_devs: ", total_devs.shape)  # (N x 512)  cifar10: (50,000 x 512)
+        total_einsum = torch.einsum("nC, mC -> nm", total_devs, total_devs)  # (N x N)
 
-        self.id_train_covariances = total_einsum / N  # (channel x channel)
+        self.id_train_covariances = total_einsum / N
         self.inverse_id_train_cov = torch.linalg.inv(self.id_train_covariances)
 
     # apply method
     def apply_method(self, id_train_loader):
-        self.get_class_features(id_train_loader)
+        self.get_cls_features(id_train_loader)
         self.get_id_mean_cov(self.penul_dict)
 
     # compute ood score
