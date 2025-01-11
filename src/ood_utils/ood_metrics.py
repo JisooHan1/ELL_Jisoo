@@ -6,6 +6,9 @@ def evaluations(id_scores, ood_scores):
     id_scores = np.concatenate(id_scores)
     ood_scores = np.concatenate(ood_scores)
 
+    print("id scores: ", id_scores)
+    print("ood scores: ", ood_scores)
+
     # generate list of label: ID = 1, OOD = 0
     labels = np.concatenate([np.ones(len(id_scores)), np.zeros(len(ood_scores))])
     scores = np.concatenate([id_scores, ood_scores])
