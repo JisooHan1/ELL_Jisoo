@@ -31,7 +31,7 @@ class MDS(BaseOOD):
 
     def get_id_mean_cov(self, class_features):
         cls_datas = []  # list of cls_data for each cls
-        cls_devs = []  # list of cls_dev for each cls
+        cls_covs = torch.zeros(512, 512, device=device)
 
         for cls in range(self.num_classes):
             cls_data = torch.stack(class_features[cls], dim=0)  # (num_samples_in_cls x channel)
@@ -40,7 +40,13 @@ class MDS(BaseOOD):
 
             cls_dev = cls_data - cls_mean.unsqueeze(0)  # (num_samples_in_cls x channel)
             print(f"shape of cls_dev {cls}: ", cls_dev.shape)
-            cls_devs.append(cls_dev)
+
+            for i in range(cls_data.shape[0]):
+                cls_dev = cls_data[i] - cls_mean  # (channel)
+                cls_dev = cls_dev.unsqueeze(-1)  # (channel x 1)
+                cls_cov = torch.einsum('i, j -> ij', cls_dev, cls_dev)
+                cls_covs += cls_cov
+
             cls_datas.append(cls_data)
 
         self.id_train_cls_means = torch.stack(self.id_train_cls_means, dim=0)  # Convert list to tensor
@@ -50,13 +56,38 @@ class MDS(BaseOOD):
         N = total_stack.shape[0]  # number of total_id_trainset_samples; cifar10 => (50,000)
         print("N = ", N)
 
-        total_devs = torch.cat(cls_devs, dim=0)  # (total_id_trainset_samples x channel)
-        print("shape of total_devs: ", total_devs.shape)  # (N x 512)  cifar10: (50,000 x 512)
-        total_einsum = torch.einsum("Ni, Nj -> ij", total_devs, total_devs)  # (channel x channel)
-        print("shape of total_einsum: ", total_einsum.shape)
-
-        self.id_train_covariances = total_einsum / N  # (channel x channel)
+        print("shape of cls_covs: ", cls_covs.shape)
+        self.id_train_covariances = cls_covs / N  # (channel x channel)
         self.inverse_id_train_cov = torch.linalg.inv(self.id_train_covariances)
+
+    # def get_id_mean_cov(self, class_features):
+    #     cls_datas = []  # list of cls_data for each cls
+    #     cls_devs = []  # list of cls_dev for each cls
+
+    #     for cls in range(self.num_classes):
+    #         cls_data = torch.stack(class_features[cls], dim=0)  # (num_samples_in_cls x channel)
+    #         cls_mean = torch.mean(cls_data, dim=0)  # (channel)
+    #         self.id_train_cls_means.append(cls_mean)  # list of cls_mean for each cls
+
+    #         cls_dev = cls_data - cls_mean.unsqueeze(0)  # (num_samples_in_cls x channel)
+    #         print(f"shape of cls_dev {cls}: ", cls_dev.shape)
+    #         cls_devs.append(cls_dev)
+    #         cls_datas.append(cls_data)
+
+    #     self.id_train_cls_means = torch.stack(self.id_train_cls_means, dim=0)  # Convert list to tensor
+    #     print("shape of id_cls_means: ", self.id_train_cls_means.shape)  # (num_class x channel)
+
+    #     total_stack = torch.cat(cls_datas, dim=0)  # (total_id_trainset_samples x channel)
+    #     N = total_stack.shape[0]  # number of total_id_trainset_samples; cifar10 => (50,000)
+    #     print("N = ", N)
+
+    #     total_devs = torch.cat(cls_devs, dim=0)  # (total_id_trainset_samples x channel)
+    #     print("shape of total_devs: ", total_devs.shape)  # (N x 512)  cifar10: (50,000 x 512)
+    #     total_einsum = torch.einsum("Ni, Nj -> ij", total_devs, total_devs)  # (channel x channel)
+    #     print("shape of total_einsum: ", total_einsum.shape)
+
+    #     self.id_train_covariances = total_einsum / N  # (channel x channel)
+    #     self.inverse_id_train_cov = torch.linalg.inv(self.id_train_covariances)
 
     # apply method
     def apply_method(self, id_train_loader):
