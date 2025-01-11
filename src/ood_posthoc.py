@@ -54,13 +54,13 @@ def run_ood_posthoc_method(args):
 
     # id_scores: get id_testset's scores
     for images, _ in id_test_loader:
-        images.to(device)
+        images = images.to(device)
         batch_id_scores = ood_method.ood_score(images).cpu().numpy()  # (batch)
         id_scores.append(batch_id_scores)
 
     # ood_scores: get ood_testset's scores
     for images, _ in ood_loader:
-        images.to(device)
+        images = images.to(device)
         batch_ood_scores = ood_method.ood_score(images).cpu().numpy()  # (batch)
         ood_scores.append(batch_ood_scores)
 
