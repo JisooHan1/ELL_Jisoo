@@ -45,6 +45,7 @@ class MDS(BaseOOD):
                 cls_dev = cls_data[i] - cls_mean  # (channel)
                 print("cls_dev.shape: ", cls_dev.shape)
                 cls_dev = cls_dev.unsqueeze(-1)  # (channel x 1)
+                print("cls_dev.shape: ", cls_dev.shape)
                 cls_cov = torch.einsum('i,j->ij', cls_dev, cls_dev)
                 print("cls_cov.shape: ", cls_cov.shape)
                 cls_covs += cls_cov
@@ -85,7 +86,7 @@ class MDS(BaseOOD):
 
     #     total_devs = torch.cat(cls_devs, dim=0)  # (total_id_trainset_samples x channel)
     #     print("shape of total_devs: ", total_devs.shape)  # (N x 512)  cifar10: (50,000 x 512)
-    #     total_einsum = torch.einsum("Ni, Nj -> ij", total_devs, total_devs)  # (channel x channel)
+    #     total_einsum = torch.einsum("Ni,Nj->ij", total_devs, total_devs)  # (channel x channel)
     #     print("shape of total_einsum: ", total_einsum.shape)
 
     #     self.id_train_covariances = total_einsum / N  # (channel x channel)
@@ -106,7 +107,7 @@ class MDS(BaseOOD):
 
         output = self.penultimate_layer  # (batch x channel)
         test_devs = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
-        mahalanobis_distances = torch.einsum('bci, ij, bcj -> bc', test_devs,
+        mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', test_devs,
                                              inv_covariance, test_devs)  # (batch x class)
         # print(mahalanobis_distances.shape)
         # print(mahalanobis_distances)
