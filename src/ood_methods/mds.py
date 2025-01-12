@@ -85,7 +85,7 @@ class MDS(BaseOOD):
             mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', test_devs, inv_covariance, test_devs)  # (batch x class)
 
             # compute loss
-            loss = torch.max(-mahalanobis_distances, dim=1).values.mean()
+            loss = torch.min(mahalanobis_distances, dim=1).values.mean()
             loss.backward()
             preturbed_images = images - self.epsilon * torch.sign(images.grad)
 
