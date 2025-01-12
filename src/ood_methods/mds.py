@@ -2,6 +2,8 @@ from .base_ood import BaseOOD
 import torch
 import torch.nn as nn
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 class MDS(BaseOOD):
     def __init__(self, model, epsilon=0.001):
         super().__init__(model)
@@ -16,6 +18,7 @@ class MDS(BaseOOD):
     # method
     def get_cls_features(self, id_train_loader):
         for images, labels in id_train_loader:
+            images, labels = images.to(device), labels.to(device)
             self.model(images)
             output = self.penultimate_layer  # (batch x channel)
 
@@ -27,7 +30,7 @@ class MDS(BaseOOD):
                 print(f"Class {class_idx}: Number of features = {len(features)}")
         return self.penul_dict
 
-    # 원본
+    # 원본 get_id_mean_cov()
     def get_id_mean_cov(self, class_features):
         cls_datas = []  # list of cls_data for each cls
         cls_devs = []  # list of cls_dev for each cls
@@ -62,11 +65,12 @@ class MDS(BaseOOD):
         self.get_cls_features(id_train_loader)
         self.get_id_mean_cov(self.penul_dict)
 
-    # 원본
+    # 원본 ood_score()
     # compute ood score
     def ood_score(self, images):
         id_cls_means = self.id_train_cls_means  # (class x channel)
         inv_covariance = self.inverse_id_train_cov
+        images = images.to(device)
 
         with torch.set_grad_enabled(True):
             images = images.clone().detach().requires_grad_(True)
