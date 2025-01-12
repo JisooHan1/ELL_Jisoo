@@ -3,6 +3,7 @@
 
 ###내가 추가한 것###
 datasets/
+logs/
 .history/
 .idea/
 
