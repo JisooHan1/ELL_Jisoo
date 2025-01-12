@@ -8,8 +8,8 @@ def evaluations(id_scores, ood_scores):
 
     print("id scores: ", id_scores)
     print("ood scores: ", ood_scores)
-    print(np.mean(id_scores))
-    print(np.mean(ood_scores))
+    print("mean id scores: ", np.mean(id_scores))
+    print("mean ood scores: ", np.mean(ood_scores))
 
     # generate list of label: ID = 1, OOD = 0
     labels = np.concatenate([np.ones(len(id_scores)), np.zeros(len(ood_scores))])

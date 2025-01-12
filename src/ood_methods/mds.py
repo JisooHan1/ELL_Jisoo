@@ -29,6 +29,7 @@ class MDS(BaseOOD):
                 print(f"Class {class_idx}: Number of features = {len(features)}")
         return self.penul_dict
 
+    # 디버깅용
     def get_id_mean_cov(self, class_features):
         cls_datas = []  # list of cls_data for each cls
         cls_covs = torch.zeros(512, 512, device=device)
@@ -47,7 +48,7 @@ class MDS(BaseOOD):
                 # cls_dev = cls_dev.unsqueeze(-1)  # (channel x 1)
                 # print("cls_dev.shape: ", cls_dev.shape)
                 cls_cov = torch.einsum('i,j->ij', cls_dev, cls_dev)
-                print("cls_cov.shape: ", cls_cov.shape)
+                # print("cls_cov.shape: ", cls_cov.shape)
                 cls_covs += cls_cov
 
             cls_datas.append(cls_data)
@@ -63,6 +64,7 @@ class MDS(BaseOOD):
         self.id_train_covariances = cls_covs / N  # (channel x channel)
         self.inverse_id_train_cov = torch.linalg.inv(self.id_train_covariances)
 
+    # # 원본
     # def get_id_mean_cov(self, class_features):
     #     cls_datas = []  # list of cls_data for each cls
     #     cls_devs = []  # list of cls_dev for each cls
@@ -92,6 +94,7 @@ class MDS(BaseOOD):
     #     self.id_train_covariances = total_einsum / N  # (channel x channel)
     #     self.inverse_id_train_cov = torch.linalg.inv(self.id_train_covariances)
 
+    # 디버깅용
     # apply method
     def apply_method(self, id_train_loader):
         self.get_cls_features(id_train_loader)
@@ -106,22 +109,24 @@ class MDS(BaseOOD):
         inv_covariance = self.inverse_id_train_cov
 
         output = self.penultimate_layer  # (batch x channel)
-        final_test_covs=[]
+        final_test_covs = []
         for i in range(output.shape[0]):
             test_cov=[]
             for cls in range(self.num_classes):
                 test_dev = output[i] - id_cls_means[cls]  # (channel)
                 test_cov.append(torch.einsum('i,ij,j->', test_dev, inv_covariance, test_dev))  # a value
-            final_test_covs.append(max(-test_cov).item())
+                test_cov
+            final_test_covs.append(min(test_cov).item())
 
         # print(mahalanobis_distances.shape)
         # print(mahalanobis_distances)
         # print(torch.max(-mahalanobis_distances, dim=1)[0])
         # print(torch.min(mahalanobis_distances, dim=1)[0])
-
-        mds_scores = torch.cat(final_test_covs, dim=0)
+        concat_covs = torch.cat(final_test_covs, dim=0)
+        mds_scores = -concat_covs
         return mds_scores
 
+    # # 원본
     # # compute ood score
     # def ood_score(self, images):
     #     images = images.to(device)
