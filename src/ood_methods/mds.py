@@ -7,9 +7,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class MDS(BaseOOD):
     def __init__(self, model, epsilon=0.002):
         super().__init__(model)
-        self.num_classes = 10
+        self.num_cls = 10
         self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
-        self.penul_dict = {cls: [] for cls in range(self.num_classes)}
+        self.penul_dict = {cls: [] for cls in range(self.num_cls)}
         self.id_train_cls_means = []
         self.id_train_covariances = None
         self.inverse_id_train_cov = None
@@ -31,13 +31,15 @@ class MDS(BaseOOD):
         return self.penul_dict
 
     # 원본 get_id_mean_cov()
-    def get_id_mean_cov(self, class_features):
+    def get_id_mean_cov(self, penul_dict):
         cls_datas = []  # list of cls_data for each cls
         cls_devs = []  # list of cls_dev for each cls
 
-        for cls in range(self.num_classes):
-            cls_data = torch.stack(class_features[cls], dim=0)  # (num_samples_in_cls x channel)
+        for cls in range(self.num_cls):
+            cls_data = torch.stack(penul_dict[cls], dim=0)  # (num_samples_in_cls x channel)
             cls_mean = torch.mean(cls_data, dim=0)  # (channel)
+            print(f"cls_mean of cls {cls}: ", cls_mean)
+            print(f"shape of cls_mean of cls {cls}: ", cls_mean.shape)
             self.id_train_cls_means.append(cls_mean)  # list of cls_mean for each cls
 
             cls_dev = cls_data - cls_mean.unsqueeze(0)  # (num_samples_in_cls x channel)

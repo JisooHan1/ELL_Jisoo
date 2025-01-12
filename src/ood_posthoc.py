@@ -43,7 +43,7 @@ def run_ood_posthoc_method(args):
     _, ood_testset, _, _ = load_dataset(ood_dataset)
     id_train_loader = torch.utils.data.DataLoader(id_trainset, batch_size=batch_size, shuffle=True)
     id_test_loader = torch.utils.data.DataLoader(id_testset, batch_size=batch_size, shuffle=True)
-    ood_loader = torch.utils.data.DataLoader(ood_testset, batch_size=batch_size, shuffle=True)
+    ood_test_loader = torch.utils.data.DataLoader(ood_testset, batch_size=batch_size, shuffle=True)
 
     # apply methods using id_trainset
     id_scores = []
@@ -59,7 +59,7 @@ def run_ood_posthoc_method(args):
         id_scores.append(batch_id_scores)
 
     # ood_scores: get ood_testset's scores
-    for images, _ in ood_loader:
+    for images, _ in ood_test_loader:
         images = images.to(device)
         batch_ood_scores = ood_method.ood_score(images).cpu().numpy()  # (batch)
         ood_scores.append(batch_ood_scores)
