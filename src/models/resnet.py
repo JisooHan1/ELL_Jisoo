@@ -29,7 +29,7 @@ class ResNet(nn.Module):
 
         self.conv1 = nn.Conv2d(input_channels, 64, 3, stride=1, padding=1) # used 3x3 kernel for 32x32 input
         # self.pool = nn.MaxPool2d(kernel_size=3, stride=2) ## initial pooling ommited for 32x32 input
-        self.GAP = nn.AdaptiveAvgPool2d((1, 1))
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         self.bundle1 = self.repeat_block(64, 64, 1)
         self.bundle2 = self.repeat_block(64, 128, 2)
@@ -53,7 +53,7 @@ class ResNet(nn.Module):
         x = self.bundle3(x) # layer 10~13
         x = self.bundle4(x) # layer 14~17
         x = F.relu(self.bn(x))  # batch normalization and relu added before fc
-        x = self.GAP(x)  # (batch, 512, 1, 1)
+        x = self.avgpool(x)  # (batch, 512, 1, 1)
 
         x = torch.flatten(x, 1)  # (batch x 512)
         x = self.fc(x) # layer 18  # (batch x 10)

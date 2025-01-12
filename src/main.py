@@ -166,8 +166,8 @@ def main():
 
     # save trained model
     os.makedirs(f'logs/{args.model}/trained_model', exist_ok=True)
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    save_path = f'logs/{args.model}/trained_model/trained_{args.model}_{args.dataset}_{timestamp}.pth'
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M')
+    save_path = f'logs/{args.model}/trained_model/{args.model}_{args.dataset}_{timestamp}.pth'
 
     net.to('cpu')
     torch.save(net.state_dict(), save_path)
