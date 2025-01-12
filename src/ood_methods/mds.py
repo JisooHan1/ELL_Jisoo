@@ -114,8 +114,7 @@ class MDS(BaseOOD):
             test_cov=[]
             for cls in range(self.num_classes):
                 test_dev = output[i] - id_cls_means[cls]  # (channel)
-                test_cov.append(torch.einsum('i,ij,j->', test_dev, inv_covariance, test_dev))  # a value
-                test_cov
+                test_cov.append(torch.einsum('i,ij,j->', test_dev, inv_covariance, test_dev).unsqueeze(0))  # a value
             final_test_covs.append(min(test_cov))
 
         # print(mahalanobis_distances.shape)
