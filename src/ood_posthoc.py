@@ -29,7 +29,7 @@ def run_ood_posthoc_method(args):
 
     # load model
     if model == "ResNet":  # trained resnet18
-        model = load_trained_model("logs/ResNet/trained_model/trained_ResNet_20241211_162024.pth", "ResNet")
+        model = load_trained_model("logs/ResNet/trained_model/ResNet_CIFAR10_20250112_0406.pth", "ResNet")
     elif model == "ResNet-imported":  # pytorch-pre-trained resnet18 for debugging
         model = models.resnet18(pretrained=True)
     elif model == "DenseNet":  # trained densenet100
