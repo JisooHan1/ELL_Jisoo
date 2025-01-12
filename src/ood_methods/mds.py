@@ -43,7 +43,7 @@ class MDS(BaseOOD):
 
             for i in range(cls_data.shape[0]):
                 cls_dev = cls_data[i] - cls_mean  # (channel)
-                print("cls_dev.shape: ", cls_dev.shape)
+                # print("cls_dev.shape: ", cls_dev.shape)
                 # cls_dev = cls_dev.unsqueeze(-1)  # (channel x 1)
                 # print("cls_dev.shape: ", cls_dev.shape)
                 cls_cov = torch.einsum('i,j->ij', cls_dev, cls_dev)
@@ -106,14 +106,39 @@ class MDS(BaseOOD):
         inv_covariance = self.inverse_id_train_cov
 
         output = self.penultimate_layer  # (batch x channel)
-        test_devs = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
-        mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', test_devs,
-                                             inv_covariance, test_devs)  # (batch x class)
+        final_test_covs=[]
+        for i in range(output.shape[0]):
+            test_cov=[]
+            for cls in range(self.num_classes):
+                test_dev = output[i] - id_cls_means[cls]  # (channel)
+                test_cov.append(torch.einsum('i,ij,j->', test_dev, inv_covariance, test_dev))  # a value
+            final_test_covs.append(max(-test_cov).item())
+
         # print(mahalanobis_distances.shape)
         # print(mahalanobis_distances)
         # print(torch.max(-mahalanobis_distances, dim=1)[0])
         # print(torch.min(mahalanobis_distances, dim=1)[0])
 
-        mds_scores, _ = torch.max(-mahalanobis_distances, dim=1)  # (batch)
-        # mds_scores, _ = torch.min(mahalanobis_distances, dim=1)  # (batch)
+        mds_scores = torch.cat(final_test_covs, dim=0)
         return mds_scores
+
+    # # compute ood score
+    # def ood_score(self, images):
+    #     images = images.to(device)
+    #     self.model(images)
+
+    #     id_cls_means = self.id_train_cls_means  # (class x channel)
+    #     inv_covariance = self.inverse_id_train_cov
+
+    #     output = self.penultimate_layer  # (batch x channel)
+    #     test_devs = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
+    #     mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', test_devs, inv_covariance, test_devs)  # (batch x class)
+
+    #     # print(mahalanobis_distances.shape)
+    #     # print(mahalanobis_distances)
+    #     # print(torch.max(-mahalanobis_distances, dim=1)[0])
+    #     # print(torch.min(mahalanobis_distances, dim=1)[0])
+
+    #     mds_scores, _ = torch.max(-mahalanobis_distances, dim=1)  # (batch)
+    #     # mds_scores, _ = torch.min(mahalanobis_distances, dim=1)  # (batch)
+    #     return mds_scores
