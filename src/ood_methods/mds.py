@@ -5,7 +5,7 @@ import torch.nn as nn
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class MDS(BaseOOD):
-    def __init__(self, model, epsilon=0.001):
+    def __init__(self, model, epsilon=0.002):
         super().__init__(model)
         self.num_classes = 10
         self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
@@ -85,7 +85,7 @@ class MDS(BaseOOD):
             mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', test_devs, inv_covariance, test_devs)  # (batch x class)
 
             # compute loss
-            loss = torch.max(-mahalanobis_distances, dim=1).mean()
+            loss = torch.max(-mahalanobis_distances, dim=1).values.mean()
             loss.backward()
             preturbed_images = images - self.epsilon * torch.sign(images.grad)
 
