@@ -17,7 +17,8 @@ def evaluations(id_scores, ood_scores):
 
     # FPR95
     fprs, tprs, _ = roc_curve(labels, scores)
-    tpr_95_idx = np.argmin(np.abs(tprs - 0.95))
+    # tpr_95_idx = np.argmin(np.abs(tprs - 0.95))  # 원본
+    tpr_95_idx = np.where(tprs >= 0.95)[0][0]  # 수정
     fpr95 = fprs[tpr_95_idx]
 
     # AUROC, AUPRC
