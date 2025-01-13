@@ -152,8 +152,8 @@ def load_dataset(name):
 
     # load datasets with transformations
     if name == "TinyImageNet200":
-        trainset = config["dataset"](root='./datasets/tiny-imagenet-200/train', **config["train option"], transform=train_transform)
-        testset = config["dataset"](root='./datasets/tiny-imagenet-200/val/images', **config["test option"], transform=test_transform)
+        trainset = config["dataset"](root='./datasets/tiny-imagenet-200', **config["train option"], transform=train_transform)
+        testset = config["dataset"](root='./datasets/tiny-imagenet-200', **config["test option"], transform=test_transform)
     else:
         trainset = config["dataset"](root='./datasets', **config["train option"], download=True, transform=train_transform)
         testset = config["dataset"](root='./datasets', **config["test option"], download=True, transform=test_transform)
