@@ -1,8 +1,8 @@
 import torch
 from datasets import load_data
 from models import load_model, save_model
-from ood_utils.ood_configs import get_training_config
-from ood_utils.ood_parser import parse_args
+from utils.ood_configs import get_training_config
+from utils.parser import parse_args
 
 # device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

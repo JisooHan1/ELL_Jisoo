@@ -2,11 +2,12 @@ import torch
 from datasets import load_data
 from models import load_saved_model, model_path
 from ood_methods import get_ood_methods
-from ood_utils.ood_configs import posthoc_methods
-from ood_utils.ood_metrics import evaluations
-from ood_utils.ood_parser import parse_args
+from utils.ood_configs import posthoc_methods
+from utils.ood_metrics import evaluations
+from utils.parser import parse_args
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
 class OOD_test:
     def __init__(self, args):

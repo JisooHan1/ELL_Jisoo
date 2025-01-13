@@ -3,8 +3,8 @@ import torch.nn as nn
 import torch.optim as optim
 from datasets import load_dataset
 from models import LeNet, ResNet, DenseNet, FractalNet, ViT, MLPMixer, ConvMixer, load_model
+from utils.parser import parse_args
 
-import argparse
 from torch.utils.tensorboard import SummaryWriter
 import sys
 import os
@@ -95,16 +95,11 @@ def main():
 
     device = get_device()
 
-    # Parsing command 정의
-    parser = argparse.ArgumentParser(description="Executes deep learning")
-    parser.add_argument("-md", "--model", type=str, required=True, help="type of model: LeNet5, ResNet18, DensNet100, FractalNet")
-    parser.add_argument("-ds", "--dataset", type=str, required=True, help="type of dataset: CIFAR-10, MNIST, STL-10")
-    parser.add_argument("-ep", "--num_epochs", type=int, required=True, help="number of epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, required=True, help="batch size")
-    args = parser.parse_args()
+    # Parsing command line arguments
+    args = parse_args()
 
-    # Parsing 변수 정의
-    trainset, testset, input_channels, image_size = load_dataset(args.dataset)
+    # Parsing variables
+    trainset, testset, input_channels, image_size = load_dataset(args.dataset, args.augment)
     net = load_model(args.model, input_channels, image_size)
     net.to(device)
     epoch = args.num_epochs
