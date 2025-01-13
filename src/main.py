@@ -98,15 +98,15 @@ def main():
     # Parsing command line arguments
     args = parse_args()
     augment = True if args.augment.lower() == "true" else False
-
-    # Parsing variables
-    trainset, testset, input_channels, image_size = load_dataset(args.dataset, augment)
-    net = load_model(args.model, input_channels, image_size)
-    net.to(device)
-    epoch = args.num_epochs
+    epoch = args.epoch
     batch_size = args.batch_size
 
-    # Data Loader
+    # Load model
+    net = load_model(args.model, input_channels, image_size)
+    net.to(device)
+
+    # Load data
+    trainset, testset, input_channels, image_size = load_dataset(args.dataset, augment)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size, shuffle=True, num_workers=2)
     testloader = torch.utils.data.DataLoader(testset, batch_size, shuffle=False, num_workers=2)
 
