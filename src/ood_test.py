@@ -22,6 +22,7 @@ class OOD_test:
 
         # load model
         model = load_saved_model(self.model, self.path, device)
+        model.to(device)
 
         # load data: id_trainset, id_testset, ood_testset
         data_loaders, _, _ = load_data(self.id_dataset, None, self.ood_dataset, self.batch_size)
