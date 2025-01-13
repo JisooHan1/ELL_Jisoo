@@ -38,7 +38,7 @@ class TinyImageNet200(torchvision.datasets.ImageFolder):
 
 dataset_config = {
 
-        "TinyImageNet": {
+        "TinyImageNet200": {
             # 64x64x3
             # 200 class
             # 100,000 training images
