@@ -97,9 +97,10 @@ def main():
 
     # Parsing command line arguments
     args = parse_args()
+    augment = True if args.augment.lower() == "true" else False
 
     # Parsing variables
-    trainset, testset, input_channels, image_size = load_dataset(args.dataset, args.augment)
+    trainset, testset, input_channels, image_size = load_dataset(args.dataset, augment)
     net = load_model(args.model, input_channels, image_size)
     net.to(device)
     epoch = args.num_epochs
@@ -162,7 +163,7 @@ def main():
     # save trained model
     os.makedirs(f'logs/{args.model}/trained_model', exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M')
-    save_path = f'logs/{args.model}/trained_model/{args.model}_{args.dataset}_{timestamp}.pth'
+    save_path = f'logs/{args.model}/trained_model/{args.model}_{args.dataset}_{args.augment}_{timestamp}.pth'
 
     net.to('cpu')
     torch.save(net.state_dict(), save_path)
