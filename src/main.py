@@ -101,44 +101,44 @@ def main():
     epoch = args.epoch
     batch_size = args.batch_size
 
-    # Load model
-    net = load_model(args.model, input_channels, image_size)
-    net.to(device)
-
     # Load data
     trainset, testset, input_channels, image_size = load_dataset(args.dataset, augment)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size, shuffle=True, num_workers=2)
     testloader = torch.utils.data.DataLoader(testset, batch_size, shuffle=False, num_workers=2)
 
+    # Load model
+    model = load_model(args.model, input_channels, image_size)
+    model.to(device)
+
     # Optimization
     if args.model == "LeNet": # batch size: 64, epoch: 300
         lr = 0.001
-        optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
         milestones = [epoch*0.5, epoch*0.75]
     elif args.model == "ResNet": # batch size: 64, epoch: 300
         lr = 0.001
-        optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
         # milestones = [epoch*0.5, epoch*0.75]
     elif args.model == "DenseNet": # batch size: 64, epoch: 300
         lr = 0.1
-        optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
         milestones = [epoch*0.5, epoch*0.75]
     elif args.model == "FractalNet": # batch size: 64, epoch: 100
         lr = 0.1
-        optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
         # milestones = [epoch // 2**i for i in range(1, int(math.log2(epoch)) + 1)]
         # milestones.reverse()
     elif args.model == "ViT": # batch size: 64, epoch: 200
         lr = 0.001
-        optimizer = optim.Adam(net.parameters(), lr=lr)
+        optimizer = optim.Adam(model.parameters(), lr=lr)
         milestones = []
     elif args.model == "MLPMixer": # batch size: 64, epoch: 200
         lr = 0.001
-        optimizer = optim.Adam(net.parameters(), lr=lr)
+        optimizer = optim.Adam(model.parameters(), lr=lr)
         milestones = []
     elif args.model == "ConvMixer": # batch size: 64, epoch: 200
         lr = 0.001
-        optimizer = optim.Adam(net.parameters(), lr=lr)
+        optimizer = optim.Adam(model.parameters(), lr=lr)
         milestones = []
     criterion = nn.CrossEntropyLoss()
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=epoch)
@@ -149,13 +149,13 @@ def main():
 
     # train & test
     for epoch in range(1, epoch+1):
-        train(net, trainloader, criterion, optimizer, epoch, writer, device)
-        test(net, testloader, criterion, epoch, writer, device)
+        train(model, trainloader, criterion, optimizer, epoch, writer, device)
+        test(model, testloader, criterion, epoch, writer, device)
 
         scheduler.step()
 
     # Compute total number of parameters of the model
-    num_of_pars = sum(p.numel() for p in net.parameters())
+    num_of_pars = sum(p.numel() for p in model.parameters())
 
     print("Finished Training & Testing\n")
     print(f"Number of Parameters in {args.model}: {num_of_pars}")
@@ -165,8 +165,8 @@ def main():
     timestamp = datetime.now().strftime('%Y%m%d_%H%M')
     save_path = f'logs/{args.model}/trained_model/{args.model}_{args.dataset}_{args.augment}_{timestamp}.pth'
 
-    net.to('cpu')
-    torch.save(net.state_dict(), save_path)
+    model.to('cpu')
+    torch.save(model.state_dict(), save_path)
     print(f"Model saved in {save_path}")
 
 
