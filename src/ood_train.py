@@ -28,7 +28,6 @@ class OODTraining:
 
         # method: logitnorm, oe, moe ...
         training_config = get_training_config(self.method)
-        print(training_config)
 
         criterion = training_config['criterion']()  # LogitNormLoss(), OutlierExposureLoss(), MOELoss()
         lr = training_config['lr']
