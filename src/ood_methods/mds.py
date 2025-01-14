@@ -38,7 +38,6 @@ class MDS(BaseOOD):
         for cls in range(self.num_cls):
             cls_data = torch.stack(penul_dict[cls], dim=0)  # (num_samples_in_cls x channel)
             cls_mean = torch.mean(cls_data, dim=0)  # (channel)
-            print(f"cls_mean of cls {cls}: ", cls_mean)
             print(f"shape of cls_mean of cls {cls}: ", cls_mean.shape)
             self.id_train_cls_means.append(cls_mean)  # list of cls_mean for each cls
 
