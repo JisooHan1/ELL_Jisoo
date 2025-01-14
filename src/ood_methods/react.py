@@ -6,7 +6,7 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class ReAct(BaseOOD):
-    def __init__(self, model, quantile=0.9):
+    def __init__(self, model, quantile=0.95):
         super().__init__(model)
         self.c = None
         self.quantile = quantile
@@ -35,6 +35,7 @@ class ReAct(BaseOOD):
 
         # Activation 통계
         print(f"\nActivation statistics:")
+        print(f"c: {self.c.item():.4f}")
         print(f"Min activation: {id_activations.min().item():.4f}")
         print(f"Max activation: {id_activations.max().item():.4f}")
         print(f"Mean activation: {id_activations.mean().item():.4f}")
