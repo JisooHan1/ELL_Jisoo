@@ -6,9 +6,10 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class ReAct(BaseOOD):
-    def __init__(self, model, quantile=0.95):
+    def __init__(self, model, quantile=1):
         super().__init__(model)
-        self.c = None
+        self.id_train_activations = None  # (total_id_train_samples x channel)
+        self.c = None  # tensor of a value
         self.quantile = quantile
 
     # method
@@ -30,7 +31,7 @@ class ReAct(BaseOOD):
     # total channel quantile
     def calculate_c(self, id_activations):
         activations_np = id_activations.cpu().numpy()  # (total_id_train_samples * channel)
-        c_theshold = np.quantile(activations_np, self.quantile)  # a value
+        c_theshold = np.quantile(activations_np, self.quantile)  # tensor of a value
         self.c = torch.tensor(c_theshold, device=device)
 
         # Activation 통계
@@ -49,12 +50,8 @@ class ReAct(BaseOOD):
     # compute ood score
     def ood_score(self, images):
         self.model(images)
-
         activations = self.penultimate_layer  # (batch x channel)
-        clamped = torch.clamp(activations, max=self.c.to(activations.dtype))  # (batch x channel)
-        logits = self.model.fc(clamped)  # (batch x num_classes)
-
-        softmax = F.softmax(logits, dim=1)  # (batch x num_classes)
+        clamped_logits = self.model.fc(torch.clamp(activations, max=self.c.to(activations.dtype)))  # (batch x num_classes)
+        softmax = F.softmax(clamped_logits, dim=1)  # (batch x num_classes)
         scores = torch.max(softmax, dim=1)[0]  # (batch)
-
         return scores  # (batch)
