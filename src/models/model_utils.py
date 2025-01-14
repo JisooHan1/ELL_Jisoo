@@ -13,7 +13,7 @@ model_path = {
     "ResNet": {"base": "logs/ResNet/trained_model/ResNet_CIFAR10_20250112_0406.pth",
                "cifar10_no_augment": "logs/ResNet/trained_model/ResNet_CIFAR10_False_20250113_2029.pth",
                "imported": None,
-               "logitnorm_cifar10": "logs/ResNet/trained_model/ResNet_CIFAR10_20250112_0406.pth",
+               "logitnorm_cifar10": "logs/ResNet/trained_model/ood_logitnorm_CIFAR10.pth",
                "oe_cifar10_tinyimagenet200": "logs/ResNet/trained_model/ood_oe_CIFAR10_TinyImageNet200.pth"},
 
     "DenseNet": {"base": "logs/DenseNet/trained_model/trained_DenseNet_20241211_154102.pth",
