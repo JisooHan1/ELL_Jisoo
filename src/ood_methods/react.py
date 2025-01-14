@@ -6,7 +6,7 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class ReAct(BaseOOD):
-    def __init__(self, model, quantile=1):
+    def __init__(self, model, quantile=0.9):
         super().__init__(model)
         self.id_train_activations = None  # (total_id_train_samples x channel)
         self.c = None  # tensor of a value
@@ -47,7 +47,6 @@ class ReAct(BaseOOD):
         self.c = self.c.to(self.penultimate_layer.dtype)
 
         clamped_activations = torch.clamp(self.penultimate_layer, max=self.c)  # (batch x channel)
-        print(f"clamped_activations: {clamped_activations}")
         clamped_logits = self.model.fc(clamped_activations)  # (batch x class)
         softmax = F.softmax(clamped_logits, dim=1)  # (batch x class)
         scores, _ = torch.max(softmax, dim=1)  # (batch)
