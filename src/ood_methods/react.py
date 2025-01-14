@@ -22,19 +22,13 @@ class ReAct(BaseOOD):
         self.id_train_activations = torch.cat(id_train_activations)  # (total_id_train_samples x channel)
         return self.id_train_activations.view(-1)  # (total_id_train_samples * channel)
 
-    # # each channel
-    # def calculate_c(self, id_activations):
-    #     activations_np = id_activations.cpu().numpy()  # (num_samples x channel)
-    #     c_theshold = np.quantile(activations_np, self.quantile, axis=0)  # (channel)
-    #     self.c = torch.tensor(c_theshold, device=device)  # (channel)
-
     # total channel quantile
     def calculate_c(self, id_activations):
         activations_np = id_activations.cpu().numpy()  # (total_id_train_samples * channel)
         c_theshold = np.quantile(activations_np, self.quantile)  # tensor of a value
         self.c = torch.tensor(c_theshold, device=device)
 
-        # Activation 통계
+        # Activation statistics
         print(f"\nActivation statistics:")
         print(f"c: {self.c.item():.4f}")
         print(f"Min activation: {id_activations.min().item():.4f}")
@@ -51,7 +45,7 @@ class ReAct(BaseOOD):
     def ood_score(self, images):
         self.model(images)
         activations = self.penultimate_layer  # (batch x channel)
-        clamped_logits = self.model.fc(torch.clamp(activations, max=self.c.to(activations.dtype)))  # (batch x num_classes)
+        clamped_logits, _ = self.model.fc(torch.max(activations, self.c.to(activations.dtype)))  # (batch x num_classes)
         softmax = F.softmax(clamped_logits, dim=1)  # (batch x num_classes)
-        scores = torch.max(softmax, dim=1)[0]  # (batch)
+        scores, _ = torch.max(softmax, dim=1)  # (batch)
         return scores  # (batch)
