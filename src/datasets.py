@@ -95,25 +95,24 @@ def load_dataset(name, augment=True):
 
 
 
-#////////////////////* for ood method*///////////////////
-
+#////////////////////* for ood method *////////////////////
 # load data: ID, OE, OOD
-def load_data(id_dataset, oe_dataset, ood_dataset, batch_size):
+def load_data(id_dataset, oe_dataset, ood_dataset, batch_size, augment):
 
     # ID data
-    id_trainset, id_testset, id_input_channels, id_image_size = load_dataset(id_dataset)
+    id_trainset, id_testset, id_input_channels, id_image_size = load_dataset(id_dataset, augment)
     id_train_loader = torch.utils.data.DataLoader(id_trainset, batch_size=batch_size, shuffle=True)
     id_test_loader = torch.utils.data.DataLoader(id_testset, batch_size=batch_size, shuffle=True)
 
     # OE data
     if oe_dataset is not None:
-        oe_trainset, _, _, _ = load_dataset(oe_dataset)
+        oe_trainset, _, _, _ = load_dataset(oe_dataset, augment)
         oe_train_loader = torch.utils.data.DataLoader(oe_trainset, batch_size=batch_size, shuffle=True)
     else:
         oe_train_loader = None
 
     # OOD data
-    _, ood_testset, _, _ = load_dataset(ood_dataset)
+    _, ood_testset, _, _ = load_dataset(ood_dataset, augment)
     ood_test_loader = torch.utils.data.DataLoader(ood_testset, batch_size=batch_size, shuffle=True)
 
     data_loaders = {

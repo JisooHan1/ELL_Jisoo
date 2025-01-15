@@ -15,22 +15,24 @@ class MDS(BaseOOD):
         self.inverse_id_train_cov = None
         self.epsilon = epsilon
 
-    # method
+# //////////////////////////////////////* get_cls_features() * //////////////////////////////////////
     def get_cls_features(self, id_train_loader):
         for images, labels in id_train_loader:
             images, labels = images.to(device), labels.to(device)
             self.model(images)
             output = self.penultimate_layer  # (batch x channel)
-
             for i, label in enumerate(labels):
                 cls_index = label.item()
                 self.penul_dict[cls_index].append(output[i])  # {output[i] : (channel)}
 
         for class_idx, features in self.penul_dict.items():
                 print(f"Class {class_idx}: Number of features = {len(features)}")
+
         return self.penul_dict
 
-    # 원본 get_id_mean_cov()
+
+# //////////////////////////////////////* get_id_cls_mean_cov() * //////////////////////////////////////
+    # get_id_mean_cov() (원본)
     def get_id_mean_cov(self, penul_dict):
         cls_datas = []  # list of cls_data for each cls
         cls_devs = []  # list of cls_dev for each cls
@@ -61,46 +63,7 @@ class MDS(BaseOOD):
         self.id_train_covariances = total_einsum / N  # (channel x channel)
         self.inverse_id_train_cov = torch.linalg.inv(self.id_train_covariances)
 
-    # apply method
-    def apply_method(self, id_train_loader):
-        self.get_cls_features(id_train_loader)
-        self.get_id_mean_cov(self.penul_dict)
-
-    # 원본 ood_score()
-    # compute ood score
-    def ood_score(self, images):
-        id_cls_means = self.id_train_cls_means  # (class x channel)
-        inv_covariance = self.inverse_id_train_cov
-        images = images.to(device)
-
-        with torch.set_grad_enabled(True):
-            images = images.clone().detach().requires_grad_(True)
-            images.grad = None
-
-            # forward pass
-            self.model(images)
-            output = self.penultimate_layer  # (batch x channel)
-
-            # compute mahalanobis distance
-            test_devs = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
-            mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', test_devs, inv_covariance, test_devs)  # (batch x class)
-
-            # compute loss
-            loss = torch.min(mahalanobis_distances, dim=1).values.mean()
-            loss.backward()
-            preturbed_images = images - self.epsilon * torch.sign(images.grad)
-
-        with torch.no_grad():
-            self.model(preturbed_images)  # forward pass
-            output = self.penultimate_layer  # (batch x channel)
-            test_devs = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
-            mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', test_devs, inv_covariance, test_devs)  # (batch x class)
-
-        mds_scores, _ = torch.max(-mahalanobis_distances, dim=1)  # (batch)
-        return mds_scores
-
-
-    # # 디버깅용
+    # # (without hign-dim-einsum)
     # def get_id_mean_cov(self, class_features):
     #     cls_datas = []  # list of cls_data for each cls
     #     cls_covs = torch.zeros(512, 512)
@@ -131,13 +94,71 @@ class MDS(BaseOOD):
     #     self.id_train_covariances = cls_covs / N  # (channel x channel)
     #     self.inverse_id_train_cov = torch.linalg.inv(self.id_train_covariances)
 
-    # # 디버깅용
+
+# //////////////////////////////////////* apply_method() * //////////////////////////////////////
+    # apply method
+    def apply_method(self, id_train_loader):
+        self.get_cls_features(id_train_loader)
+        self.get_id_mean_cov(self.penul_dict)
+
+
+# //////////////////////////////////////* ood_score() * //////////////////////////////////////
+    # (without input pre-processing)
+    # compute ood score
+    def ood_score(self, images):
+        id_cls_means = self.id_train_cls_means  # (class x channel)
+        inv_covariance = self.inverse_id_train_cov
+        images = images.to(device)
+
+        self.model(images)  # forward pass
+        output = self.penultimate_layer  # (batch x channel)
+
+        test_devs = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
+        mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', test_devs, inv_covariance, test_devs)  # (batch x class)
+
+        mds_scores, _ = torch.max(-mahalanobis_distances, dim=1)  # (batch)
+        return mds_scores
+
+    # # (with input pre-processing)
     # # compute ood score
     # def ood_score(self, images):
-    #     self.model(images)
-
     #     id_cls_means = self.id_train_cls_means  # (class x channel)
     #     inv_covariance = self.inverse_id_train_cov
+    #     images = images.to(device)
+
+    #     with torch.set_grad_enabled(True):
+    #         images = images.clone().detach().requires_grad_(True)
+    #         images.grad = None
+
+    #         # forward pass
+    #         self.model(images)
+    #         output = self.penultimate_layer  # (batch x channel)
+
+    #         # compute mahalanobis distance
+    #         test_devs = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
+    #         mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', test_devs, inv_covariance, test_devs)  # (batch x class)
+
+    #         # compute loss
+    #         loss = torch.min(mahalanobis_distances, dim=1).values.mean()
+    #         loss.backward()
+    #         preturbed_images = images - self.epsilon * torch.sign(images.grad)
+
+    #     with torch.no_grad():
+    #         self.model(preturbed_images)  # forward pass
+    #         output = self.penultimate_layer  # (batch x channel)
+    #         test_devs = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
+    #         mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', test_devs, inv_covariance, test_devs)  # (batch x class)
+
+    #     mds_scores, _ = torch.max(-mahalanobis_distances, dim=1)  # (batch)
+    #     return mds_scores
+
+    # # (without input pre-processing, without high-dim-einsum)
+    # # compute ood score
+    # def ood_score(self, images):
+    #     id_cls_means = self.id_train_cls_means  # (class x channel)
+    #     inv_covariance = self.inverse_id_train_cov
+    #     images.to(device)
+    #     self.model(images)
 
     #     output = self.penultimate_layer  # (batch x channel)
     #     final_test_covs = []
@@ -148,31 +169,6 @@ class MDS(BaseOOD):
     #             test_cov.append(torch.einsum('i,ij,j->', test_dev, inv_covariance, test_dev).unsqueeze(0))  # a value
     #         final_test_covs.append(min(test_cov))
 
-    #     # print(mahalanobis_distances.shape)
-    #     # print(mahalanobis_distances)
-    #     # print(torch.max(-mahalanobis_distances, dim=1)[0])
-    #     # print(torch.min(mahalanobis_distances, dim=1)[0])
     #     concat_covs = torch.cat(final_test_covs, dim=0)
     #     mds_scores = -concat_covs
-    #     return mds_scores
-
-    # # 원본
-    # # compute ood score
-    # def ood_score(self, images):
-    #     self.model(images)
-
-    #     id_cls_means = self.id_train_cls_means  # (class x channel)
-    #     inv_covariance = self.inverse_id_train_cov
-
-    #     output = self.penultimate_layer  # (batch x channel)
-    #     test_devs = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
-    #     mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', test_devs, inv_covariance, test_devs)  # (batch x class)
-
-    #     # print(mahalanobis_distances.shape)
-    #     # print(mahalanobis_distances)
-    #     # print(torch.max(-mahalanobis_distances, dim=1)[0])
-    #     # print(torch.min(mahalanobis_distances, dim=1)[0])
-
-    #     mds_scores, _ = torch.max(-mahalanobis_distances, dim=1)  # (batch)
-    #     # mds_scores, _ = torch.min(mahalanobis_distances, dim=1)  # (batch)
     #     return mds_scores

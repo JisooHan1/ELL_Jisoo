@@ -16,12 +16,13 @@ class OODTraining:
         self.ood_dataset = args.ood_dataset      # CIFAR10, SVHN, CIFAR100, ...
         self.batch_size = args.batch_size        # batch size
         self.method = args.method                # logitnorm, oe, moe ...
+        self.augment = args.augment
 
     # ood training
     def run_ood_train(self):
 
         # load data
-        data_loaders, id_input_channels, id_image_size = load_data(self.id_dataset, self.oe_dataset, self.ood_dataset, self.batch_size)
+        data_loaders, id_input_channels, id_image_size = load_data(self.id_dataset, self.oe_dataset, self.ood_dataset, self.batch_size, self.augment)
 
         # load model
         model = load_model(self.model, id_input_channels, id_image_size).to(device)  # ResNet, DenseNet

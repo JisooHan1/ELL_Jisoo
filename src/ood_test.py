@@ -17,6 +17,7 @@ class OOD_test:
         self.id_dataset = args.id_dataset                  # CIFAR10, STL10, CIFAR100, SVHN, LSUN, TinyImageNet
         self.ood_dataset = args.ood_dataset                # CIFAR10, STL10, CIFAR100, SVHN, LSUN, TinyImageNet
         self.method = args.method                          # msp, odin, mds, react, logitnorm, knn
+        self.augment = args.augment
 
     @torch.no_grad()
     def run_ood_test(self):
@@ -26,7 +27,7 @@ class OOD_test:
         model.to(device)
 
         # load data: id_trainset, id_testset, ood_testset
-        data_loaders, _, _ = load_data(self.id_dataset, None, self.ood_dataset, self.batch_size)
+        data_loaders, _, _ = load_data(self.id_dataset, None, self.ood_dataset, self.batch_size, self.augment)
         id_train_loader = data_loaders['id_train_loader']
         id_test_loader = data_loaders['id_test_loader']
         ood_test_loader = data_loaders['ood_test_loader']
