@@ -17,7 +17,10 @@ class OOD_test:
         self.id_dataset = args.id_dataset                  # CIFAR10, STL10, CIFAR100, SVHN, LSUN, TinyImageNet
         self.ood_dataset = args.ood_dataset                # CIFAR10, STL10, CIFAR100, SVHN, LSUN, TinyImageNet
         self.method = args.method                          # msp, odin, mds, react, logitnorm, knn
-        self.augment = args.augment
+        if args.augment.lower() == 'true':
+            self.augment = True
+        else:
+            self.augment = False
 
     @torch.no_grad()
     def run_ood_test(self):

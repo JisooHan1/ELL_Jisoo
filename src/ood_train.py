@@ -16,7 +16,10 @@ class OODTraining:
         self.ood_dataset = args.ood_dataset      # CIFAR10, SVHN, CIFAR100, ...
         self.batch_size = args.batch_size        # batch size
         self.method = args.method                # logitnorm, oe, moe ...
-        self.augment = args.augment
+        if args.augment.lower() == 'true':
+            self.augment = True
+        else:
+            self.augment = False
 
     # ood training
     def run_ood_train(self):
