@@ -1,117 +1,112 @@
-import torch
-import math
+# //////////////////////////////////////* get_id_mean_cov() * //////////////////////////////////////
 
-a = torch.tensor([[1.0,2.0],
-                  [3.0,4.0]])
-b = torch.tensor([[5.0,6.0],
-                  [7.0,8.0]])
-c = torch.cat([a,b], dim=0)
-print("c: ", c)
-# print(c.shape)
-d = torch.nn.functional.normalize(c, p=2, dim=1)
-print(d)
-print(d.shape)
-sum=0
-for i in range(1,9):
-    sum += i**2
-print(sum)
-print(c/math.sqrt(sum))
-print(0.4472**2 + 0.8944**2)
+# # (1. with hign-dim-einsum)
+# def get_id_mean_cov(self, penul_dict):
+#     cls_datas = []  # list of cls_data for each cls
+#     cls_devs = []  # list of cls_dev for each cls
 
+#     for cls in range(self.num_cls):
+#         cls_data = torch.stack(penul_dict[cls], dim=0)  # (num_samples_in_cls x channel)
+#         cls_mean = torch.mean(cls_data, dim=0)  # (channel)
+#         # print(f"shape of cls_mean of cls {cls}: ", cls_mean.shape)
+#         self.id_train_cls_means.append(cls_mean)  # list of cls_mean for each cls
 
-# b = torch.einsum('ni, nj -> ij', a, a)
+#         cls_dev = cls_data - cls_mean.unsqueeze(0)  # (num_samples_in_cls x channel)
+#         # print(f"shape of cls_dev {cls}: ", cls_dev.shape)
+#         cls_devs.append(cls_dev)
+#         cls_datas.append(cls_data)
 
-# print("shape of einsum: ",b.shape)
-# print("einsum: ", b)
+#     self.id_train_cls_means = torch.stack(self.id_train_cls_means, dim=0)  # Convert list to tensor
 
+#     total_stack = torch.cat(cls_datas, dim=0)  # (total_id_trainset_samples x channel)
+#     N = total_stack.shape[0]  # number of total_id_trainset_samples; cifar10 => (50,000)
 
+#     total_devs = torch.cat(cls_devs, dim=0)  # (total_id_trainset_samples x channel)
 
+#     total_einsum = torch.einsum("Ni,Nj->ij", total_devs, total_devs)  # (channel x channel)
 
+#     self.id_train_covariances = total_einsum / N  # (channel x channel)
+#     self.inverse_id_train_cov = torch.linalg.inv(self.id_train_covariances)
 
-# # 2D 텐서 (3x4)
-# tensor = torch.tensor([[1, 2, 3, 4],
-#                        [0, 1, 2, 1],
-#                        [2, 0, 1, 2]])
-# min_values, min_indices = torch.min(tensor, dim=1)
+    # # (2. without hign-dim-einsum)
+    # def get_id_mean_cov(self, class_features):
+    #     cls_datas = []  # list of cls_data for each cls
+    #     cls_covs = torch.zeros(512, 512)
 
-# print(tensor.shape)          # torch.Size([3, 4])
-# print(min_values.shape)      # torch.Size([4])
-# print(min_indices.shape)     # torch.Size([4])
-# print(min_values)           # tensor([0, 0, 1, 1])
-# print(min_indices)          # tensor([1, 2, 2, 1])
+    #     for cls in range(self.num_classes):
+    #         cls_data = torch.stack(class_features[cls], dim=0)  # (num_samples_in_cls x channel)
+    #         cls_mean = torch.mean(cls_data, dim=0)  # (channel)
+    #         self.id_train_cls_means.append(cls_mean)  # list of cls_mean for each cls
 
+    #         cls_dev = cls_data - cls_mean.unsqueeze(0)  # (num_samples_in_cls x channel)
 
+    #         for i in range(cls_data.shape[0]):
+    #             cls_dev = cls_data[i] - cls_mean  # (channel)
+    #             cls_cov = torch.einsum('i,j->ij', cls_dev, cls_dev)
+    #             cls_covs += cls_cov
 
+    #         cls_datas.append(cls_data)
 
-# t1 = torch.tensor([[1, 2],
-#                    [3, 4]])  # shape: (2, 2)
-# t2 = torch.tensor([[5, 6],
-#                    [7, 8]])  # shape: (2, 2)
+    #     self.id_train_cls_means = torch.stack(self.id_train_cls_means, dim=0)  # Convert list to tensor
 
-# # dim=0 (첫 번째 차원에 쌓기)
-# stacked_0 = torch.stack([t1, t2], dim=0)
-# print("dim=0 shape:", stacked_0.shape)  # torch.Size([2, 2, 2])
-# print("dim=0:\n", stacked_0)
-# """
-# tensor([[[1, 2],    # 첫 번째 텐서 (t1)
-#          [3, 4]],
-#         [[5, 6],    # 두 번째 텐서 (t2)
-#          [7, 8]]])
-# """
+    #     total_stack = torch.cat(cls_datas, dim=0)  # (total_id_trainset_samples x channel)
+    #     N = total_stack.shape[0]  # number of total_id_trainset_samples; cifar10 => (50,000)
 
-# # dim=1 (두 번째 차원에 쌓기)
-# stacked_1 = torch.stack([t1, t2], dim=1)
-# print("\ndim=1 shape:", stacked_1.shape)  # torch.Size([2, 2, 2])
-# print("dim=1:\n", stacked_1)
-# """
-# tensor([[[1, 2],    # 첫 번째 행들
-#          [5, 6]],
-#         [[3, 4],    # 두 번째 행들
-#          [7, 8]]])
-# """
+    #     self.id_train_covariances = cls_covs / N  # (channel x channel)
+    #     self.inverse_id_train_cov = torch.linalg.inv(self.id_train_covariances)
 
-# # dim=2 (세 번째 차원에 쌓기)
-# stacked_2 = torch.stack([t1, t2], dim=2)
-# print("\ndim=2 shape:", stacked_2.shape)  # torch.Size([2, 2, 2])
-# print("dim=2:\n", stacked_2)
-# """
-# tensor([[[1, 5],    # 첫 번째 행의 원소들이 쌍으로
-#          [2, 6]],
-#         [[3, 7],    # 두 번째 행의 원소들이 쌍으로
-#          [4, 8]]])
-# """
+# //////////////////////////////////////* ood_score() * //////////////////////////////////////
 
-# # 예제 텐서 생성
-# error = torch.tensor([1.0, 2.0, 3.0])
-# cls_covariances = torch.tensor([
-#     [4.0, 1.0, 2.0],
-#     [1.0, 5.0, 3.0],
-#     [2.0, 3.0, 6.0]
-# ])
+    # # (1. with input pre-processing)
+    # # compute ood score
+    # def ood_score(self, images):
+    #     id_cls_means = self.id_train_cls_means  # (class x channel)
+    #     inv_covariance = self.inverse_id_train_cov
+    #     images = images.to(device)
 
-# # einsum을 사용하여 이차 형식 계산
-# # 'i,ij,j -> '는 i와 j 인덱스를 합쳐 결과를 스칼라로 만듭니다.
-# result_einsum = torch.einsum('i,ij,j', error, cls_covariances, error)
-# print("error^T * cls_covariances * error (einsum):", result_einsum)
+    #     with torch.set_grad_enabled(True):~
+    #         images = images.clone().detach().requires_grad_(True)
+    #         images.grad = None
 
-# import torch
+    #         # forward pass
+    #         self.model(images)
+    #         output = self.penultimate_layer  # (batch x channel)
 
-# # 예제 텐서 생성
-# # error는 (n,) 형태의 벡터
-# error = torch.tensor([1.0, 2.0, 3.0])
+    #         # compute mahalanobis distance
+    #         test_devs = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
+    #         mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', test_devs, inv_covariance, test_devs)  # (batch x class)
 
-# # cls_covariances는 (n, n) 형태의 행렬
-# cls_covariances = torch.tensor([
-#     [4.0, 1.0, 2.0],
-#     [1.0, 5.0, 3.0],
-#     [2.0, 3.0, 6.0]
-# ])
+    #         # compute loss
+    #         loss = torch.min(mahalanobis_distances, dim=1).values.mean()
+    #         loss.backward()
+    #         preturbed_images = images - self.epsilon * torch.sign(images.grad)
 
-# # 첫 번째 행렬 곱: cls_covariances * error
-# intermediate = torch.matmul(cls_covariances, error)
-# print("cls_covariances * error:\n", intermediate)
+    #     with torch.no_grad():
+    #         self.model(preturbed_images)  # forward pass
+    #         output = self.penultimate_layer  # (batch x channel)
+    #         test_devs = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
+    #         mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', test_devs, inv_covariance, test_devs)  # (batch x class)
 
-# # 두 번째 행렬 곱: error.T * (cls_covariances * error)
-# result = torch.matmul(error, intermediate)
-# print("\nerror.T * cls_covariances * error:", result)
+    #     mds_scores, _ = torch.max(-mahalanobis_distances, dim=1)  # (batch)
+    #     return mds_scores
 
+    # # (2. without input pre-processing, without high-dim-einsum)
+    # # compute ood score
+    # def ood_score(self, images):
+    #     id_cls_means = self.id_train_cls_means  # (class x channel)
+    #     inv_covariance = self.inverse_id_train_cov
+    #     images.to(device)
+    #     self.model(images)
+
+    #     output = self.penultimate_layer  # (batch x channel)
+    #     final_test_covs = []
+    #     for i in range(output.shape[0]):
+    #         test_cov=[]
+    #         for cls in range(self.num_classes):
+    #             test_dev = output[i] - id_cls_means[cls]  # (channel)
+    #             test_cov.append(torch.einsum('i,ij,j->', test_dev, inv_covariance, test_dev).unsqueeze(0))  # a value
+    #         final_test_covs.append(min(test_cov))
+
+    #     concat_covs = torch.cat(final_test_covs, dim=0)
+    #     mds_scores = -concat_covs
+    #     return mds_scores
