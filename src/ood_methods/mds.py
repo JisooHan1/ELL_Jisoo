@@ -23,7 +23,8 @@ class MDS(BaseOOD):
         for images, labels in id_train_loader:
             images, labels = images.to(device), labels.to(device)
             self.model(images)
-            output = self.penultimate_layer  # (batch x channel)
+            # output = self.penultimate_layer  # (batch x channel)
+            output = torch.randn(images.shape[0], 512)  # random output experiment
             for i, label in enumerate(labels):
                 cls_index = label.item()
                 self.penul_dict[cls_index].append(output[i])  # {output[i] : (channel)}
@@ -64,20 +65,6 @@ class MDS(BaseOOD):
             cls_datas.append(cls_data)
 
         total_stack = torch.cat(cls_datas, dim=0)  # (50000 x 512)
-
-        # Compute SVD
-        U, S, V = torch.linalg.svd(total_stack)
-        # Analyze singular values
-        print(f"Singular values: {S}")
-        print(f"Min singular value: {S.min()}, Max singular value: {S.max()}")
-        import matplotlib.pyplot as plt
-        # Visualize singular value distribution
-        plt.plot(S.cpu().numpy())
-        plt.title("Singular Value Distribution")
-        plt.xlabel("Index")
-        plt.ylabel("Singular Value")
-        plt.show()
-
         condition_number = torch.linalg.cond(total_stack)
         print("condition number: ", condition_number)
 
