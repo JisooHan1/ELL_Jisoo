@@ -74,6 +74,7 @@ class MDS(BaseOOD):
 
         self.id_train_cls_means = torch.stack(self.id_train_cls_means, dim=0)  # (10 x 512)
         total_mean = self.id_train_cls_means.unsqueeze(1).repeat(1, 5000, 1).reshape(-1, 512)  # (50000 x 512)
+        total_mean_mean = torch.mean(total_mean, dim=0).mean()  # 0?
         total_mean_pca = torch.tensor(pca.transform(total_mean.cpu().numpy()),device=device)  # (50000 x n_components)
 
         total_dev = total_stack_pca - total_mean_pca
