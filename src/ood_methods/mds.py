@@ -137,6 +137,7 @@ class MDS(BaseOOD):
     # (without input pre-processing)
     # compute ood score
     def ood_score(self, images):
+        # id_cls_means = self.id_train_cls_means
         id_cls_means = torch.tensor(pca.transform(self.id_train_cls_means.cpu().numpy()), device=device)  # (class x n_components)
         inv_covariance = self.inverse_id_train_cov
         images = images.to(device)
