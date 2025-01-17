@@ -5,7 +5,7 @@ from sklearn.covariance import EmpiricalCovariance
 from sklearn.decomposition import PCA
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-pca = PCA(n_components=20)
+# pca = PCA(n_components=20)
 
 class MDS(BaseOOD):
     def __init__(self, model, epsilon=0.002):
@@ -69,15 +69,17 @@ class MDS(BaseOOD):
         print("condition number: ", condition_number)
 
         # fitted on penultimate layer outputs
-        total_stack_pca = torch.tensor(pca.fit_transform(total_stack.cpu().numpy()), device=device)  # (50000 x n_components)
+        # total_stack_pca = torch.tensor(pca.fit_transform(total_stack.cpu().numpy()), device=device)  # (50000 x n_components)
         N = total_stack.shape[0]  # cifar10 => (50,000)
 
         self.id_train_cls_means = torch.stack(self.id_train_cls_means, dim=0)  # (10 x 512)
         total_mean = self.id_train_cls_means.unsqueeze(1).repeat(1, 5000, 1).reshape(-1, 512)  # (50000 x 512)
         total_mean_mean = torch.mean(total_mean, dim=0).mean()  # 0?
-        total_mean_pca = torch.tensor(pca.transform(total_mean.cpu().numpy()),device=device)  # (50000 x n_components)
+        print(total_mean_mean)
+        # total_mean_pca = torch.tensor(pca.transform(total_mean.cpu().numpy()),device=device)  # (50000 x n_components)
 
-        total_dev = total_stack_pca - total_mean_pca
+        # total_dev = total_stack_pca - total_mean_pca
+        total_dev = total_stack - total_mean
         self.id_train_covariances = torch.einsum('Ni,Nj->ij', total_dev, total_dev) / N
 
         print(self.id_train_covariances)
@@ -143,16 +145,17 @@ class MDS(BaseOOD):
     # (without input pre-processing)
     # compute ood score
     def ood_score(self, images):
-        # id_cls_means = self.id_train_cls_means
-        id_cls_means = torch.tensor(pca.transform(self.id_train_cls_means.cpu().numpy()), device=device)  # (class x n_components)
+        id_cls_means = self.id_train_cls_means
+        # id_cls_means = torch.tensor(pca.transform(self.id_train_cls_means.cpu().numpy()), device=device)  # (class x n_components)
         inv_covariance = self.inverse_id_train_cov
         images = images.to(device)
         self.model(images)  # forward pass
 
         output = self.penultimate_layer  # (batch x channel)
-        output_pca = torch.tensor(pca.transform(output.cpu().numpy()),device=device)  # (batch x n_components)
+        # output_pca = torch.tensor(pca.transform(output.cpu().numpy()),device=device)  # (batch x n_components)
 
-        test_devs = output_pca.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x n_components)
+        # test_devs = output_pca.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x n_components)
+        test_devs = output.unsqueeze(1) - id_cls_means.unsqueeze(0)  # (batch x class x channel)
         mahalanobis_distances = torch.einsum('bci,ij,bcj->bc', test_devs, inv_covariance, test_devs)  # (batch x class)
 
         mds_scores, _ = torch.max(-mahalanobis_distances, dim=1)  # (batch)
