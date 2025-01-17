@@ -63,13 +63,14 @@ class MDS(BaseOOD):
             self.id_train_cls_means.append(cls_mean)  # list of cls_mean for each cls
             cls_datas.append(cls_data)
 
+        total_stack = torch.cat(cls_datas, dim=0)  # (50000 x 512)
+        # fitted on penultimate layer outputs
+        total_stack_pca = torch.tensor(pca.fit_transform(total_stack.cpu().numpy()), device=device)  # (50000 x n_components)
+        N = total_stack.shape[0]  # cifar10 => (50,000)
+
         self.id_train_cls_means = torch.stack(self.id_train_cls_means, dim=0)  # (10 x 512)
         total_mean = self.id_train_cls_means.unsqueeze(1).repeat(1, 5000, 1).reshape(-1, 512)  # (50000 x 512)
         total_mean_pca = torch.tensor(pca.transform(total_mean.cpu().numpy()),device=device)  # (50000 x n_components)
-
-        total_stack = torch.cat(cls_datas, dim=0)  # (50000 x 512)
-        total_stack_pca = torch.tensor(pca.fit_transform(total_stack.cpu().numpy()), device=device)  # (50000 x n_components)
-        N = total_stack.shape[0]  # cifar10 => (50,000)
 
         total_dev = total_stack_pca - total_mean_pca
         self.id_train_covariances = torch.einsum('Ni,Nj->ij', total_dev, total_dev) / N
