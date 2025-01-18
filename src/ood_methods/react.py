@@ -20,7 +20,6 @@ class ReAct(BaseOOD):
             self.model(images)
             id_train_activations.append(self.penultimate_layer)
         self.id_train_activations = torch.cat(id_train_activations).flatten()  # (total_id_train_samples * channel)
-        return self.id_train_activations
 
     # total channel quantile
     def calculate_c(self, id_activations):

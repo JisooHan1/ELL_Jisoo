@@ -30,28 +30,24 @@ class MDS(BaseOOD):
         return self.penul_dict
 
 # //////////////////////////////////////* get_id_mean_cov() * //////////////////////////////////////
-    # (4. Using EmpiricalCovariance)
     def get_id_mean_cov(self, penul_dict):
         cls_datas = []
-        cls_means = []
-
         for cls in range(self.num_cls):
-            cls_data = torch.stack(penul_dict[cls], dim=0)
+            cls_data = torch.stack(penul_dict[cls], dim=0)  # (num_samples_in_cls x channel)
+            cls_mean = torch.mean(cls_data, dim=0)  # (channel)
+            self.id_train_cls_means.append(cls_mean)  # list of cls_mean for each cls
             cls_datas.append(cls_data)
-            cls_means.append(cls_data.mean(dim=0))
+        self.id_train_cls_means = torch.stack(self.id_train_cls_means, dim=0)  # (10 x 512)
 
-        self.id_train_cls_means = torch.stack(cls_means, dim=0)  # (10 x 512)
-        total_datas = torch.cat(cls_datas, dim=0)  # (50000 x 512)
-        N = total_datas.shape[0]  # cifar10 => 50,000
-        D = total_datas.shape[1]  # cifar10 => 512
-        total_means = self.id_train_cls_means.unsqueeze(1).repeat(1, N//self.num_cls, 1).reshape(-1, D)  # (50000 x 512)
-
-        total_devs = total_datas - total_means
-        emp_cov = EmpiricalCovariance(assume_centered=False).fit(total_devs.cpu().numpy())
-        self.inverse_id_train_cov = torch.tensor(emp_cov.precision_, device=device).float()
+        total_stack = torch.cat(cls_datas, dim=0)  # (50000 x 512)
+        N = total_stack.shape[0]  # cifar10 => 50,000
+        D = total_stack.shape[1]  # cifar10 => 512
+        total_mean = self.id_train_cls_means.unsqueeze(1).repeat(1, N//self.num_cls, 1).reshape(-1, D)  # (50000 x 512)
+        total_dev = total_stack - total_mean
+        id_train_covariances = torch.einsum('Ni,Nj->ij', total_dev, total_dev) / N  # (512 x 512)
+        self.inverse_id_train_cov = torch.linalg.solve(id_train_covariances, torch.eye(D, device=device))
 
         # Debugging
-        id_train_covariances = torch.tensor(emp_cov.covariance_, device=device).float()
         print(id_train_covariances)
         print("determinant of covariance: ", torch.det(id_train_covariances))
         _, logdet = torch.slogdet(id_train_covariances)
@@ -63,38 +59,6 @@ class MDS(BaseOOD):
         print("max diagonals of covariance:", torch.diag(id_train_covariances).max())
         print("min diagonals of covariance:", torch.diag(id_train_covariances).min())
         # print("variances: ", torch.diagonal(id_train_covariances))
-
-
-    # def get_id_mean_cov(self, penul_dict):
-    #     cls_datas = []
-    #     for cls in range(self.num_cls):
-    #         cls_data = torch.stack(penul_dict[cls], dim=0)  # (num_samples_in_cls x channel)
-    #         cls_mean = torch.mean(cls_data, dim=0)  # (channel)
-    #         self.id_train_cls_means.append(cls_mean)  # list of cls_mean for each cls
-    #         cls_datas.append(cls_data)
-    #     self.id_train_cls_means = torch.stack(self.id_train_cls_means, dim=0)  # (10 x 512)
-
-    #     total_stack = torch.cat(cls_datas, dim=0)  # (50000 x 512)
-    #     N = total_stack.shape[0]  # cifar10 => 50,000
-    #     D = total_stack.shape[1]  # cifar10 => 512
-    #     total_mean = self.id_train_cls_means.unsqueeze(1).repeat(1, N//self.num_cls, 1).reshape(-1, D)  # (50000 x 512)
-    #     total_dev = total_stack - total_mean
-    #     id_train_covariances = torch.einsum('Ni,Nj->ij', total_dev, total_dev) / N  # (512 x 512)
-    #     # self.inverse_id_train_cov = torch.linalg.pinv(id_train_covariances)
-    #     self.inverse_id_train_cov = torch.linalg.solve(id_train_covariances, torch.eye(D, device=device))
-
-    #     # Debugging
-    #     print(id_train_covariances)
-    #     print("determinant of covariance: ", torch.det(id_train_covariances))
-    #     _, logdet = torch.slogdet(id_train_covariances)
-    #     print("Log determinant:", logdet)
-    #     eigenvals, _ = torch.linalg.eig(id_train_covariances)
-    #     print("max eigenvalue of covariance: ", eigenvals.real.max())
-    #     print("min eigenvalue of covariance: ", eigenvals.real.min())
-    #     print("is covariance matrix symmetric?: ", torch.allclose(id_train_covariances.T, id_train_covariances, atol=1e-8))
-    #     print("max diagonals of covariance:", torch.diag(id_train_covariances).max())
-    #     print("min diagonals of covariance:", torch.diag(id_train_covariances).min())
-    #     # print("variances: ", torch.diagonal(id_train_covariances))
 
 # //////////////////////////////////////* apply_method() * //////////////////////////////////////
     # apply method

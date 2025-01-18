@@ -27,7 +27,7 @@ def optimizer_and_scheduler(model, model_name, epoch):
 
     config = {
         "LeNet": {"lr": 0.001, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 0, "milestones": [int(epoch * 0.5), int(epoch * 0.75)]},
-        "ResNet": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 5e-4, "milestones": [int(epoch * 0.5), int(epoch * 0.75)]},
+        "ResNet": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 5e-4, "milestones": [int(epoch * 0.5), int(epoch * 0.75), int(epoch * 0.9)]},
         "DenseNet": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 1e-4, "milestones": [int(epoch * 0.5), int(epoch * 0.75)]},
         "FractalNet": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 1e-4, "milestones": [epoch // (2 ** i) for i in reversed(range(1, int(math.log2(epoch)) + 1))]},
         "ViT": {"lr": 0.001, "optimizer": optim.Adam, "milestones": []},
