@@ -1,5 +1,7 @@
 import torch
 import torchvision
+import torch.optim as optim
+import math
 
 from .lenet import LeNet
 from .resnet import ResNet
@@ -19,6 +21,29 @@ model_path = {
     "DenseNet": {"base": "logs/DenseNet/trained_model/trained_DenseNet_20241211_154102.pth",
                  "imported": None}
 }
+
+# model config
+def optimizer_and_scheduler(model, model_name, epoch):
+
+    config = {
+        "LeNet": {"lr": 0.001, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 0, "milestones": [int(epoch * 0.5), int(epoch * 0.75)]},
+        "ResNet": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 5e-4, "milestones": [int(epoch * 0.5), int(epoch * 0.75)]},
+        "DenseNet": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 1e-4, "milestones": [int(epoch * 0.5), int(epoch * 0.75)]},
+        "FractalNet": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 1e-4, "milestones": [epoch // (2 ** i) for i in reversed(range(1, int(math.log2(epoch)) + 1))]},
+        "ViT": {"lr": 0.001, "optimizer": optim.Adam, "milestones": []},
+        "MLPMixer": {"lr": 0.001, "optimizer": optim.Adam, "milestones": []},
+        "ConvMixer": {"lr": 0.001, "optimizer": optim.Adam, "milestones": []},
+    }
+    if model_name not in config:
+        raise ValueError(f"Unsupported model: {model_name}")
+
+    config = config[model_name]
+    optimizer = config["optimizer"](model.parameters(), lr=config["lr"], momentum=config.get("momentum", 0), weight_decay=config.get("weight_decay", 0))
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=config["milestones"], gamma=0.1)
+    # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=epoch)
+
+    return optimizer, scheduler
+
 
 # load model
 def load_model(name, input_channels, image_size):

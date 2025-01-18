@@ -54,7 +54,6 @@ class ResNet(nn.Module):
         x = self.bundle4(x) # layer 14~17
         x = F.relu(self.bn(x))  # batch normalization and relu added before fc
         x = self.avgpool(x)  # (batch, 512, 1, 1)
-
         x = torch.flatten(x, 1)  # (batch x 512)
         x = self.fc(x) # layer 18  # (batch x 10)
         return x

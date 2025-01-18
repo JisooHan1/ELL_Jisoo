@@ -50,7 +50,7 @@ class DenseNet(nn.Module):
         self.bn = nn.BatchNorm2d(342)
 
         # final fully-connected layer total 1
-        self.GAP = nn.AdaptiveAvgPool2d(1)
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Linear(342, 10) # 3-24-/216-108/-/300-150/-/342/
 
     def repeat_block(self, in_channel, growth_rate, bundle_structure):
@@ -71,16 +71,10 @@ class DenseNet(nn.Module):
         return nn.Sequential(*total_dense_layers)
 
     def forward(self, x):
-        # initial conv, pooling layer
-        x = self.conv1(x)
-        # x = self.pool(x) ## not used for 32x32 input
-
-        # dense layers
+        x = self.conv1(x)  # x = self.pool(x) ## not used for 32x32 input
         x = self.dense_layers(x)
-        x = F.relu(self.bn(x))
-
-        # flatten, classification layer
-        x = self.GAP(x) # shape: (batch-size, 342, 8, 8) -> (batch-size, 342, 1, 1)
-        x = torch.flatten(x, 1) # shape: (batch-size, 342, 1, 1) -> (batch-size, 342)
-        x = self.fc(x)
+        x = F.relu(self.bn(x))  # (batch_size, 342, 8, 8)
+        x = self.avgpool(x) # (batch_size, 342, 1, 1)
+        x = torch.flatten(x, 1) # (batch_size, 342)
+        x = self.fc(x) # (batch_size, 10)
         return x

@@ -2,100 +2,85 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from datasets import load_dataset
-from models import LeNet, ResNet, DenseNet, FractalNet, ViT, MLPMixer, ConvMixer, load_model
+from models import LeNet, ResNet, DenseNet, FractalNet, ViT, MLPMixer, ConvMixer, load_model, optimizer_and_scheduler
 from utils.parser import parse_args
 
 from torch.utils.tensorboard import SummaryWriter
-import sys
 import os
+import math
 from datetime import datetime
 
-# check gpu
-def get_device():
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-        print("GPU Available... Using GPU")
-    else:
-        print("GPU is not available...\n")
-        user_input = input("'1': CPU / Else: Exit\n")
-        if user_input == "1":
-            print("Using CPU")
-            device = torch.device("cpu")
-        else:
-            print("Exiting")
-            sys.exit()
-    return device
+def train(
+    model: torch.nn.Module,
+    trainloader: torch.utils.data.DataLoader,
+    criterion: torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+    epoch: int,
+    writer: torch.utils.tensorboard.SummaryWriter,
+    device: torch.device) -> None:
 
-
-# training on one epoch
-def train(net, trainloader, criterion, optimizer, epoch, writer, device):
     print(f"Starting training for epoch {epoch}")
-    net.train() # using dropout & batch normalization
-    running_loss = 0.0 # for batches
-    total_loss = 0.0 # for epochs
-    number_of_batches = len(trainloader)
+    model.train()
+    running_loss = 0.0 # batches
+    total_loss = 0.0 # epochs
+    print_frequency = get_print_frequency(len(trainloader))  # batches
 
-    # print batch manage
-    if number_of_batches > 200:
-        print_frequency = 200
-    else:
-        print_frequency = 15
-
-    # iterates over elements of  trainloader (one batch). 0: starting batch index of 'i'
-    for batch_index, data in enumerate(trainloader, 0):
-        inputs, labels = data
-        inputs = inputs.to(device)
-        labels = labels.to(device)
+    for batch_index, (images, labels) in enumerate(trainloader):
+        images, labels = images.to(device), labels.to(device)
 
         # forward + backward + optimize
-        optimizer.zero_grad() # initialize the gradients to '0'
-        outputs = net(inputs) # Forward pass => softmax not applied
-        loss = criterion(outputs, labels) # average loss "over the batch"
-        loss.backward() # back propagation
-        optimizer.step() # update weights
+        optimizer.zero_grad()               # initialize the gradients to '0'
+        outputs = model(images)             # Forward pass => softmax not applied
+        loss = criterion(outputs, labels)   # average loss "over the batch"
+        loss.backward()                     # back propagation
+        optimizer.step()                    # update weights
 
-        # print statistics
-        running_loss += loss.item() # extract scalar from tensor: for batches
-        total_loss += loss.item() # extract scalar from tensor: for epochs
-        if (batch_index+1) % print_frequency == 0: # print every (print_frequency) mini-batches
-            # (current epoch, total batches processed, average loss for last (print_frequency) batches) => avg of avg??
-            print('[%d, %5d] loss: %.3f' %(epoch, batch_index + 1, running_loss / print_frequency)) # average loss for an amount of batches
-            writer.add_scalar('Loss/train', running_loss / print_frequency, epoch * len(trainloader) + batch_index) # global index for loss
+        # update loss
+        running_loss += loss.item() # for batches
+        total_loss += loss.item() # for epochs
+
+        # log: loss of every print_frequency batches
+        if (batch_index + 1) % print_frequency == 0: # every print_frequency
+            avg_loss = running_loss / print_frequency  # avg of avg...
+            print(f'[{epoch}, {batch_index + 1}] loss: {avg_loss:.3f}') # average loss for an amount of batches
+            writer.add_scalar('Loss/train', avg_loss, epoch * len(trainloader) + batch_index) # global index for loss
             running_loss = 0.0
+
+    # log: total loss for one epoch
     writer.add_scalar('Loss/train_epoch', total_loss / len(trainloader), epoch) # average loss for each epoch
 
-# testing on one epoch
-def test(net, testloader, criterion, epoch, writer, device):
-    net.eval() # not using dropout & batch normalization
-    correct = 0 # number of correctly classified images
-    total = 0 # number of total images
+def test(
+    model: torch.nn.Module,
+    testloader: torch.utils.data.DataLoader,
+    criterion: torch.nn.Module,
+    epoch: int,
+    writer: torch.utils.tensorboard.SummaryWriter,
+    device: torch.device) -> None:
+
+    model.eval()    # dropout X & batch normalization X
+    correct = 0     # number of correctly classified images
+    total = 0       # number of total images
     test_loss = 0.0 # total loss in test set (batch 단위)
 
-    with torch.no_grad(): # doesn't compute gradients while testing
-        for data in testloader: # loops over each batches
-            images, labels = data
-            images = images.to(device)
-            labels = labels.to(device)
+    with torch.no_grad():
+        for images, labels in testloader:
+            images, labels = images.to(device), labels.to(device)
 
-            outputs = net(images)
-            loss = criterion(outputs, labels) # average loss "over the batch"
+            outputs = model(images)
+            loss = criterion(outputs, labels)
             test_loss += loss.item()
 
-            _, predicted = torch.max(outputs.data, 1) # extract higest valued class (batch 단위)
-            total += labels.size(0) # 결국 batch size
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
             correct += (predicted == labels).sum().item() # num of 'True' for pred==label
 
     accuracy = 100 * correct / total
-    print('epoch: %d, Accuracy of the network on test images: %d %%' %(epoch, accuracy))
-    writer.add_scalar('Loss/test', test_loss / len(testloader), epoch) # average loss for one batch in total dataset
+    print(f'epoch: {epoch}, Accuracy: {accuracy:.2f} %, Avg loss: {test_loss / len(testloader):.3f}')
+    writer.add_scalar('Loss/test', test_loss / len(testloader), epoch)
     writer.add_scalar('Accuracy/test', accuracy, epoch)
 
-# main
 def main():
-
     device = get_device()
-
-    # Parsing command line arguments
     args = parse_args()
     augment = True if args.augment.lower() == "true" else False
     epoch = args.epoch
@@ -111,64 +96,46 @@ def main():
     model.to(device)
 
     # Optimization
-    if args.model == "LeNet": # batch size: 64, epoch: 300
-        lr = 0.001
-        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
-        milestones = [epoch*0.5, epoch*0.75]
-    elif args.model == "ResNet": # batch size: 64, epoch: 300
-        lr = 0.001
-        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
-        # milestones = [epoch*0.5, epoch*0.75]
-    elif args.model == "DenseNet": # batch size: 64, epoch: 300
-        lr = 0.1
-        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
-        milestones = [epoch*0.5, epoch*0.75]
-    elif args.model == "FractalNet": # batch size: 64, epoch: 100
-        lr = 0.1
-        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
-        # milestones = [epoch // 2**i for i in range(1, int(math.log2(epoch)) + 1)]
-        # milestones.reverse()
-    elif args.model == "ViT": # batch size: 64, epoch: 200
-        lr = 0.001
-        optimizer = optim.Adam(model.parameters(), lr=lr)
-        milestones = []
-    elif args.model == "MLPMixer": # batch size: 64, epoch: 200
-        lr = 0.001
-        optimizer = optim.Adam(model.parameters(), lr=lr)
-        milestones = []
-    elif args.model == "ConvMixer": # batch size: 64, epoch: 200
-        lr = 0.001
-        optimizer = optim.Adam(model.parameters(), lr=lr)
-        milestones = []
+    optimizer, scheduler = optimizer_and_scheduler(model, args.model, epoch)
     criterion = nn.CrossEntropyLoss()
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=epoch)
-    # scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=milestones, gamma=0.1)
 
     # Initialize tensorboard writer
     writer = SummaryWriter(log_dir=f'logs/{args.model}/tensorboard_logs')
 
     # train & test
-    for epoch in range(1, epoch+1):
+    for epoch in range(1, epoch + 1):
         train(model, trainloader, criterion, optimizer, epoch, writer, device)
         test(model, testloader, criterion, epoch, writer, device)
-
         scheduler.step()
 
     # Compute total number of parameters of the model
     num_of_pars = sum(p.numel() for p in model.parameters())
-
     print("Finished Training & Testing\n")
     print(f"Number of Parameters in {args.model}: {num_of_pars}")
 
     # save trained model
-    os.makedirs(f'logs/{args.model}/trained_model', exist_ok=True)
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M')
-    save_path = f'logs/{args.model}/trained_model/{args.model}_{args.dataset}_{args.augment}_{timestamp}.pth'
+    save_model(model, args.model, args.dataset, args.augment)
 
+# utils
+def get_device():
+    if torch.cuda.is_available():
+        print("GPU Available... Using GPU")
+        return torch.device("cuda")
+    else:
+        print("GPU is not available...Using CPU")
+        return torch.device("cpu")
+
+def get_print_frequency(number_of_batches: int) -> int:
+    return 200 if number_of_batches > 200 else 15
+
+def save_model(model, model_name, dataset, augment, save_dir="logs"):
+    os.makedirs(f'{save_dir}/{model_name}/trained_model', exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M')
+    save_path = f'{save_dir}/{model_name}/trained_model/{model_name}_{dataset}_{augment}_{timestamp}.pth'
     model.to('cpu')
     torch.save(model.state_dict(), save_path)
     print(f"Model saved in {save_path}")
-
+    return save_path
 
 if __name__ == "__main__":
     main()
