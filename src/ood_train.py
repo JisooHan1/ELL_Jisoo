@@ -1,6 +1,6 @@
 import torch
 from datasets import load_data
-from models import load_model, save_model
+from models import load_model
 from utils.ood_configs import get_training_config
 from utils.parser import parse_args
 
@@ -16,10 +16,7 @@ class OODTraining:
         self.ood_dataset = args.ood_dataset      # CIFAR10, SVHN, CIFAR100, ...
         self.batch_size = args.batch_size        # batch size
         self.method = args.method                # logitnorm, oe, moe ...
-        if args.augment.lower() == 'true':
-            self.augment = True
-        else:
-            self.augment = False
+        self.augment = True if args.augment.lower() == 'true' else False
 
     # ood training
     def run_ood_train(self):
@@ -45,6 +42,7 @@ class OODTraining:
 
         # Train - Only ID_trainset
         if self.oe_dataset == None:
+            model_path = f'logs/{self.model}/trained_model/ood_{self.method}_{self.id_dataset}.pth'
             for epoch in range(epochs):
                 model.train()
                 for images, labels in data_loaders['id_train_loader']:
@@ -57,10 +55,12 @@ class OODTraining:
                 scheduler.step()
                 print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
             print("Training completed")
-            save_model(model, f'logs/{self.model}/trained_model/ood_{self.method}_{self.id_dataset}.pth')
+            torch.save(model.state_dict(), model_path)
+            print(f"Model saved in {model_path}")
 
         # Train - ID_trainset + OE_trainset
         else:
+            model_path = f'logs/{self.model}/trained_model/ood_{self.method}_{self.id_dataset}_{self.oe_dataset}.pth'
             for epoch in range(epochs):
                 model.train()
                 for (id_images, id_labels), (oe_images, _) in zip(data_loaders['id_train_loader'], data_loaders['oe_train_loader']):
@@ -73,7 +73,8 @@ class OODTraining:
                 scheduler.step()
                 print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
             print("OE based training completed")
-            save_model(model, f'logs/{self.model}/trained_model/ood_{self.method}_{self.id_dataset}_{self.oe_dataset}.pth')
+            torch.save(model.state_dict(), model_path)
+            print(f"Model saved in {model_path}")
 
 # execute
 if __name__ == "__main__":

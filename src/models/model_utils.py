@@ -12,7 +12,7 @@ from .mlpmixer import MLPMixer
 from .convmixer import ConvMixer
 
 model_path = {
-    "ResNet": {"base": "logs/ResNet/trained_model/ResNet_CIFAR10_20250112_0406.pth",
+    "ResNet": {"base": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250118_1748.pth",
                "cifar10_no_augment": "logs/ResNet/trained_model/ResNet_CIFAR10_False_20250113_2029.pth",
                "imported": None,
                "logitnorm_cifar10": "logs/ResNet/trained_model/ood_logitnorm_CIFAR10.pth",
@@ -44,7 +44,6 @@ def optimizer_and_scheduler(model, model_name, epoch):
 
     return optimizer, scheduler
 
-
 # load model
 def load_model(name, input_channels, image_size):
     if name == "LeNet":
@@ -63,11 +62,6 @@ def load_model(name, input_channels, image_size):
         return ConvMixer(input_channels)
     else:
         raise ValueError("Invalid model name")
-
-# save trained model
-def save_model(model, model_path):
-    torch.save(model.state_dict(), model_path)
-    print(f"Model saved to {model_path}")
 
 # load trained model
 def load_saved_model(name, path, device):
