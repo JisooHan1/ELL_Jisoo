@@ -65,14 +65,12 @@ def load_model(name, input_channels, image_size):
 
 # load trained model
 def load_saved_model(name, path, device):
-
     # pytorch imported model
     if path is None:
         if name == "ResNet":
             model = torchvision.models.resnet18(pretrained=True)
         elif name == "DenseNet":
             model = torchvision.models.densenet121(pretrained=True)
-
     # my trained model
     else:
         model = load_model(name, 3, 32) # default input_channels and image_size
@@ -80,6 +78,5 @@ def load_saved_model(name, path, device):
         model.load_state_dict(state_dict, strict=True)
         model.eval()
         print(f"Model loaded from {path}")
-
     return model
 
