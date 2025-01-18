@@ -18,7 +18,7 @@ model_path = {
                "logitnorm_cifar10": "logs/ResNet/trained_model/ood_logitnorm_CIFAR10.pth",
                "oe_cifar10_tinyimagenet200": "logs/ResNet/trained_model/ood_oe_CIFAR10_TinyImageNet200.pth"},
 
-    "DenseNet": {"base": "logs/DenseNet/trained_model/trained_DenseNet_20241211_154102.pth",
+    "DenseNet": {"base": "logs/DenseNet/trained_model/DenseNet_CIFAR10_True_20250118_1619.pth",
                  "imported": None}
 }
 
