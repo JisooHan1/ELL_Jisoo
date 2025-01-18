@@ -6,11 +6,11 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class ReAct(BaseOOD):
-    def __init__(self, model, quantile=0.9):
+    def __init__(self, model, percentile=90):
         super().__init__(model)
         self.id_train_activations = None  # (total_id_train_samples x channel)
         self.c = None  # tensor of a value
-        self.quantile = quantile
+        self.percentile = percentile
 
     # method
     def get_activations(self, id_train_loader):
@@ -19,14 +19,14 @@ class ReAct(BaseOOD):
             images = images.to(device)
             self.model(images)
             id_train_activations.append(self.penultimate_layer)
-        self.id_train_activations = torch.cat(id_train_activations)  # (total_id_train_samples x channel)
-        return self.id_train_activations.view(-1)  # (total_id_train_samples * channel)
+        self.id_train_activations = torch.cat(id_train_activations).flatten()  # (total_id_train_samples * channel)
+        return self.id_train_activations
 
     # total channel quantile
     def calculate_c(self, id_activations):
         activations_np = id_activations.cpu().numpy()  # (total_id_train_samples * channel)
-        c_theshold = np.quantile(activations_np, self.quantile)  # tensor of a value
-        self.c = torch.tensor(c_theshold, device=device)
+        c_theshold = np.percentile(activations_np, self.percentile)  # tensor of a value
+        self.c = torch.tensor(c_theshold, device=device).float()
 
         # Activation statistics
         print(f"\nActivation statistics:")
@@ -44,10 +44,8 @@ class ReAct(BaseOOD):
     # compute ood score
     def ood_score(self, images):
         self.model(images)
-        self.c = self.c.to(self.penultimate_layer.dtype)
-
-        clamped_activations = torch.clamp(self.penultimate_layer, max=self.c)  # (batch x channel)
-        clamped_logits = self.model.fc(clamped_activations)  # (batch x class)
-        softmax = F.softmax(clamped_logits, dim=1)  # (batch x class)
+        rectified_activations = torch.minimum(self.penultimate_layer, self.c)  # (batch x channel)
+        rectified_logits = self.model.fc(rectified_activations)  # (batch x class)
+        softmax = F.softmax(rectified_logits, dim=1)  # (batch x class)
         scores, _ = torch.max(softmax, dim=1)  # (batch)
         return scores  # (batch)

@@ -76,44 +76,37 @@
     #     self.id_train_covariances = torch.stack(cls_einsums, dim=0).sum(dim=0) / N
     #     self.inverse_id_train_cov = torch.linalg.inv(self.id_train_covariances)
 
-
-
-    # # (4. use EmpiricalCovariance)
+    # # (4. Using EmpiricalCovariance)
     # def get_id_mean_cov(self, penul_dict):
-    #     cls_datas = []  # list of cls_data for each cls
-    #     cls_means = []  # list of cls_mean for each cls
+    #     cls_datas = []
+    #     cls_means = []
 
     #     for cls in range(self.num_cls):
-    #         cls_data = torch.stack(penul_dict[cls], dim=0).cpu().numpy()  # Convert to NumPy for sklearn
-    #         cls_mean = torch.mean(torch.tensor(cls_data), dim=0).cpu().numpy()  # Calculate mean as NumPy
-    #         cls_means.append(cls_mean)
-
+    #         cls_data = torch.stack(penul_dict[cls], dim=0)
     #         cls_datas.append(cls_data)
+    #         cls_means.append(cls_data.mean(dim=0))
 
-    #     self.id_train_cls_means = torch.tensor(cls_means, device=device)  # Convert back to tensor
+    #     self.id_train_cls_means = torch.stack(cls_means, dim=0)  # (10 x 512)
+    #     total_datas = torch.cat(cls_datas, dim=0)  # (50000 x 512)
+    #     total_means = self.id_train_cls_means.unsqueeze(1).repeat(1, total_datas.shape[0]//self.num_cls, 1).reshape(-1, total_datas.shape[1])  # (50000 x 512)
 
-    #     # Flatten all class data for covariance computation
-    #     total_stack = torch.cat([torch.tensor(data, device=device) for data in cls_datas], dim=0).cpu().numpy()
-    #     N = total_stack.shape[0]  # number of total_id_trainset_samples
+    #     total_devs = total_datas - total_means
+    #     emp_cov = EmpiricalCovariance(assume_centered=False).fit(total_devs.cpu().numpy())
+    #     self.inverse_id_train_cov = torch.tensor(emp_cov.precision_, device=device).float()
 
-    #     # Compute covariance using EmpiricalCovariance
-    #     emp_cov = EmpiricalCovariance().fit(total_stack)
-    #     self.id_train_covariances = torch.tensor(emp_cov.covariance_, device=device)  # Convert to tensor
-    #     print(self.id_train_covariances)
-    #     print("determinant of covariance: ", torch.det(self.id_train_covariances))
-    #     _, logdet = torch.slogdet(self.id_train_covariances)
+    #     # Debugging
+    #     id_train_covariances = torch.tensor(emp_cov.covariance_, device=device).float()
+    #     print(id_train_covariances)
+    #     print("determinant of covariance: ", torch.det(id_train_covariances))
+    #     _, logdet = torch.slogdet(id_train_covariances)
     #     print("Log determinant:", logdet)
-    #     eigenvals, _ = torch.linalg.eig(self.id_train_covariances)
+    #     eigenvals, _ = torch.linalg.eig(id_train_covariances)
     #     print("max eigenvalue of covariance: ", eigenvals.real.max())
     #     print("min eigenvalue of covariance: ", eigenvals.real.min())
-    #     print("is covariance matrix symmetric?: ", torch.allclose(self.id_train_covariances.T, self.id_train_covariances, atol=1e-8))
-    #     # rank = torch.linalg.matrix_rank(self.id_train_covariances)
-    #     # print("rank of covariance matrix: ", rank)
-    #     print("max diagonals of covariance:", torch.diag(self.id_train_covariances).max())
-    #     print("min diagonals of covariance:", torch.diag(self.id_train_covariances).min())
-    #     # print("variances: ", torch.diagonal(self.id_train_covariances))
-
-    #     self.inverse_id_train_cov = torch.tensor(emp_cov.precision_, device=device)  # Get inverse covariance directly
+    #     print("is covariance matrix symmetric?: ", torch.allclose(id_train_covariances.T, id_train_covariances, atol=1e-8))
+    #     print("max diagonals of covariance:", torch.diag(id_train_covariances).max())
+    #     print("min diagonals of covariance:", torch.diag(id_train_covariances).min())
+    #     # print("variances: ", torch.diagonal(id_train_covariances))
 
     # # (5. Using PCA)
     # def get_id_mean_cov(self, penul_dict):
