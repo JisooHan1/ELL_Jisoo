@@ -3,7 +3,6 @@ from datasets import load_data
 from models import load_model, load_saved_model, model_path
 from utils.ood_configs import get_training_config
 from utils.parser import parse_args
-model_path = model_path
 
 # device
 def get_device():
@@ -61,9 +60,9 @@ def run_ood_train(args):
             print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
         print("Training completed")
 
-        model_path = f'logs/{args.model}/trained_model/ood_{args.method}_{args.id_dataset}.pth'
-        torch.save(model.state_dict(), model_path)
-        print(f"Model saved in {model_path}")
+        save_path = f'logs/{args.model}/trained_model/ood_{args.method}_{args.id_dataset}.pth'
+        torch.save(model.state_dict(), save_path)
+        print(f"Model saved in {save_path}")
 
     # ID_trainset + OE_trainset
     else:
@@ -79,9 +78,9 @@ def run_ood_train(args):
             print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
         print("OE based training completed")
 
-        model_path = f'logs/{args.model}/trained_model/ood_{args.method}_{args.id_dataset}_{args.oe_dataset}.pth'
-        torch.save(model.state_dict(), model_path)
-        print(f"Model saved in {model_path}")
+        save_path = f'logs/{args.model}/trained_model/ood_{args.method}_{args.id_dataset}_{args.oe_dataset}.pth'
+        torch.save(model.state_dict(), save_path)
+        print(f"Model saved in {save_path}")
 
 # execute
 if __name__ == "__main__":
