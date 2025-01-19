@@ -45,6 +45,7 @@ class ReAct(BaseOOD):
         self.model(images)
         rectified_activations = torch.minimum(self.penultimate_layer, self.c)  # (batch x channel)
         rectified_logits = self.model.fc(rectified_activations)  # (batch x class)
-        softmax = F.softmax(rectified_logits, dim=1)  # (batch x class)
-        scores, _ = torch.max(softmax, dim=1)  # (batch)
-        return scores  # (batch)
+        return torch.logsumexp(rectified_logits, dim=1)  # energy score
+        # softmax = F.softmax(rectified_logits, dim=1)  # (batch x class)
+        # scores, _ = torch.max(softmax, dim=1)  # (batch)
+        # return scores  # (batch)

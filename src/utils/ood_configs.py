@@ -1,6 +1,4 @@
-import torch
-
-posthoc_methods = ['msp', 'odin', 'mds', 'react', 'knn']
+posthoc_methods = ['msp', 'odin', 'mds', 'react', 'knn', 'energy']
 training_methods = ['logitnorm', 'oe', 'moe']
 
 # get training config
