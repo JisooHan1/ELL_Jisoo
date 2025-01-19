@@ -1,6 +1,6 @@
 import torch
 from datasets import load_data
-from models import load_model
+from models import load_model, load_saved_model
 from utils.ood_configs import get_training_config
 from utils.parser import parse_args
 
@@ -15,7 +15,10 @@ def initialize_training(args, device):
     data_loaders, id_input_channels, id_image_size = load_data(
         args.id_dataset, args.oe_dataset, args.ood_dataset, args.batch_size, args.augment)
 
-    model = load_model(args.model, id_input_channels, id_image_size).to(device)
+    if args.path is not None:
+        model = load_saved_model(args.model, args.path, device)
+    else:
+        model = load_model(args.model, id_input_channels, id_image_size).to(device)
 
     config = get_training_config(args.method)
     criterion = config['criterion']()

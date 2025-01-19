@@ -112,8 +112,11 @@ def load_data(id_dataset, oe_dataset, ood_dataset, batch_size, augment):
         oe_train_loader = None
 
     # OOD data
-    _, ood_testset, _, _ = load_dataset(ood_dataset, augment)
-    ood_test_loader = torch.utils.data.DataLoader(ood_testset, batch_size=batch_size, shuffle=True)
+    if ood_dataset is not None:
+        _, ood_testset, _, _ = load_dataset(ood_dataset, augment)
+        ood_test_loader = torch.utils.data.DataLoader(ood_testset, batch_size=batch_size, shuffle=True)
+    else:
+        ood_test_loader = None
 
     data_loaders = {
         'id_train_loader': id_train_loader,
