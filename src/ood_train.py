@@ -41,15 +41,14 @@ def initialize_training(args, device):
 def run_ood_train(args):
     device = get_device()
     model, data_loaders, criterion, optimizer, scheduler, epochs = initialize_training(args, device)
-
+    model.to(device).train()
     print("Start training... method: ", args.method)
     print("Model: ", args.model)
-    print("Path: ", args.path)
+    print("Path: ", model_path[args.model][args.path])
 
     # Only ID_trainset
     if args.oe_dataset is None:
         for epoch in range(epochs):
-            model.train()
             for images, labels in data_loaders['id_train_loader']:
                 images, labels = images.to(device), labels.to(device)
                 optimizer.zero_grad()
@@ -68,7 +67,6 @@ def run_ood_train(args):
     # ID_trainset + OE_trainset
     else:
         for epoch in range(epochs):
-            model.train()
             for (id_images, id_labels), (oe_images, _) in zip(data_loaders['id_train_loader'], data_loaders['oe_train_loader']):
                 id_images, id_labels, oe_images = id_images.to(device), id_labels.to(device), oe_images.to(device)
                 optimizer.zero_grad()
