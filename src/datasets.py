@@ -107,7 +107,7 @@ def load_data(id_dataset, oe_dataset, ood_dataset, batch_size, augment):
     # OE data
     if oe_dataset is not None:
         oe_trainset, _, _, _ = load_dataset(oe_dataset, augment)
-        oe_train_loader = torch.utils.data.DataLoader(oe_trainset, batch_size=batch_size, shuffle=True)
+        oe_train_loader = torch.utils.data.DataLoader(oe_trainset, batch_size=2*batch_size, shuffle=True)
     else:
         oe_train_loader = None
 

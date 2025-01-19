@@ -5,79 +5,81 @@ from utils.ood_configs import get_training_config
 from utils.parser import parse_args
 
 # device
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
+def get_device():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+    return device
 
-class OODTraining:
-    def __init__(self, args):
-        self.model = args.model                  # ResNet, DenseNet, ...
-        self.id_dataset = args.id_dataset        # CIFAR10, SVHN, CIFAR100, ...
-        self.oe_dataset = args.oe_dataset        # TinyImageNet, ...
-        self.ood_dataset = args.ood_dataset      # CIFAR10, SVHN, CIFAR100, ...
-        self.batch_size = args.batch_size        # batch size
-        self.method = args.method                # logitnorm, oe, moe ...
-        self.augment = True if args.augment.lower() == 'true' else False
+# hyperparameters
+def initialize_training(args, device):
+    data_loaders, id_input_channels, id_image_size = load_data(
+        args.id_dataset, args.oe_dataset, args.ood_dataset, args.batch_size, args.augment)
 
-    # ood training
-    def run_ood_train(self):
+    model = load_model(args.model, id_input_channels, id_image_size).to(device)
 
-        # load data
-        data_loaders, id_input_channels, id_image_size = load_data(self.id_dataset, self.oe_dataset, self.ood_dataset, self.batch_size, self.augment)
+    config = get_training_config(args.method)
+    criterion = config['criterion']()
+    optimizer = config['optimizer'](
+        model.parameters(), lr=config['lr'], weight_decay=config['weight_decay'], momentum=config['momentum'], nesterov=True)
 
-        # load model
-        model = load_model(self.model, id_input_channels, id_image_size).to(device)  # ResNet, DenseNet
+    # schedulers
+    if config['scheduler_type'] == 'step':
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, milestones=config['milestones'], gamma=config['gamma'])
+    elif config['scheduler_type'] == 'cosine':
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=config['T_max'], eta_min=config['eta_min'])
+    else:
+        raise ValueError(f"Unsupported scheduler type: {config['scheduler_type']}")
 
-        # method: logitnorm, oe, moe ...
-        training_config = get_training_config(self.method)
+    return model, data_loaders, criterion, optimizer, scheduler, config['epochs']
 
-        criterion = training_config['criterion']()  # LogitNormLoss(), OutlierExposureLoss(), MOELoss()
-        lr = training_config['lr']
-        weight_decay = training_config['weight_decay']
-        momentum = training_config['momentum']
-        epochs = training_config['epochs']
-        optimizer = training_config['optimizer'](model.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum)
-        scheduler = training_config['scheduler'](optimizer, milestones=training_config['milestones'], gamma=training_config['gamma'])
+# training
+def run_ood_train(args):
+    device = get_device()
+    model, data_loaders, criterion, optimizer, scheduler, epochs = initialize_training(args, device)
 
-        print("Start training... method: ", self.method)
+    print("Start training... method: ", args.method)
 
-        # Train - Only ID_trainset
-        if self.oe_dataset == None:
-            model_path = f'logs/{self.model}/trained_model/ood_{self.method}_{self.id_dataset}.pth'
-            for epoch in range(epochs):
-                model.train()
-                for images, labels in data_loaders['id_train_loader']:
-                    images, labels = images.to(device), labels.to(device)
-                    optimizer.zero_grad()  # initialize the gradients to '0'
-                    outputs = model(images)  # Forward pass => softmax not applied
-                    loss = criterion(outputs, labels)  # average loss "over the batch"
-                    loss.backward()  # back propagate
-                    optimizer.step()  # update weights
-                scheduler.step()
-                print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
-            print("Training completed")
-            torch.save(model.state_dict(), model_path)
-            print(f"Model saved in {model_path}")
+    # Only ID_trainset
+    if args.oe_dataset is None:
+        for epoch in range(epochs):
+            model.train()
+            for images, labels in data_loaders['id_train_loader']:
+                images, labels = images.to(device), labels.to(device)
+                optimizer.zero_grad()
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+            scheduler.step()
+            print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
+        print("Training completed")
 
-        # Train - ID_trainset + OE_trainset
-        else:
-            model_path = f'logs/{self.model}/trained_model/ood_{self.method}_{self.id_dataset}_{self.oe_dataset}.pth'
-            for epoch in range(epochs):
-                model.train()
-                for (id_images, id_labels), (oe_images, _) in zip(data_loaders['id_train_loader'], data_loaders['oe_train_loader']):
-                    id_images, id_labels, oe_images = id_images.to(device), id_labels.to(device), oe_images.to(device)
-                    optimizer.zero_grad()
-                    id_outputs, oe_outputs = model(id_images), model(oe_images)
-                    loss = criterion(id_outputs, id_labels, oe_outputs)
-                    loss.backward()
-                    optimizer.step()
-                scheduler.step()
-                print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
-            print("OE based training completed")
-            torch.save(model.state_dict(), model_path)
-            print(f"Model saved in {model_path}")
+        model_path = f'logs/{args.model}/trained_model/ood_{args.method}_{args.id_dataset}.pth'
+        torch.save(model.state_dict(), model_path)
+        print(f"Model saved in {model_path}")
+
+    # ID_trainset + OE_trainset
+    else:
+        for epoch in range(epochs):
+            model.train()
+            for (id_images, id_labels), (oe_images, _) in zip(data_loaders['id_train_loader'], data_loaders['oe_train_loader']):
+                id_images, id_labels, oe_images = id_images.to(device), id_labels.to(device), oe_images.to(device)
+                optimizer.zero_grad()
+                id_outputs, oe_outputs = model(id_images), model(oe_images)
+                loss = criterion(id_outputs, id_labels, oe_outputs)
+                loss.backward()
+                optimizer.step()
+            scheduler.step()
+            print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
+        print("OE based training completed")
+
+        model_path = f'logs/{args.model}/trained_model/ood_{args.method}_{args.id_dataset}_{args.oe_dataset}.pth'
+        torch.save(model.state_dict(), model_path)
+        print(f"Model saved in {model_path}")
 
 # execute
 if __name__ == "__main__":
     args = parse_args()
-    ood_training = OODTraining(args)
-    ood_training.run_ood_train()
+    run_ood_train(args)

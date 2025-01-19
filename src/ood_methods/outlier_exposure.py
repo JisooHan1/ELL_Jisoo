@@ -30,12 +30,15 @@ class OutlierExposureLoss(nn.Module):
 # Outlier Exposure training config
 oe_config = {
     "criterion": OutlierExposureLoss,
-    "lr": 0.01,
+    "lr": 0.001,
     "epochs": 10,
     "weight_decay": 5e-4,
     "momentum": 0.9,
     "optimizer": torch.optim.SGD,
-    "scheduler": torch.optim.lr_scheduler.MultiStepLR,
+    "scheduler_type": "cosine",
+    "scheduler": torch.optim.lr_scheduler.CosineAnnealingLR,
+    "T_max": 10,
+    "eta_min": 0,
     "milestones": [5, 8],
     "gamma": 0.1
 }

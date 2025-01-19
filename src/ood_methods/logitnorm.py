@@ -32,6 +32,7 @@ logitnorm_config = {
     "weight_decay": 5e-4,
     "momentum": 0.9,
     "optimizer": torch.optim.SGD,
+    "scheduler_type": "step",
     "scheduler": torch.optim.lr_scheduler.MultiStepLR,
     "milestones": [80, 140],
     "gamma": 0.1
