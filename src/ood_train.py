@@ -1,6 +1,6 @@
 import torch
 from datasets import load_data
-from models import load_model, load_saved_model
+from models import load_model, load_saved_model, model_path
 from utils.ood_configs import get_training_config
 from utils.parser import parse_args
 
@@ -16,7 +16,7 @@ def initialize_training(args, device):
         args.id_dataset, args.oe_dataset, args.ood_dataset, args.batch_size, args.augment)
 
     if args.path is not None:
-        model = load_saved_model(args.model, args.path, device)
+        model = load_saved_model(args.model, model_path[args.model][args.path], device)
     else:
         model = load_model(args.model, id_input_channels, id_image_size).to(device)
 
@@ -43,6 +43,8 @@ def run_ood_train(args):
     model, data_loaders, criterion, optimizer, scheduler, epochs = initialize_training(args, device)
 
     print("Start training... method: ", args.method)
+    print("Model: ", args.model)
+    print("Path: ", args.path)
 
     # Only ID_trainset
     if args.oe_dataset is None:
