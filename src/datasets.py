@@ -39,6 +39,9 @@ DATASET_CONFIG = {
     # 64x64x3, 200 class, 100,000 training images, 10,000 test images
     "TinyImageNet200": {"dataset": TinyImageNet200, "image size": 32, "input channel": 3, "train option": {"split": "train"}, "test option": {"split": "val"}},
 
+    # 32x32x3, 100 class, 1,281,167 training images, 50,000 test images
+    "Places365": {"dataset": torchvision.datasets.Places365, "image size": 32, "input channel": 3, "train option": {"split": "train"}, "test option": {"split": "val"}},
+
     # 32x32x3, 10 class, 50,000 training images, 10,000 test images
     "CIFAR10": {"dataset": torchvision.datasets.CIFAR10, "image size": 32, "input channel": 3, "train option": {"train": True}, "test option": {"train": False}},
 
