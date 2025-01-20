@@ -67,8 +67,8 @@ DATASET_CONFIG = {
 def get_transforms(input_channel, image_size, augment=True):
     # mean = (0.5,) * input_channel
     # std = mean  # normalization: (0, 1) -> (-1, 1)
-    mean = (0.4914, 0.4822, 0.4465)
-    std = (0.2023, 0.1994, 0.2010)
+    mean = (0.49139968, 0.48215827, 0.44653124)
+    std = (0.24703233, 0.24348505, 0.26158768)
     common_transforms = [transforms.ToTensor(), transforms.Normalize(mean, std)]
     if augment:  # train
         common_transforms += [transforms.RandomResizedCrop(image_size), transforms.RandomHorizontalFlip()]
