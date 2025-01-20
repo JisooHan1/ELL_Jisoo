@@ -12,7 +12,7 @@ from .mlpmixer import MLPMixer
 from .convmixer import ConvMixer
 
 model_path = {
-    "ResNet": {"18-pre": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250118_1748.pth",
+    "ResNet": {"18-pre": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250120_1700.pth",
                "18-post": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250120_1357.pth",
             #    "18-post": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250120_1114.pth",
                "34-post": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250120_1311.pth",
