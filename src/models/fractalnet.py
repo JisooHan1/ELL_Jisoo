@@ -109,7 +109,7 @@ class FractalNet(nn.Module):
             self.layers.append(Join(self.num_col))
 
         # Final fc layer
-        self.GAP = nn.AdaptiveAvgPool2d(1)
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Linear(256, 10)  # 256 = "output_channel"
 
     def forward(self, x):
@@ -117,7 +117,7 @@ class FractalNet(nn.Module):
         sampling = ("local" if random.random() <= 0.5 else ("global", random.randint(1, self.num_col)))
         for layer in self.layers:
             x = layer(x, sampling)
-        x = self.GAP(x)  # (batch-size, 256, 8, 8) -> (batch-size, 256, 1, 1)
+        x = self.avgpool(x)  # (batch-size, 256, 8, 8) -> (batch-size, 256, 1, 1)
         x = torch.flatten(x, 1)  # (batch-size, 256, 1, 1) -> (batch-size, 256)
         x = self.fc(x)
         return x

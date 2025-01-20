@@ -35,6 +35,22 @@ class ReAct(BaseOOD):
         print(f"Mean activation: {id_activations.mean().item():.4f}")
         print(f"Std activation: {id_activations.std().item():.4f}")
 
+        # Percentile distribution
+        percentiles = [0, 10, 25, 50, 75, 90, 95, 99, 100]
+        activations_np = id_activations.cpu().numpy()
+        print("\nPercentile distribution:")
+        for p in percentiles:
+            value = np.percentile(activations_np, p)
+            print(f"{p}th percentile: {value:.4f}")
+
+        # Value range distribution
+        hist, bins = np.histogram(activations_np, bins=10)
+        total_count = len(activations_np)
+        print("\nValue range distribution:")
+        for i in range(len(hist)):
+            percentage = (hist[i] / total_count) * 100
+            print(f"Range [{bins[i]:.4f}, {bins[i+1]:.4f}]: {percentage:.2f}%")
+
     # apply method: preprocessing before computing ood score
     def apply_method(self, id_train_loader):
         self.get_activations(id_train_loader)
@@ -45,7 +61,7 @@ class ReAct(BaseOOD):
         self.model(images)
         rectified_activations = torch.minimum(self.penultimate_layer, self.c)  # (batch x channel)
         rectified_logits = self.model.fc(rectified_activations)  # (batch x class)
-        return torch.logsumexp(rectified_logits, dim=1)  # energy score
-        # softmax = F.softmax(rectified_logits, dim=1)  # (batch x class)
-        # scores, _ = torch.max(softmax, dim=1)  # (batch)
-        # return scores  # (batch)
+        # return torch.logsumexp(rectified_logits, dim=1)  # energy score
+        softmax = F.softmax(rectified_logits, dim=1)  # (batch x class)
+        scores, _ = torch.max(softmax, dim=1)  # (batch)
+        return scores  # (batch)

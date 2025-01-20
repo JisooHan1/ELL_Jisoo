@@ -13,6 +13,7 @@ from .convmixer import ConvMixer
 
 model_path = {
     "ResNet": {"base": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250118_1748.pth",
+               "base2": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250120_0534.pth",
                "cifar10_no_augment": "logs/ResNet/trained_model/ResNet_CIFAR10_False_20250113_2029.pth",
                "imported": None,
                "logitnorm_cifar10": "logs/ResNet/trained_model/ood_logitnorm_CIFAR10.pth",
