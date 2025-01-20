@@ -58,7 +58,10 @@ DATASET_CONFIG = {
     "CIFAR100": {"dataset": torchvision.datasets.CIFAR100, "image size": 32, "input channel": 3, "train option": {"train": True}, "test option": {"train": False}},
 
     # 256x256x3, 10 class, 10,000 training images, 10,000 test images
-    "LSUN": {"dataset": torchvision.datasets.LSUN, "image size": 32, "input channel": 3, "train option": {"classes": 'train'}, "test option": {"classes": 'val'}}
+    "LSUN": {"dataset": torchvision.datasets.LSUN, "image size": 32, "input channel": 3, "train option": {"classes": 'train'}, "test option": {"classes": 'val'}},
+
+    # 28x28x3, 47 class, 98,411 training images, 24,645 test images
+    "DTD": {"dataset": torchvision.datasets.DTD, "image size": 32, "input channel": 3, "train option": {"split": 'train'}, "test option": {"split": 'test'}}
 }
 
 def get_transforms(input_channel, image_size, augment=True):
@@ -92,6 +95,10 @@ def load_dataset(name, augment=True):
         test_indices = random.sample(range(len(testset)), 10000)
         trainset = Subset(trainset, indices=train_indices)
         testset = Subset(testset, indices=test_indices)
+    elif name == "LSUN":
+        root = './datasets/lsun'
+        trainset = data["dataset"](root=root, classes=data["train option"]["classes"], transform=train_transform)
+        testset = data["dataset"](root=root, classes=data["test option"]["classes"], transform=test_transform)
     else:
         root = './datasets'
         trainset = data["dataset"](root=root, **data["train option"], download=True, transform=train_transform)
