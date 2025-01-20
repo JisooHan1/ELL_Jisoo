@@ -19,9 +19,7 @@ class OutlierExposureLoss(nn.Module):
         id_loss = F.cross_entropy(id_outputs, id_labels)
 
         # OE loss: cross entropy with uniform distribution
-        oe_mean = oe_outputs.mean(1)  # Mean of logits across classes
-        oe_logsumexp = torch.logsumexp(oe_outputs, dim=1)  # Logsumexp for logits
-        oe_loss = 0.5 * -(oe_mean - oe_logsumexp).mean()  # Loss calculation as per the paper
+        oe_loss = -(oe_outputs.mean(1) - torch.logsumexp(oe_outputs, dim=1)).mean()
 
         # total loss
         total_loss = id_loss + self.lamda * oe_loss

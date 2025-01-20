@@ -12,8 +12,9 @@ from .mlpmixer import MLPMixer
 from .convmixer import ConvMixer
 
 model_path = {
-    "ResNet": {"pre_act": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250118_1748.pth",
-               "post_act": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250120_1114.pth",
+    "ResNet": {"18-pre": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250118_1748.pth",
+               "18-post": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250120_1114.pth",
+               "34-post": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250120_1311.pth",
                "cifar10_no_augment": "logs/ResNet/trained_model/ResNet_CIFAR10_False_20250113_2029.pth",
                "imported": None,
                "logitnorm_cifar10": "logs/ResNet/trained_model/ood_logitnorm_CIFAR10.pth",
