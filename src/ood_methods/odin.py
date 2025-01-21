@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 
 class ODIN(BaseOOD):
-    def __init__(self, model, temperature=1000, epsilon=0.001):
+    def __init__(self, model, temperature=1000, epsilon=0.0001):
         self.model = model
         self.temperature = temperature
         self.epsilon = epsilon

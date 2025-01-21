@@ -119,8 +119,6 @@
     #         cls_datas.append(cls_data)
 
     #     total_stack = torch.cat(cls_datas, dim=0)  # (50000 x 512)
-    #     # condition_number = torch.linalg.cond(total_stack)
-    #     # print("condition number: ", condition_number)
     #     # fitted on penultimate layer outputs
     #     # total_stack_pca = torch.tensor(pca.fit_transform(total_stack.cpu().numpy()), device=device)  # (50000 x n_components)
     #     N = total_stack.shape[0]  # cifar10 => (50,000)
