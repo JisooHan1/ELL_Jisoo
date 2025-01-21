@@ -28,7 +28,7 @@ class OutlierExposureLoss(nn.Module):
 # Outlier Exposure training config
 oe_config = {
     "criterion": OutlierExposureLoss,
-    "lr": 0.1,
+    "lr": 0.01,
     "epochs": 10,
     "weight_decay": 5e-4,
     "momentum": 0.9,
