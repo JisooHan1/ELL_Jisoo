@@ -60,7 +60,7 @@ def run_ood_train(args):
             print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
         print("Training completed")
 
-        save_path = f'logs/{args.model}/trained_model/ood_{args.method}_{args.id_dataset}.pth'
+        save_path = f'logs/{args.model}/trained_model/{args.path}_ood_{args.method}_{args.id_dataset}.pth'
         torch.save(model.state_dict(), save_path)
         print(f"Model saved in {save_path}")
 
@@ -78,7 +78,7 @@ def run_ood_train(args):
             print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
         print("OE based training completed")
 
-        save_path = f'logs/{args.model}/trained_model/ood_{args.method}_{args.id_dataset}_{args.oe_dataset}.pth'
+        save_path = f'logs/{args.model}/trained_model/{args.path}_ood_{args.method}_{args.id_dataset}_{args.oe_dataset}.pth'
         torch.save(model.state_dict(), save_path)
         print(f"Model saved in {save_path}")
 

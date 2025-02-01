@@ -26,17 +26,35 @@ class OutlierExposureLoss(nn.Module):
         return total_loss
 
 # Outlier Exposure training config
+
+# paper: wrs
+# oe_config = {
+#     "criterion": OutlierExposureLoss,
+#     "lr": 0.01,
+#     "epochs": 10,
+#     "weight_decay": 5e-4,
+#     "momentum": 0.9,
+#     "optimizer": torch.optim.SGD,
+#     "scheduler_type": "cosine",
+#     "scheduler": torch.optim.lr_scheduler.CosineAnnealingLR,
+#     "T_max": 10,
+#     "eta_min": 0,
+#     "milestones": [5, 8],
+#     "gamma": 0.1
+# }
+
+# resnet18
 oe_config = {
     "criterion": OutlierExposureLoss,
-    "lr": 0.01,
-    "epochs": 10,
-    "weight_decay": 5e-4,
+    "lr": 0.005,
+    "epochs": 20,
+    "weight_decay": 1e-4,
     "momentum": 0.9,
     "optimizer": torch.optim.SGD,
     "scheduler_type": "cosine",
     "scheduler": torch.optim.lr_scheduler.CosineAnnealingLR,
-    "T_max": 10,
+    "T_max": 20,
     "eta_min": 0,
-    "milestones": [5, 8],
+    "milestones": [10, 15],
     "gamma": 0.1
 }
