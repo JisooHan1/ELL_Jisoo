@@ -12,9 +12,9 @@ class ResBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(out_channel)
         self.conv2 = nn.Conv2d(out_channel, out_channel, kernel_size=3, stride=1, padding=1, bias=False)
 
-        self.shortcut = self.shortcut(in_channel, out_channel, stride)
+        self.shortcut = self.shortcut_layer(in_channel, out_channel, stride)
 
-    def shortcut(self, in_channel, out_channel, stride):
+    def shortcut_layer(self, in_channel, out_channel, stride):
         if stride != 1 or in_channel != out_channel:
             return nn.Sequential(
                 nn.Conv2d(in_channel, out_channel, kernel_size=1, stride=stride, bias=False),
