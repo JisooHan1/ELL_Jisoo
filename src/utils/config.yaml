@@ -3,13 +3,13 @@ general:
   model: "ResNet"
   dataset: "CIFAR10"
   augment: True
-  epoch: 100
-  batch_size: 32
+  epoch: 200
+  batch_size: 64
 
 # for ood_test.py/ood_train.py
 train:
-  variant: "18-pre"
-  id_dataset: "imagenet"
-  oe_dataset: "openimages"
-  ood_dataset: "tinyimages"
-  method: "baseline"
+  variant: None
+  id_dataset: None
+  oe_dataset: None
+  ood_dataset: None
+  method: None
