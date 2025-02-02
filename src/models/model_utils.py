@@ -4,7 +4,7 @@ import torch.optim as optim
 import math
 
 from .lenet import LeNet
-from .resnet import ResNet
+from .resnet import ResNet18, ResNet34
 from .densenet import DenseNet
 from .fractalnet import FractalNet
 from .vit import ViT
@@ -29,8 +29,8 @@ def optimizer_and_scheduler(model, model_name, epoch):
 
     config = {
         "LeNet": {"lr": 0.001, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 0, "milestones": [int(epoch * 0.5), int(epoch * 0.75)]},
-        "ResNet": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 5e-4, "milestones": [int(epoch * 0.5), int(epoch * 0.75), int(epoch * 0.9)]},
-        # "ResNet": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 5e-4, "milestones": [int(epoch * 0.5), int(epoch * 0.75)]},
+        "ResNet18": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 5e-4, "milestones": [int(epoch * 0.5), int(epoch * 0.75), int(epoch * 0.9)]},
+        "ResNet34": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 5e-4, "milestones": [int(epoch * 0.5), int(epoch * 0.75), int(epoch * 0.9)]},
         "DenseNet": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 1e-4, "milestones": [int(epoch * 0.5), int(epoch * 0.75)]},
         "FractalNet": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 1e-4, "milestones": [epoch // (2 ** i) for i in reversed(range(1, int(math.log2(epoch)) + 1))]},
         "ViT": {"lr": 0.001, "optimizer": optim.Adam, "milestones": []},
@@ -51,8 +51,10 @@ def optimizer_and_scheduler(model, model_name, epoch):
 def load_model(name, input_channels, image_size):
     if name == "LeNet":
         return LeNet(input_channels, image_size)
-    elif name == "ResNet":
-        return ResNet(input_channels)
+    elif name == "ResNet18":
+        return ResNet18(input_channels)
+    elif name == "ResNet34":
+        return ResNet34(input_channels)
     elif name == "DenseNet":
         return DenseNet(input_channels)
     elif name == "FractalNet":

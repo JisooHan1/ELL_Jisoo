@@ -2,7 +2,7 @@ import torch
 from datasets import load_data
 from models import load_model, load_saved_model, model_path
 from utils.ood_configs import get_training_config
-from utils.parser import parse_args
+from utils.config import parse_args
 
 # device
 def get_device():

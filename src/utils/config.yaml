@@ -1,0 +1,15 @@
+# for main.py/ood_test.py/ood_train.py
+general:
+  model: "ResNet"
+  dataset: "CIFAR10"
+  augment: True
+  epoch: 100
+  batch_size: 32
+
+# for ood_test.py/ood_train.py
+train:
+  variant: "18-pre"
+  id_dataset: "imagenet"
+  oe_dataset: "openimages"
+  ood_dataset: "tinyimages"
+  method: "baseline"

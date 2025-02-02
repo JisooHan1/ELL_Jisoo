@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from datasets import load_dataset
 from models import LeNet, ResNet, DenseNet, FractalNet, ViT, MLPMixer, ConvMixer, load_model, optimizer_and_scheduler
-from utils.parser import parse_args
+from utils.config import config
 
 from torch.utils.tensorboard import SummaryWriter
 import os
@@ -81,26 +81,29 @@ def test(
 
 def main():
     device = get_device()
-    args = parse_args()
-    augment = True if args.augment.lower() == "true" else False
-    epoch = args.epoch
-    batch_size = args.batch_size
+
+    # Load config
+    model_name = config['general']['model']
+    dataset_name = config['general']['dataset']
+    augment = config['general']['augment']
+    epoch = config['general']['epoch']
+    batch_size = config['general']['batch_size']
 
     # Load data
-    trainset, testset, input_channels, image_size = load_dataset(args.dataset, augment)
+    trainset, testset, input_channels, image_size = load_dataset(dataset_name, augment)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size, shuffle=True, num_workers=2)
     testloader = torch.utils.data.DataLoader(testset, batch_size, shuffle=False, num_workers=2)
 
     # Load model
-    model = load_model(args.model, input_channels, image_size)
+    model = load_model(model_name, input_channels, image_size)
     model.to(device)
 
     # Optimization
-    optimizer, scheduler = optimizer_and_scheduler(model, args.model, epoch)
+    optimizer, scheduler = optimizer_and_scheduler(model, model_name, epoch)
     criterion = nn.CrossEntropyLoss()
 
     # Initialize tensorboard writer
-    writer = SummaryWriter(log_dir=f'logs/{args.model}/tensorboard_logs')
+    writer = SummaryWriter(log_dir=f'logs/{model_name}/tensorboard_logs')
 
     # train & test
     for epoch in range(1, epoch + 1):
@@ -111,10 +114,10 @@ def main():
     # Compute total number of parameters of the model
     num_of_pars = sum(p.numel() for p in model.parameters())
     print("Finished Training & Testing\n")
-    print(f"Number of Parameters in {args.model}: {num_of_pars}")
+    print(f"Number of Parameters in {model_name}: {num_of_pars}")
 
     # save trained model
-    save_model(model, args.model, args.dataset, args.augment)
+    save_model(model, model_name, dataset_name, augment)
 
 # utils
 def get_device():

@@ -1,5 +1,5 @@
 from .lenet import LeNet
-from .resnet import ResNet
+from .resnet import ResNet18, ResNet34
 from .densenet import DenseNet
 from .fractalnet import FractalNet
 from .vit import ViT
