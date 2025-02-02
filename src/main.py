@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from datasets import load_dataset
-from models import LeNet, ResNet, DenseNet, FractalNet, ViT, MLPMixer, ConvMixer, load_model, optimizer_and_scheduler
+from models import LeNet, ResNet18, ResNet34, DenseNet, FractalNet, ViT, MLPMixer, ConvMixer, load_model, optimizer_and_scheduler
 from utils.config import config
 
 from torch.utils.tensorboard import SummaryWriter
