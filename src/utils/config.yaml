@@ -1,6 +1,6 @@
 # for main.py/ood_test.py/ood_train.py
 general:
-  model: "ResNet"
+  model: "ResNet18"
   dataset: "CIFAR10"
   augment: True
   epoch: 200
