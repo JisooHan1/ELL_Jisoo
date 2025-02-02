@@ -3,7 +3,7 @@ general:
   model: "ResNet18"
   dataset: "CIFAR10"
   augment: True
-  epoch: 200
+  epoch: 100
   batch_size: 64
 
 # for ood_test.py/ood_train.py
