@@ -1,39 +1,32 @@
-import torch
 import os
 import random
-from torch.utils.data import Subset
+import json
+from PIL import Image
+
+import torch
+from torch.utils.data import Subset, Dataset
 import torchvision
 import torchvision.transforms as transforms
 
-class TinyImageNet200(torchvision.datasets.ImageFolder):
-    def __init__(self, root, split='train', transform=None):  # root = ./datasets/tiny-imagenet-200
-        self.samples = []
-        self.targets = []
+class TinyImageNet200(Dataset):
+    def __init__(self, root='./datasets/tiny-imagenet-200', split='train', transform=None):
+        json_path = os.path.join(root, 'tiny_imagenet_preprocessed.json')
 
-        # split = train
-        if split == 'train':
-            root = os.path.join(root, 'train')  # root = ./datasets/tiny-imagenet-200/train
+        with open(json_path, 'r') as f:
+            dataset_info = json.load(f)
 
-        # split = val
-        else:
-            root = os.path.join(root, 'val')  # root = ./datasets/tiny-imagenet-200/val
-            val_images_path = os.path.join(root, 'images')  # ./datasets/tiny-imagenet-200/val/images
-            val_labels_path = os.path.join(root, 'val_annotations.txt')  # ./datasets/tiny-imagenet-200/val/val_annotations.txt
+        self.samples = dataset_info[split]
+        self.transform = transform
 
-            # get class index
-            train_root = os.path.join(os.path.dirname(root), 'train')  # train_root = ./datasets/tiny-imagenet-200/train
-            self.cls_idx = {cls: idx for idx, cls in enumerate(sorted(os.listdir(train_root)))}  # {cls: idx}
+    def __len__(self):
+        return len(self.samples)
 
-            # get image and label
-            with open(val_labels_path, 'r') as f:
-                for line in f:
-                    image_name, label, *_ = line.strip().split('\t')  # [image_name, label, *]
-                    image_path = os.path.join(val_images_path, image_name)
-                    cls_idx = self.cls_idx[label]
-                    self.samples.append((image_path, cls_idx))
-                    self.targets.append(cls_idx)
-
-        super(TinyImageNet200, self).__init__(root=root, transform=transform)
+    def __getitem__(self, index):
+        image_path, label = self.samples[index]
+        image = Image.open(image_path).convert('RGB')
+        if self.transform:
+            image = self.transform(image)
+        return image, label
 
 DATASET_CONFIG = {
     # 64x64x3, 200 class, 100,000 training images, 10,000 test images
@@ -80,33 +73,30 @@ def load_dataset(name, augment=True):
     if name not in DATASET_CONFIG:
         raise ValueError("Invalid dataset name")
 
-    data = DATASET_CONFIG[name]
+    dataset_name = DATASET_CONFIG[name]
 
     # load transformed data
-    train_transform = get_transforms(data["input channel"], data["image size"], augment=augment)
-    test_transform = get_transforms(data["input channel"], data["image size"], augment=False)
+    train_transform = get_transforms(dataset_name["input channel"], dataset_name["image size"], augment=augment)
+    test_transform = get_transforms(dataset_name["input channel"], dataset_name["image size"], augment=False)
 
     # load datasets
     if name == "TinyImageNet200":
         root = './datasets/tiny-imagenet-200'
-        trainset = data["dataset"](root=root, **data["train option"], transform=train_transform)
-        testset = data["dataset"](root=root, **data["test option"], transform=test_transform)
-        train_indices = random.sample(range(len(trainset)), 50000)
-        test_indices = random.sample(range(len(testset)), 10000)
-        trainset = Subset(trainset, indices=train_indices)
-        testset = Subset(testset, indices=test_indices)
+        trainset = dataset_name["dataset"](root=root, **dataset_name["train option"], transform=train_transform)
+        testset = dataset_name["dataset"](root=root, **dataset_name["test option"], transform=test_transform)
+
     elif name == "LSUN":
         root = './datasets/lsun'
-        trainset = data["dataset"](root=root, classes=data["train option"]["classes"], transform=train_transform)
-        testset = data["dataset"](root=root, classes=data["test option"]["classes"], transform=test_transform)
+        trainset = dataset_name["dataset"](root=root, classes=dataset_name["train option"]["classes"], transform=train_transform)
+        testset = dataset_name["dataset"](root=root, classes=dataset_name["test option"]["classes"], transform=test_transform)
+
     else:
         root = './datasets'
-        trainset = data["dataset"](root=root, **data["train option"], download=True, transform=train_transform)
-        testset = data["dataset"](root=root, **data["test option"], download=True, transform=test_transform)
+        trainset = dataset_name["dataset"](root=root, **dataset_name["train option"], download=True, transform=train_transform)
+        testset = dataset_name["dataset"](root=root, **dataset_name["test option"], download=True, transform=test_transform)
 
     # return datasets and their properties
-    return trainset, testset, data["input channel"], data["image size"]
-
+    return trainset, testset, dataset_name["input channel"], dataset_name["image size"]
 
 
 #////////////////////* for ood method *////////////////////

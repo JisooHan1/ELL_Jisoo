@@ -24,11 +24,13 @@ def run_ood_test():
     model = load_saved_model(model_name, model_variant, device)
     model.to(device)
 
+    print("Loading data...")
     data_loaders, _, _ = load_data(id_dataset, None, ood_dataset, batch_size, augment)
     id_train_loader = data_loaders['id_train_loader']
     id_test_loader = data_loaders['id_test_loader']
     ood_test_loader = data_loaders['ood_test_loader']
 
+    print("Applying posthoc methods...")
     # apply posthoc methods using id_trainset
     if method in posthoc_methods:
         ood_method = get_ood_methods(method, model)
@@ -37,6 +39,7 @@ def run_ood_test():
         ood_method = get_ood_methods('msp', model)  # apply msp method by default
 
     # compute scores
+    print("Computing scores...")
     def compute_scores(loader):
         scores = []
         for images, _ in loader:
