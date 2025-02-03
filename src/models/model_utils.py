@@ -18,7 +18,8 @@ model_path = {
                "cifar10_no_augment": "logs/ResNet18/trained_model/ResNet_CIFAR10_False_20250113_2029.pth",
                "imported": None,
                "logitnorm_cifar10": "logs/ResNet18/trained_model/ood_logitnorm_CIFAR10.pth",
-               "oe_CIFAR10_TinyImageNet200": "logs/ResNet18/trained_model/18-pre_ood_oe_CIFAR10_TinyImageNet200.pth"},
+               "oe_CIFAR10_TinyImageNet200": "logs/ResNet18/trained_model/18-pre_ood_oe_CIFAR10_TinyImageNet200.pth",
+               "oe_CIFAR10_STL10": "logs/ResNet18/trained_model/18-pre_ood_oe_CIFAR10_STL10.pt"},
 
     "ResNet34": {"34-pre": "logs/ResNet34/trained_model/ResNet_CIFAR10_True_20250120_1311.pth"},
 
