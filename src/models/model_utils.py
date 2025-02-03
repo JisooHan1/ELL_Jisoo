@@ -14,13 +14,13 @@ from .convmixer import ConvMixer
 model_path = {
     "ResNet18": {"18-pre": "logs/ResNet18/trained_model/ResNet18_CIFAR10_True_20250202_1910.pth",  # colab
               #  "18-pre": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250120_1700.pth",
-               "18-post": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250120_1357.pth",
-               "cifar10_no_augment": "logs/ResNet/trained_model/ResNet_CIFAR10_False_20250113_2029.pth",
+               "18-post": "logs/ResNet18/trained_model/ResNet_CIFAR10_True_20250120_1357.pth",
+               "cifar10_no_augment": "logs/ResNet18/trained_model/ResNet_CIFAR10_False_20250113_2029.pth",
                "imported": None,
-               "logitnorm_cifar10": "logs/ResNet/trained_model/ood_logitnorm_CIFAR10.pth",
-               "18-pre_oe_CIFAR10_TinyImageNet200": "logs/ResNet/trained_model/18-pre_ood_oe_CIFAR10_TinyImageNet200.pth"},
+               "logitnorm_cifar10": "logs/ResNet18/trained_model/ood_logitnorm_CIFAR10.pth",
+               "oe_CIFAR10_TinyImageNet200": "logs/ResNet18/trained_model/18-pre_ood_oe_CIFAR10_TinyImageNet200.pth"},
 
-    "ResNet34": {"34-pre": "logs/ResNet/trained_model/ResNet_CIFAR10_True_20250120_1311.pth"},
+    "ResNet34": {"34-pre": "logs/ResNet34/trained_model/ResNet_CIFAR10_True_20250120_1311.pth"},
 
     "DenseNet": {"base": "logs/DenseNet/trained_model/DenseNet_CIFAR10_True_20250118_1619.pth",
                  "imported": None}
