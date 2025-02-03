@@ -12,7 +12,7 @@ print(f"Using device: {device}")
 @torch.no_grad()
 def run_ood_test():
 
-    model_name = config['train']['model']
+    model_name = config['general']['model']
     batch_size = config['general']['batch_size']
     augment = config['general']['augment']
 
