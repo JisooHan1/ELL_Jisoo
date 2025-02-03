@@ -12,4 +12,4 @@ train:
   id_dataset: "CIFAR10"
   oe_dataset: None
   ood_dataset: "SVHN"
-  method: msp
+  method: odin
