@@ -10,7 +10,7 @@ import torchvision.transforms as transforms
 
 class TinyImageNet200(Dataset):
     def __init__(self, root='./datasets/tiny-imagenet-200', split='train', transform=None):
-        json_path = os.path.join(root, 'tiny_imagenet_preprocessed.json')
+        json_path = os.path.join(root, 'tiny_imagenet_subset.json')
 
         with open(json_path, 'r') as f:
             dataset_info = json.load(f)
@@ -111,7 +111,7 @@ def load_data(id_dataset, oe_dataset, ood_dataset, batch_size, augment):
     # OE data
     if oe_dataset is not None:
         oe_trainset, _, _, _ = load_dataset(oe_dataset, augment)
-        oe_train_loader = torch.utils.data.DataLoader(oe_trainset, batch_size=2*batch_size, shuffle=True)
+        oe_train_loader = torch.utils.data.DataLoader(oe_trainset, batch_size=batch_size, shuffle=True)
     else:
         oe_train_loader = None
 
