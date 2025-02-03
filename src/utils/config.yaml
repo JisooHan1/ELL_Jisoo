@@ -1,0 +1,15 @@
+# for main.py/ood_test.py/ood_train.py
+general:
+  model: "ResNet18"
+  dataset: None
+  augment: True
+  epoch: 100
+  batch_size: 64
+
+# for ood_test.py/ood_train.py
+train:
+  variant: "18-pre"
+  id_dataset: "CIFAR10"
+  oe_dataset: None
+  ood_dataset: "SVHN"
+  method: odin
