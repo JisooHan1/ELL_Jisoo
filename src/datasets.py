@@ -10,7 +10,7 @@ import torchvision.transforms as transforms
 
 class TinyImageNet200(Dataset):
     def __init__(self, root='./datasets/tiny-imagenet-200', split='train', transform=None):
-        json_path = os.path.join(root, 'tiny_imagenet_subset.json')
+        json_path = os.path.join(root, 'tiny_imagenet_preprocessed.json')
 
         with open(json_path, 'r') as f:
             dataset_info = json.load(f)
