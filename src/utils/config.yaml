@@ -1,6 +1,6 @@
 # for main.py/ood_test.py/ood_train.py
 general:
-  model: "ResNet18"
+  model: ResNet18
   dataset: None
   augment: True
   epoch: None
@@ -8,8 +8,8 @@ general:
 
 # for ood_test.py/ood_train.py
 train:
-  variant: "18-pre"
-  id_dataset: "CIFAR10"
+  variant: 18-pre
+  id_dataset: CIFAR10
   oe_dataset: None
-  ood_dataset: "SVHN"
-  method: odin
+  ood_dataset: SVHN
+  method: mds
