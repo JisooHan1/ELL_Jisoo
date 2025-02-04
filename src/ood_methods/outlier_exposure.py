@@ -28,27 +28,11 @@ class OutlierExposureLoss(nn.Module):
 # Outlier Exposure training config
 
 # paper: wrs
-# oe_config = {
-#     "criterion": OutlierExposureLoss,
-#     "lr": 0.01,
-#     "epochs": 10,
-#     "weight_decay": 5e-4,
-#     "momentum": 0.9,
-#     "optimizer": torch.optim.SGD,
-#     "scheduler_type": "cosine",
-#     "scheduler": torch.optim.lr_scheduler.CosineAnnealingLR,
-#     "T_max": 10,
-#     "eta_min": 0,
-#     "milestones": [5, 8],
-#     "gamma": 0.1
-# }
-
-# resnet18
 oe_config = {
     "criterion": OutlierExposureLoss,
-    "lr": 0.005,
+    "lr": 0.01,
     "epochs": 10,
-    "weight_decay": 1e-4,
+    "weight_decay": 5e-4,
     "momentum": 0.9,
     "optimizer": torch.optim.SGD,
     "scheduler_type": "cosine",
@@ -58,3 +42,19 @@ oe_config = {
     "milestones": [5, 8],
     "gamma": 0.1
 }
+
+# # resnet18
+# oe_config = {
+#     "criterion": OutlierExposureLoss,
+#     "lr": 0.1,
+#     "epochs": 30,  # 학습을 더 길게 (10 → 30)
+#     "weight_decay": 1e-4,  # ResNet18에는 더 낮은 weight decay 사용
+#     "momentum": 0.9,
+#     "optimizer": torch.optim.SGD,
+
+#     # MultiStepLR 적용 (Cosine Annealing 대신)
+#     "scheduler_type": "step",
+#     "scheduler": torch.optim.lr_scheduler.MultiStepLR,
+#     "milestones": [15, 25],  # LR decay 시점 변경
+#     "gamma": 0.2  # decay rate 증가 (0.1 → 0.2)
+# }

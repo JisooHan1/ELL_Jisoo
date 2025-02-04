@@ -27,7 +27,7 @@ def initialize_training(device):
 
     # schedulers
     if training_options['scheduler_type'] == 'step':
-        scheduler = torch.optim.lr_scheduler.StepLR(
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(
             optimizer, milestones=training_options['milestones'], gamma=training_options['gamma'])
     elif training_options['scheduler_type'] == 'cosine':
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
