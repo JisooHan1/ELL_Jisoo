@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from datasets import load_dataset
+from datasets import get_dataset
 from models import LeNet, ResNet18, ResNet34, DenseNet, FractalNet, ViT, MLPMixer, ConvMixer, load_model, optimizer_and_scheduler
 from utils.config import config
 
@@ -10,14 +10,7 @@ import os
 import math
 from datetime import datetime
 
-def train(
-    model: torch.nn.Module,
-    trainloader: torch.utils.data.DataLoader,
-    criterion: torch.nn.Module,
-    optimizer: torch.optim.Optimizer,
-    epoch: int,
-    writer: torch.utils.tensorboard.SummaryWriter,
-    device: torch.device) -> None:
+def train(model, trainloader, criterion, optimizer, epoch, writer, device):
 
     print(f"Starting training for epoch {epoch}")
     model.train()
@@ -49,13 +42,7 @@ def train(
     # log: total loss for one epoch
     writer.add_scalar('Loss/train_epoch', total_loss / len(trainloader), epoch) # average loss for each epoch
 
-def test(
-    model: torch.nn.Module,
-    testloader: torch.utils.data.DataLoader,
-    criterion: torch.nn.Module,
-    epoch: int,
-    writer: torch.utils.tensorboard.SummaryWriter,
-    device: torch.device) -> None:
+def test(model, testloader, criterion, epoch, writer, device):
 
     model.eval()    # dropout X & batch normalization X
     correct = 0     # number of correctly classified images
@@ -90,7 +77,7 @@ def main():
     batch_size = config['general']['batch_size']
 
     # Load data
-    trainset, testset, input_channels, image_size = load_dataset(dataset_name, augment)
+    trainset, testset, input_channels, image_size = get_dataset(dataset_name, augment)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size, shuffle=True, num_workers=2)
     testloader = torch.utils.data.DataLoader(testset, batch_size, shuffle=False, num_workers=2)
 

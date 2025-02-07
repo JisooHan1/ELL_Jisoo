@@ -2,7 +2,7 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=python
 
 ###내가 추가한 것###
-datasets/
+data/
 logs/
 .history/
 .idea/

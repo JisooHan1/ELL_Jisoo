@@ -1,5 +1,5 @@
 import torch
-from datasets import load_data
+from datasets import get_data_loaders
 from models import load_model, load_saved_model, model_path
 from utils.ood_configs import get_training_config
 from utils.config import config
@@ -12,8 +12,11 @@ def get_device():
 
 # hyperparameters
 def initialize_training(device):
-    data_loaders, id_input_channels, id_image_size = load_data(config['train']['id_dataset'], config['train']['oe_dataset'],
-                                                               config['train']['ood_dataset'], config['general']['batch_size'], config['general']['augment'])
+    data_loaders, id_input_channels, id_image_size = get_data_loaders(config['train']['id_dataset'],
+                                                                      config['train']['oe_dataset'],
+                                                                      config['train']['ood_dataset'],
+                                                                      config['general']['batch_size'],
+                                                                      config['general']['augment'])
 
     if config['train']['variant'] is not None:
         model = load_saved_model(config['general']['model'], model_path[config['general']['model']][config['train']['variant']], device)

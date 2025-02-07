@@ -1,5 +1,5 @@
 import torch
-from datasets import load_data
+from datasets import get_data_loaders
 from models import load_saved_model, model_path
 from ood_methods import get_ood_methods
 from utils.ood_configs import posthoc_methods
@@ -7,7 +7,15 @@ from utils.ood_metrics import evaluations
 from utils.config import config
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
+print(f"\nUsing device: {device}")
+
+def get_ood_scores(loader, ood_method):
+    scores = []
+    for images, _ in loader:
+        images = images.to(device)
+        batch_scores = ood_method.ood_score(images).cpu().numpy()  # (batch)
+        scores.append(batch_scores)
+    return scores
 
 @torch.no_grad()
 def run_ood_test():
@@ -25,31 +33,21 @@ def run_ood_test():
     model.to(device)
 
     print("Loading data...")
-    data_loaders, _, _ = load_data(id_dataset, None, ood_dataset, batch_size, augment)
+    data_loaders, _, _ = get_data_loaders(id_dataset, None, ood_dataset, batch_size, augment)
     id_train_loader = data_loaders['id_train_loader']
     id_test_loader = data_loaders['id_test_loader']
     ood_test_loader = data_loaders['ood_test_loader']
 
     print("Applying posthoc methods...")
-    # apply posthoc methods using id_trainset
     if method in posthoc_methods:
         ood_method = get_ood_methods(method, model)
         ood_method.apply_method(id_train_loader)
     else:
         ood_method = get_ood_methods('msp', model)  # apply msp method by default
 
-    # compute scores
     print("Computing scores...")
-    def compute_scores(loader):
-        scores = []
-        for images, _ in loader:
-            images = images.to(device)
-            batch_scores = ood_method.ood_score(images).cpu().numpy()  # (batch)
-            scores.append(batch_scores)
-        return scores
-
-    id_scores = compute_scores(id_test_loader)
-    ood_scores = compute_scores(ood_test_loader)
+    id_scores = get_ood_scores(id_test_loader, ood_method)
+    ood_scores = get_ood_scores(ood_test_loader, ood_method)
 
     # get FPR95, AUROC and AUPR
     results = evaluations(id_scores, ood_scores)
