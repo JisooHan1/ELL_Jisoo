@@ -20,7 +20,6 @@ def get_transforms(input_channel, image_size, augment=True):
 
 def get_dataset(name, augment=True):
 
-
     image_size = 32
     input_channel = 1 if name in ["mnist"] else 3
 
