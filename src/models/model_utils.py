@@ -25,29 +25,35 @@ model_path = {
     "ResNet34": {"34-pre": "logs/ResNet34/trained_model/ResNet_CIFAR10_True_20250120_1311.pth"},
 
     "DenseNet": {"base": "logs/DenseNet/trained_model/DenseNet_CIFAR10_True_20250118_1619.pth",
-                 "imported": None}
+                 "imported": None},
+    "ViT": {"base": "logs/ViT/trained_model/ViT_CIFAR10_True_20250120_1311.pth"},
 }
 
 # model config
 def optimizer_and_scheduler(model, model_name, epoch):
 
-    config = {
+    model_config = {
         "LeNet": {"lr": 0.001, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 0, "milestones": [int(epoch * 0.5), int(epoch * 0.75)]},
         "ResNet18": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 5e-4, "milestones": [int(epoch * 0.5), int(epoch * 0.75), int(epoch * 0.9)]},
         "ResNet34": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 5e-4, "milestones": [int(epoch * 0.5), int(epoch * 0.75), int(epoch * 0.9)]},
         "DenseNet": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 1e-4, "milestones": [int(epoch * 0.5), int(epoch * 0.75)]},
         "FractalNet": {"lr": 0.1, "optimizer": optim.SGD, "momentum": 0.9, "weight_decay": 1e-4, "milestones": [epoch // (2 ** i) for i in reversed(range(1, int(math.log2(epoch)) + 1))]},
-        "ViT": {"lr": 0.001, "optimizer": optim.Adam, "milestones": []},
+        "ViT": {"lr": 0.0001, "optimizer": optim.Adam},
         "MLPMixer": {"lr": 0.001, "optimizer": optim.Adam, "milestones": []},
         "ConvMixer": {"lr": 0.001, "optimizer": optim.Adam, "milestones": []},
     }
-    if model_name not in config:
+    if model_name not in model_config:
         raise ValueError(f"Unsupported model: {model_name}")
 
-    config = config[model_name]
-    optimizer = config["optimizer"](model.parameters(), lr=config["lr"], momentum=config.get("momentum", 0), weight_decay=config.get("weight_decay", 0))
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=config["milestones"], gamma=0.1)
-    # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=epoch)
+    config = model_config[model_name]
+
+    if model_name in ["ViT", "MLPMixer", "ConvMixer"]:
+        optimizer = config["optimizer"](model.parameters(), lr=config["lr"])
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=epoch)
+    else:
+        optimizer = config["optimizer"](model.parameters(), lr=config["lr"], momentum=config.get("momentum", 0), weight_decay=config.get("weight_decay", 0))
+        scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=config["milestones"], gamma=0.1)
+        # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=epoch)
 
     return optimizer, scheduler
 
