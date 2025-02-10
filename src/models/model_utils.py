@@ -26,8 +26,9 @@ model_path = {
 
     "DenseNet": {"base": "logs/DenseNet/trained_model/DenseNet_CIFAR10_True_20250118_1619.pth",
                  "imported": None},
-    "ViT": {"base": "logs/ViT/trained_model/ViT_CIFAR10_True_20250120_1311.pth"},
+    "ViT": {"base": "logs/ViT/trained_model/ViT_cifar10_True_20250210_0949.pth"},
 }
+
 
 # model config
 def optimizer_and_scheduler(model, model_name, epoch):
