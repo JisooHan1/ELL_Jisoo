@@ -1,5 +1,5 @@
 import torch
-from datasets import get_data_loaders
+from datasets.datasets import get_data_loaders
 from models import load_model, load_saved_model, model_path
 from utils.ood_configs import get_training_config
 from utils.config import config

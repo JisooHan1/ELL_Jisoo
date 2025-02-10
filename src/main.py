@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from datasets import get_dataset
+from datasets.datasets import get_dataset
 from models import LeNet, ResNet18, ResNet34, DenseNet, FractalNet, ViT, MLPMixer, ConvMixer, load_model, optimizer_and_scheduler
 from utils.config import config
 

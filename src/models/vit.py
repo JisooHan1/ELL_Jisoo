@@ -21,26 +21,26 @@ class PatchEmbedding(nn.Module):
         num_patches_h = height // self.patch_size
         num_patches_w = width // self.patch_size
 
-        # (batch size, channels, num_patches_h, height, num_patches_w, width)
+        # (batch, channel, patches_h, height, patches_w, width)
         x = x.view(batch_size, channels, num_patches_h, self.patch_size, num_patches_w, self.patch_size)
 
-        # (batch size, num_patches_h, num_patches_w, channel, height, width)
+        # (batch, patches_h, patches_w, channel, height, width)
         x = x.permute(0, 2, 4, 1, 3, 5)
 
-        # (batch size, patches, flattened patch vector)
+        # (batch, patches, flattened patch vector)
         x = x.contiguous().view(batch_size, num_patches_h * num_patches_w, -1)
 
-        # (batch size, patches, dim)
+        # (batch, patches, dim)
         x = self.projection(x)
 
         # Prepend class token
-        cls_token = self.cls_token.expand(batch_size, -1, -1)  # => (batch size, 1, dim)
-        patch_embeddings = torch.cat((cls_token, x), dim=1)  # => (batch size, patches + 1, dim)
+        cls_token = self.cls_token.expand(batch_size, -1, -1)  # => (batch, 1, dim)
+        patch_embeddings = torch.cat((cls_token, x), dim=1)  # => (batch, patches + 1, dim)
 
         # element-wise add positional vectors
         final_embeddings = self.positional_tensor + patch_embeddings  # broadcasting
 
-        return final_embeddings  # (batch_size, num_patches, dim)
+        return final_embeddings  # (batch, patches + 1, dim)
 
 
 class MSA(nn.Module):
@@ -59,27 +59,24 @@ class MSA(nn.Module):
     def forward(self, x):
         batch_size, num_patches, embed_dim = x.shape
 
-        # (batch_size, num_patches, 3 * embed_dim)
-        qkv = self.qkv_matrix(x)
-        qkv = qkv.view(batch_size, num_patches, 3, self.heads, self.head_dim)
+        qkv = self.qkv_matrix(x)  # (batch_size x num_patches x 3*embed_dim)
+        qkv = qkv.view(batch_size, num_patches, 3, self.heads, self.head_dim)  # (batch_size x num_patches x 3 x heads x head_dim)
 
-        # (batch_size, num_patches, heads, head_dim) x3
-        Wq, Wk, Wv = torch.chunk(qkv, 3, dim=2)
-        Wq, Wk, Wv = Wq.squeeze(2), Wk.squeeze(2), Wv.squeeze(2)
+        Wq, Wk, Wv = torch.chunk(qkv, 3, dim=2)  # (batch_size x num_patches x 1 x heads x head_dim) x3
+        Wq, Wk, Wv = Wq.squeeze(2), Wk.squeeze(2), Wv.squeeze(2)  # (batch_size x num_patches x heads x head_dim)
 
         scores = torch.einsum("bihd,bjhd->bhij", Wq, Wk)  # (batch_size, heads, num_patches, num_patches)
-        attention_weights = self.softmax(scores / self.head_dim**0.5)  # (batch_size, heads, num_patches, num_patches)
+        attention_weights = self.softmax(scores / self.head_dim**0.5)
         msa = torch.einsum("bhij,bjhd->bihd", attention_weights, Wv)  # (batch_size, num_patches, heads, head_dim)
 
-        # => (batch_size, num_patches, embed_dim)
-        msa = msa.contiguous().view(batch_size, num_patches, embed_dim)
+        msa = msa.contiguous().view(batch_size, num_patches, embed_dim)  # (batch_size x num_patches x embed_dim)
 
         return self.linear(msa)
 
 
-class TrasformerBlock(nn.Module):
+class TransformerBlock(nn.Module):
     def __init__(self, embed_dim, num_head):
-        super(TrasformerBlock, self).__init__()
+        super(TransformerBlock, self).__init__()
 
         self.dim = embed_dim
         self.num_head = num_head
@@ -110,7 +107,7 @@ class ViT(nn.Module):
         self.depth = 8
 
         self.patch_embeddings = PatchEmbedding(in_channels, img_size, patch_size, dim)
-        self.transformer_layer = nn.Sequential(*(TrasformerBlock(dim, num_head) for _ in range(self.depth)))
+        self.transformer_layer = nn.Sequential(*(TransformerBlock(dim, num_head) for _ in range(self.depth)))
 
         self.ln = nn.LayerNorm(dim)
         self.fc = nn.Linear(dim, 10)

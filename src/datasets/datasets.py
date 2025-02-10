@@ -1,13 +1,14 @@
 import torchvision.datasets as datasets
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
-
+from datasets.aircraft import FGVC_Aircraft
 
 def get_transforms(input_channel, image_size, augment=True):
     mean = (0.5,) * input_channel
     std = mean  # normalization: (0, 1) -> (-1, 1)
 
     augmentations = [transforms.ToTensor(), transforms.Normalize(mean, std)]
+
     # train
     if augment:
         augmentations += [transforms.RandomResizedCrop(image_size), transforms.RandomHorizontalFlip()]
@@ -18,6 +19,7 @@ def get_transforms(input_channel, image_size, augment=True):
 
 
 def get_dataset(name, augment=True):
+
 
     image_size = 32
     input_channel = 1 if name in ["mnist"] else 3
@@ -55,30 +57,40 @@ def get_dataset(name, augment=True):
     elif name == "tinyimagenet200":
         trainset = datasets.TinyImageNet200(root="./data/tinyimagenet200", split='train', download=True, transform=train_transform)
         testset = datasets.TinyImageNet200(root="./data/tinyimagenet200", split='val', download=True, transform=test_transform)
+    elif name == "fgvc_aircraft":
+        trainset = datasets.FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="train", transform=train_transform)
+        testset = datasets.FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="test", transform=test_transform)
+    elif name == "nabirds":
+        trainset = datasets.NABirds(root="./data/nabirds", split="train", transform=train_transform)
+        testset = datasets.NABirds(root="./data/nabirds", split="test", transform=test_transform)
+    elif name == "butterfly200":
+        trainset = datasets.ButterflyDataset(root="./data/butterfly200", split="train", transform=train_transform)
+        testset = datasets.ButterflyDataset(root="./data/butterfly200", split="test", transform=test_transform)
     else:
         raise ValueError(f"Invalid dataset name: {name}")
+
 
     return trainset, testset, input_channel, image_size
 
 #////////////////////* for OOD method *////////////////////
 # load data: ID, OE, OOD
-def get_data_loaders(id_dataset, oe_dataset, ood_dataset, batch_size, augment):
+def get_data_loaders(id_dataset, oe_dataset, ood_dataset, batch_size, augment, crop_bottom):
 
     # ID data
-    id_trainset, id_testset, id_input_channels, id_image_size = get_dataset(id_dataset, augment)
+    id_trainset, id_testset, id_input_channels, id_image_size = get_dataset(id_dataset, augment, crop_bottom)
     id_train_loader = DataLoader(id_trainset, batch_size=batch_size, shuffle=True, num_workers=0)
     id_test_loader = DataLoader(id_testset, batch_size=batch_size, shuffle=True, num_workers=0)
 
     # OE data
     if oe_dataset is not None:
-        oe_trainset, _, _, _ = get_dataset(oe_dataset, augment)
+        oe_trainset, _, _, _ = get_dataset(oe_dataset, augment, crop_bottom)
         oe_train_loader = DataLoader(oe_trainset, batch_size=batch_size, shuffle=True, num_workers=0)
     else:
         oe_train_loader = None
 
     # OOD data
     if ood_dataset is not None:
-        _, ood_testset, _, _ = get_dataset(ood_dataset, augment)
+        _, ood_testset, _, _ = get_dataset(ood_dataset, augment, crop_bottom)
         ood_test_loader = DataLoader(ood_testset, batch_size=batch_size, shuffle=True, num_workers=0)
     else:
         ood_test_loader = None

@@ -1,5 +1,5 @@
 import torch
-from datasets import get_data_loaders
+from datasets.datasets import get_data_loaders
 from models import load_saved_model, model_path
 from ood_methods import get_ood_methods
 from utils.ood_configs import posthoc_methods
