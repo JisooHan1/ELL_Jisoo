@@ -60,14 +60,14 @@ def get_dataset(name, augment=True):
         trainset = datasets.TinyImageNet200(root="./data/tinyimagenet200", split='train', download=True, transform=train_transform)
         testset = datasets.TinyImageNet200(root="./data/tinyimagenet200", split='val', download=True, transform=test_transform)
     elif name == "aircraft":
-        trainset = datasets.FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="train", transform=train_transform)
-        testset = datasets.FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="test", transform=test_transform)
+        trainset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="train", transform=train_transform)
+        testset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="test", transform=test_transform)
     elif name == "birds":
-        trainset = datasets.NABirds(root="./data/nabirds", split="train", transform=train_transform)
-        testset = datasets.NABirds(root="./data/nabirds", split="test", transform=test_transform)
+        trainset = NABirds(root="./data/nabirds", split="train", transform=train_transform)
+        testset = NABirds(root="./data/nabirds", split="test", transform=test_transform)
     elif name == "butterfly":
-        trainset = datasets.ButterflyDataset(root="./data/butterfly200", split="train", transform=train_transform)
-        testset = datasets.ButterflyDataset(root="./data/butterfly200", split="test", transform=test_transform)
+        trainset = ButterflyDataset(root="./data/butterfly200", split="train", transform=train_transform)
+        testset = ButterflyDataset(root="./data/butterfly200", split="test", transform=test_transform)
     else:
         raise ValueError(f"Invalid dataset name: {name}")
 
