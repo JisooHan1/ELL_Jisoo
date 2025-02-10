@@ -69,6 +69,11 @@ class ButterflyDataset(Dataset):
 
         # Load image and apply transformations
         image = Image.open(img_path).convert("RGB")
+
+        # remove bottom 20px
+        width, height = image.size
+        image = image.crop((0, 0, width, height - 20))  # (left, upper, right, lower)
+
         if self.transform:
             image = self.transform(image)
 
