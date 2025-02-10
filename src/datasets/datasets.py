@@ -59,8 +59,8 @@ def get_dataset(name, augment=True):
         trainset = datasets.Textures(root="./data/textures", split='train', download=True, transform=train_transform)
         testset = datasets.Textures(root="./data/textures", split='test', download=True, transform=test_transform)
     elif name == "tinyimagenet":
-        trainset = TinyImageNet200(root="./data/tinyimagenet200", split='train', transform=train_transform)
-        testset = TinyImageNet200(root="./data/tinyimagenet200", split='val', transform=test_transform)
+        trainset = TinyImageNet200(root="./data/tiny-imagenet-200", split='train', transform=train_transform)
+        testset = TinyImageNet200(root="./data/tiny-imagenet-200", split='val', transform=test_transform)
     elif name == "aircraft":
         trainset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="train", transform=train_transform)
         testset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="test", transform=test_transform)
