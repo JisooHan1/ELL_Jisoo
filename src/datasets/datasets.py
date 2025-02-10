@@ -1,6 +1,8 @@
 import torchvision.datasets as datasets
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
+
+from datasets.tinyimagenet import TinyImageNet200
 from datasets.aircraft import FGVC_Aircraft
 from datasets.bird import NABirds
 from datasets.butterfly import ButterflyDataset
@@ -57,8 +59,8 @@ def get_dataset(name, augment=True):
         trainset = datasets.Textures(root="./data/textures", split='train', download=True, transform=train_transform)
         testset = datasets.Textures(root="./data/textures", split='test', download=True, transform=test_transform)
     elif name == "tinyimagenet":
-        trainset = datasets.TinyImageNet200(root="./data/tinyimagenet200", split='train', download=True, transform=train_transform)
-        testset = datasets.TinyImageNet200(root="./data/tinyimagenet200", split='val', download=True, transform=test_transform)
+        trainset = TinyImageNet200(root="./data/tinyimagenet200", split='train', transform=train_transform)
+        testset = TinyImageNet200(root="./data/tinyimagenet200", split='val', transform=test_transform)
     elif name == "aircraft":
         trainset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="train", transform=train_transform)
         testset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="test", transform=test_transform)
