@@ -4,14 +4,14 @@ from torch.utils.data import Dataset
 from PIL import Image
 
 class NABirds(Dataset):
-    def __init__(self, root_dir, split="train", transform=None):
+    def __init__(self, root, split="train", transform=None):
 
-        self.root_dir = root_dir
+        self.root_dir = root
         self.split = split
         self.transform = transform
 
         # Set pickle cache file
-        cache_file = os.path.join(root_dir, f"nabirds_split.pkl")
+        cache_file = os.path.join(root, f"nabirds_split.pkl")
 
         # Load cache file if it exists
         if os.path.exists(cache_file):
@@ -25,9 +25,9 @@ class NABirds(Dataset):
             print("Cache file not found! Loading data...")
 
             # Set file paths
-            images_file = os.path.join(root_dir, "images.txt")  # UUID → Image path
-            labels_file = os.path.join(root_dir, "image_class_labels.txt")  # UUID → Label
-            split_file = os.path.join(root_dir, "train_test_split.txt")  # UUID → Train/Test
+            images_file = os.path.join(root, "images.txt")  # UUID → Image path
+            labels_file = os.path.join(root, "image_class_labels.txt")  # UUID → Label
+            split_file = os.path.join(root, "train_test_split.txt")  # UUID → Train/Test
 
             # UUID → Image path mapping
             image_paths = {}

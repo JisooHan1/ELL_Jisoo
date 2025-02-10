@@ -6,22 +6,22 @@ from sklearn.model_selection import train_test_split
 
 
 class ButterflyDataset(Dataset):
-    def __init__(self, root_dir, transform=None, split="train", train_ratio=0.8, random_seed=42):
+    def __init__(self, root, transform=None, split="train", train_ratio=0.8, random_seed=42):
 
-        self.root_dir = root_dir
+        self.root_dir = root
         self.transform = transform
 
         # Check if the folder exists
-        if not os.path.exists(root_dir):
-            raise FileNotFoundError(f"Dataset directory {root_dir} not found.")
+        if not os.path.exists(root):
+            raise FileNotFoundError(f"Dataset directory {root} not found.")
 
         # Read folders for each class
-        classes = sorted([d for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))])
+        classes = sorted([d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d))])
         self.class_to_idx = {cls_name: idx for idx, cls_name in enumerate(classes)}
 
         # Cache file storage location (stored inside root_dir)
         cache_filename = f"butterfly200_split_{int(train_ratio*100)}_{int((1-train_ratio)*100)}.pkl"
-        self.split_cache_file = os.path.join(root_dir, cache_filename)
+        self.split_cache_file = os.path.join(root, cache_filename)
 
         # Load cache file if it exists (for speed improvement)
         if os.path.exists(self.split_cache_file):
@@ -34,7 +34,7 @@ class ButterflyDataset(Dataset):
             all_labels = []
 
             for cls_name in classes:
-                cls_path = os.path.join(root_dir, cls_name)
+                cls_path = os.path.join(root, cls_name)
                 for img_name in os.listdir(cls_path):
                     img_path = os.path.join(cls_path, img_name)
                     if os.path.isfile(img_path):  # Check if it is a file to remove unnecessary paths

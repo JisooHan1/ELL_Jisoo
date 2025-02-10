@@ -3,13 +3,13 @@ from torch.utils.data import Dataset
 from PIL import Image
 
 class FGVC_Aircraft(Dataset):
-    def __init__(self, root_dir, split="train", transform=None):
-        self.root_dir = root_dir
+    def __init__(self, root, split="train", transform=None):
+        self.root_dir = root
         self.split = split
         self.transform = transform
 
-        image_list_file = os.path.join(root_dir, f"data/images_{split}.txt")
-        label_file = os.path.join(root_dir, f"data/images_variant_{split}.txt")
+        image_list_file = os.path.join(root, f"data/images_{split}.txt")
+        label_file = os.path.join(root, f"data/images_variant_{split}.txt")
 
         with open(image_list_file, "r") as f:
             self.image_files = [line.strip() + ".jpg" for line in f.readlines()]
