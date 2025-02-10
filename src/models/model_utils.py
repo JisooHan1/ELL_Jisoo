@@ -22,7 +22,7 @@ model_path = {
                "oe_CIFAR10_STL10": "logs/ResNet18/trained_model/18-pre_ood_oe_CIFAR10_STL10.pth",
                "oe_CIFAR10_CIFAR100": "logs/ResNet18/trained_model/18-pre_ood_oe_CIFAR10_CIFAR100.pth"},
 
-    "ResNet34": {"34-pre": "logs/ResNet34/trained_model/ResNet_cifar10_True_20250210_1841.pth"},
+    "ResNet34": {"34-pre": "logs/ResNet34/trained_model/ResNet34_cifar10_True_20250210_1841.pth"},
 
     "DenseNet": {"base": "logs/DenseNet/trained_model/DenseNet_CIFAR10_True_20250118_1619.pth",
                  "imported": None},
