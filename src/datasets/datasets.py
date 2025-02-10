@@ -2,6 +2,9 @@ import torchvision.datasets as datasets
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 from datasets.aircraft import FGVC_Aircraft
+from datasets.bird import NABirds
+from datasets.butterfly import ButterflyDataset
+
 
 def get_transforms(input_channel, image_size, augment=True):
     mean = (0.5,) * input_channel
@@ -53,16 +56,16 @@ def get_dataset(name, augment=True):
     elif name == "textures":
         trainset = datasets.Textures(root="./data/textures", split='train', download=True, transform=train_transform)
         testset = datasets.Textures(root="./data/textures", split='test', download=True, transform=test_transform)
-    elif name == "tinyimagenet200":
+    elif name == "tinyimagenet":
         trainset = datasets.TinyImageNet200(root="./data/tinyimagenet200", split='train', download=True, transform=train_transform)
         testset = datasets.TinyImageNet200(root="./data/tinyimagenet200", split='val', download=True, transform=test_transform)
-    elif name == "fgvc_aircraft":
+    elif name == "aircraft":
         trainset = datasets.FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="train", transform=train_transform)
         testset = datasets.FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="test", transform=test_transform)
-    elif name == "nabirds":
+    elif name == "birds":
         trainset = datasets.NABirds(root="./data/nabirds", split="train", transform=train_transform)
         testset = datasets.NABirds(root="./data/nabirds", split="test", transform=test_transform)
-    elif name == "butterfly200":
+    elif name == "butterfly":
         trainset = datasets.ButterflyDataset(root="./data/butterfly200", split="train", transform=train_transform)
         testset = datasets.ButterflyDataset(root="./data/butterfly200", split="test", transform=test_transform)
     else:
