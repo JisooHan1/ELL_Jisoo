@@ -24,12 +24,23 @@ class MixtureOutlierExposureLoss(nn.Module):
         self.soft_ce = SoftCrossEntropy()
 
     def forward(self, id_outputs, id_labels, mixed_outputs, ratio):
-        id_outputs, id_labels, mixed_outputs = id_outputs.to(device), id_labels.to(device), mixed_outputs.to(device)
+        # 모든 입력을 float32로 변환하고 동일한 device로 이동
+        id_outputs = id_outputs.float().to(device)
+        id_labels = id_labels.long().to(device)
+        mixed_outputs = mixed_outputs.float().to(device)
+
+        # ratio를 배치 크기에 맞게 조정
+        if not isinstance(ratio, torch.Tensor):
+            ratio = torch.tensor(ratio, device=device)
+        ratio = ratio.view(-1, 1).to(device)  # [B, 1] 형태로 변환
 
         num_classes = mixed_outputs.shape[1]
-        one_hot_labels = F.one_hot(id_labels, num_classes=num_classes).to(device)
+        one_hot_labels = F.one_hot(id_labels, num_classes=num_classes).float().to(device)
         uniform_labels = torch.ones_like(one_hot_labels).float() / num_classes
-        soft_targets = ratio * one_hot_labels + (1 - ratio) * uniform_labels
+
+        # broadcasting을 위해 ratio의 shape 확인
+        soft_targets = ratio.expand_as(one_hot_labels) * one_hot_labels + \
+                      (1 - ratio).expand_as(one_hot_labels) * uniform_labels
 
         # ID loss
         id_loss = F.cross_entropy(id_outputs, id_labels)
