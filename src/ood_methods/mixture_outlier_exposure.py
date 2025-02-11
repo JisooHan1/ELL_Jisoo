@@ -28,7 +28,7 @@ class MixtureOutlierExposureLoss(nn.Module):
 
         num_classes = mixed_outputs.shape[1]
         one_hot_labels = F.one_hot(id_labels, num_classes=num_classes).to(device)
-        uniform_labels = torch.ones_like(one_hot_labels) / num_classes
+        uniform_labels = torch.ones_like(one_hot_labels).float() / num_classes
         soft_targets = ratio * one_hot_labels + (1 - ratio) * uniform_labels
 
         # ID loss
