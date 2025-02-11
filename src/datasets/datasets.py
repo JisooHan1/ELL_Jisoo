@@ -61,11 +61,15 @@ def get_dataset(name, augment=True):
     elif name == "tinyimagenet":
         trainset = TinyImageNet200(root="./data/tiny-imagenet-200", split='train', transform=train_transform)
         testset = TinyImageNet200(root="./data/tiny-imagenet-200", split='val', transform=test_transform)
-    elif name == "aircraft":
-        trainset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="train", transform=train_transform)
-        testset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="test", transform=test_transform)
+    elif name == "aircraft_id":
+        trainset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="train", subset=0, transform=train_transform)
+        testset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="test", subset=0, transform=test_transform)
+    elif name == "aircraft_ood":
+        trainset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="train", subset=1, transform=train_transform)
+        testset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="test", subset=1, transform=test_transform)
     elif name == "birds":
         trainset = NABirds(root="./data/nabirds", split="train", transform=train_transform)
+
         testset = NABirds(root="./data/nabirds", split="test", transform=test_transform)
     elif name == "butterfly":
         trainset = ButterflyDataset(root="./data/butterfly200", split="train", transform=train_transform)
