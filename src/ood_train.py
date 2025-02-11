@@ -75,9 +75,6 @@ def run_ood_train():
             for (id_images, id_labels), (oe_images, _) in zip(data_loaders['id_train_loader'], data_loaders['oe_train_loader']):
                 id_images, id_labels, oe_images = id_images.to(device), id_labels.to(device), oe_images.to(device)
 
-                print("id_image size: ", id_images.size())
-                print("oe_image size: ", oe_images.size())
-
                 # mixup
                 ratio = np.random.beta(1.0, 1.0)
                 mixed_images = ratio * id_images + (1 - ratio) * oe_images
