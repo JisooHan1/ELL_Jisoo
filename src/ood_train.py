@@ -3,6 +3,7 @@ from datasets.datasets import get_data_loaders
 from models import load_model, load_saved_model, model_path
 from utils.ood_configs import get_training_config
 from utils.config import config
+import numpy as np
 
 # device
 def get_device():
@@ -49,10 +50,11 @@ def run_ood_train():
     print("Model: ", config['general']['model'])
     print("Path: ", model_path[config['general']['model']][config['train']['variant']])
 
-    # Only ID_trainset
+    # logitnorm
     if config['train']['oe_dataset'] is None:
         for epoch in range(epochs):
             for images, labels in data_loaders['id_train_loader']:
+
                 images, labels = images.to(device), labels.to(device)
                 optimizer.zero_grad()
                 outputs = model(images)
@@ -67,7 +69,30 @@ def run_ood_train():
         torch.save(model.state_dict(), save_path)
         print(f"Model saved in {save_path}")
 
-    # ID_trainset + OE_trainset
+    # mixture outlier exposure - mixup/cutmix
+    elif config['train']['method'] == 'moe':
+        for epoch in range(epochs):
+            for (id_images, id_labels), (oe_images, _) in zip(data_loaders['id_train_loader'], data_loaders['oe_train_loader']):
+                id_images, id_labels, oe_images = id_images.to(device), id_labels.to(device), oe_images.to(device)
+
+                # mixup
+                ratio = np.random.beta(1.0, 1.0)
+                mixed_images = ratio * id_images + (1 - ratio) * oe_images
+
+                optimizer.zero_grad()
+                id_outputs, mixed_outputs = model(id_images), model(mixed_images)
+                loss = criterion(id_outputs, id_labels, mixed_outputs, ratio)
+                loss.backward()
+                optimizer.step()
+            scheduler.step()
+            print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
+        print("Training completed")
+
+        save_path = f'logs/{config["general"]["model"]}/trained_model/{config["train"]["variant"]}_ood_{config["train"]["method"]}_{config["train"]["id_dataset"]}_{config["train"]["oe_dataset"]}.pth'
+        torch.save(model.state_dict(), save_path)
+        print(f"Model saved in {save_path}")
+
+    # outlier exposure
     else:
         for epoch in range(epochs):
             for (id_images, id_labels), (oe_images, _) in zip(data_loaders['id_train_loader'], data_loaders['oe_train_loader']):

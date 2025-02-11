@@ -6,54 +6,40 @@ import numpy as np
 # device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Function for CutMix
-def rand_bbox(size, lam):
-    W = size[2]
-    H = size[3]
-    cut_rat = np.sqrt(1. - lam)
-    cut_w = np.int(W * cut_rat)
-    cut_h = np.int(H * cut_rat)
+# SoftCrossEntropy
+class SoftCrossEntropy(nn.Module):
+    def __init__(self):
+        super(SoftCrossEntropy, self).__init__()
 
-    cx = np.random.randint(W)
-    cy = np.random.randint(H)
-
-    bbx1 = np.clip(cx - cut_w // 2, 0, W)
-    bby1 = np.clip(cy - cut_h // 2, 0, H)
-    bbx2 = np.clip(cx + cut_w // 2, 0, W)
-    bby2 = np.clip(cy + cut_h // 2, 0, H)
-
-    return bbx1, bby1, bbx2, bby2
+    def forward(self, logits, soft_targets):
+        log_probs = F.log_softmax(logits, dim=-1)
+        loss = -torch.sum(soft_targets * log_probs, dim=-1)
+        return loss.mean()
 
 # OutlierExposureLoss with MixUp and CutMix
 class MixtureOutlierExposureLoss(nn.Module):
-    def __init__(self, lamda=0.5, mix_op='mixup', alpha=1.0):
+    def __init__(self, lamda=0.5):
         super(MixtureOutlierExposureLoss, self).__init__()
         self.lamda = lamda  # Weight for OE loss
-        self.mix_op = mix_op  # mixup or cutmix
-        self.alpha = alpha  # Parameter for Beta distribution
+        self.soft_ce = SoftCrossEntropy()
 
-    def forward(self, id_outputs, id_labels, oe_outputs, id_inputs, oe_inputs):
-        id_outputs, id_labels, oe_outputs = id_outputs.to(device), id_labels.to(device), oe_outputs.to(device)
-        id_inputs, oe_inputs = id_inputs.to(device), oe_inputs.to(device)
+    def forward(self, id_outputs, id_labels, mixed_outputs, ratio):
+        id_outputs, id_labels, mixed_outputs = id_outputs.to(device), id_labels.to(device), mixed_outputs.to(device)
 
-        # Apply MixUp or CutMix
-        lam = np.random.beta(self.alpha, self.alpha)
-        if self.mix_op == 'cutmix':
-            bbx1, bby1, bbx2, bby2 = rand_bbox(id_inputs.size(), lam)
-            id_inputs[:, :, bbx1:bbx2, bby1:bby2] = oe_inputs[:, :, bbx1:bbx2, bby1:bby2]
-            lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (id_inputs.size(-1) * id_inputs.size(-2)))
-        elif self.mix_op == 'mixup':
-            id_inputs = lam * id_inputs + (1 - lam) * oe_inputs
+        one_hot_labels = F.one_hot(id_labels, num_classes=mixed_outputs.shape[1]).to(device)
+        uniform_labels = torch.ones_like(id_labels) / id_labels.shape[1]
+        soft_targets = ratio * one_hot_labels + (1 - ratio) * uniform_labels
 
         # ID loss
         id_loss = F.cross_entropy(id_outputs, id_labels)
 
-        # OE loss: cross entropy with uniform distribution
-        oe_loss = -(oe_outputs.mean(1) - torch.logsumexp(oe_outputs, dim=1)).mean()
+        # MOE loss: cross entropy with soft targets
+        moe_loss = self.soft_ce(mixed_outputs, soft_targets)
 
         # Total loss
-        total_loss = id_loss + self.lamda * oe_loss
+        total_loss = id_loss + self.lamda * moe_loss
         return total_loss
+
 
 # Outlier Exposure training config
 moe_config = {
