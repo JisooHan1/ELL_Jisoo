@@ -26,8 +26,9 @@ class MixtureOutlierExposureLoss(nn.Module):
     def forward(self, id_outputs, id_labels, mixed_outputs, ratio):
         id_outputs, id_labels, mixed_outputs = id_outputs.to(device), id_labels.to(device), mixed_outputs.to(device)
 
-        one_hot_labels = F.one_hot(id_labels, num_classes=mixed_outputs.shape[1]).to(device)
-        uniform_labels = torch.ones_like(id_labels) / id_labels.shape[1]
+        num_classes = mixed_outputs.shape[1]
+        one_hot_labels = F.one_hot(id_labels, num_classes=num_classes).to(device)
+        uniform_labels = torch.ones_like(id_labels) / num_classes
         soft_targets = ratio * one_hot_labels + (1 - ratio) * uniform_labels
 
         # ID loss
