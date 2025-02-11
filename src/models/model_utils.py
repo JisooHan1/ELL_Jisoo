@@ -20,7 +20,8 @@ model_path = {
                "logitnorm_cifar10": "logs/ResNet18/trained_model/ood_logitnorm_CIFAR10.pth",
                "oe_CIFAR10_TinyImageNet200": "logs/ResNet18/trained_model/18-pre_ood_oe_CIFAR10_TinyImageNet200.pth",
                "oe_CIFAR10_STL10": "logs/ResNet18/trained_model/18-pre_ood_oe_CIFAR10_STL10.pth",
-               "oe_CIFAR10_CIFAR100": "logs/ResNet18/trained_model/18-pre_ood_oe_CIFAR10_CIFAR100.pth"},
+               "oe_CIFAR10_CIFAR100": "logs/ResNet18/trained_model/18-pre_ood_oe_CIFAR10_CIFAR100.pth",
+               "moe_CIFAR10_tinyimagenet": "logs/ResNet18/trained_model/18-pre_ood_moe_cifar10_tinyimagenet.pth"},
 
     "ResNet34": {"34-pre": "logs/ResNet34/trained_model/ResNet34_cifar10_True_20250210_1841.pth"},
 
