@@ -26,7 +26,7 @@ def rand_bbox(size, lam):
 
 # OutlierExposureLoss with MixUp and CutMix
 class MixtureOutlierExposureLoss(nn.Module):
-    def __init__(self, lamda=0.5, mix_op='cutmix', alpha=1.0):
+    def __init__(self, lamda=0.5, mix_op='mixup', alpha=1.0):
         super(MixtureOutlierExposureLoss, self).__init__()
         self.lamda = lamda  # Weight for OE loss
         self.mix_op = mix_op  # mixup or cutmix
@@ -69,6 +69,5 @@ moe_config = {
     "eta_min": 0,
     "milestones": [5, 8],
     "gamma": 0.1,
-    "mix_op": "cutmix",  # Choose between "cutmix" and "mixup"
-    "alpha": 1.0,  # Beta distribution parameter for mixup/cutmix
+    "mix_op": "mixup"  # Choose between "cutmix" and "mixup"
 }
