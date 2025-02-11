@@ -52,6 +52,7 @@ class FGVC_Aircraft(Dataset):
 
         # Split classes in half
         num_classes = len(all_labels)
+        print(f"Number of classes: {num_classes}")
         class_split = num_classes // 2
 
         if self.subset == 0:
