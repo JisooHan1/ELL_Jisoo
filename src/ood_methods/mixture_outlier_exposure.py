@@ -28,8 +28,11 @@ class MixtureOutlierExposureLoss(nn.Module):
 
         num_classes = mixed_outputs.shape[1]
         one_hot_labels = F.one_hot(id_labels, num_classes=num_classes).to(device)  # (B x C)
+        print(f"one_hot_labels: {one_hot_labels.shape}")
         uniform_labels = torch.ones_like(one_hot_labels).float() / num_classes  # (B x C)
+        print(f"uniform_labels: {uniform_labels.shape}")
         soft_targets = ratio * one_hot_labels + (1 - ratio) * uniform_labels  # (B x C)
+        print(f"soft_targets: {soft_targets.shape}")
 
         # ID loss
         id_loss = F.cross_entropy(id_outputs, id_labels)
