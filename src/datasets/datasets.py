@@ -86,20 +86,20 @@ def get_data_loaders(id_dataset, oe_dataset, ood_dataset, batch_size, augment):
 
     # ID data
     id_trainset, id_testset, id_input_channels, id_image_size = get_dataset(id_dataset, augment)
-    id_train_loader = DataLoader(id_trainset, batch_size=batch_size, shuffle=True, num_workers=0)
-    id_test_loader = DataLoader(id_testset, batch_size=batch_size, shuffle=True, num_workers=0)
+    id_train_loader = DataLoader(id_trainset, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=True)
+    id_test_loader = DataLoader(id_testset, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=True)
 
     # OE data
     if oe_dataset is not None:
         oe_trainset, _, _, _ = get_dataset(oe_dataset, augment)
-        oe_train_loader = DataLoader(oe_trainset, batch_size=batch_size, shuffle=True, num_workers=0)
+        oe_train_loader = DataLoader(oe_trainset, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=True)
     else:
         oe_train_loader = None
 
     # OOD data
     if ood_dataset is not None:
         _, ood_testset, _, _ = get_dataset(ood_dataset, augment)
-        ood_test_loader = DataLoader(ood_testset, batch_size=batch_size, shuffle=True, num_workers=0)
+        ood_test_loader = DataLoader(ood_testset, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=True)
     else:
         ood_test_loader = None
 
