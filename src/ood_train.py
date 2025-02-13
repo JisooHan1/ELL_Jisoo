@@ -4,7 +4,7 @@ from models import load_model, load_saved_model, model_path
 from utils.ood_configs import get_training_config
 from utils.parser import parse_args
 
-# device
+# device info
 def get_device():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
