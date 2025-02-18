@@ -22,7 +22,7 @@ class CSIResNet18(nn.Module):
         self.backbone = ResNet18(input_channels, num_classes, pre_activation)
         self.backbone.fc = nn.Identity()
         self.projection_head = ProjectionHead(512, projection_dim)
-        self.classifier = nn.Linear(projection_dim, 4)  # 4 classes: 0, 90, 180, 270
+        self.classifier = nn.Linear(512, 4)  # 4 classes: 0, 90, 180, 270
 
     def forward(self, x, return_features=False):
         features = self.backbone(x)
