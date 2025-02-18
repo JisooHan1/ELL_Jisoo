@@ -23,6 +23,7 @@ def parse_args(defaults):
     parser.add_argument("--oe_dataset", type=str, default=train["oe_dataset"], help="OE dataset")
     parser.add_argument("--ood_dataset", type=str, default=train["ood_dataset"], help="OOD dataset")
     parser.add_argument("--method", type=str, default=train["method"], help="OOD detection method")
+    parser.add_argument("--csi", action="store_true" if not train["csi"] else "store_false", help="CSI flag")
 
     return parser.parse_args()
 
@@ -44,3 +45,4 @@ print(f"ID Dataset: {config['train']['id_dataset']}")
 print(f"OE Dataset: {config['train']['oe_dataset']}")
 print(f"OOD Dataset: {config['train']['ood_dataset']}")
 print(f"OOD Method: {config['train']['method']}")
+print(f"CSI: {config['train']['csi']}")

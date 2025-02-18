@@ -28,12 +28,12 @@ def run_ood_test():
     id_dataset = config['train']['id_dataset']
     ood_dataset = config['train']['ood_dataset']
     method = config['train']['method']
-
+    csi = config['train']['csi']
     model = load_saved_model(model_name, model_variant, device)
     model.to(device)
 
     print("Loading data...")
-    data_loaders, _, _ = get_data_loaders(id_dataset, None, ood_dataset, batch_size, augment)
+    data_loaders, _, _ = get_data_loaders(id_dataset, None, ood_dataset, batch_size, augment, csi)
     id_train_loader = data_loaders['id_train_loader']
     id_test_loader = data_loaders['id_test_loader']
     ood_test_loader = data_loaders['ood_test_loader']

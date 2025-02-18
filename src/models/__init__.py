@@ -5,5 +5,5 @@ from .fractalnet import FractalNet
 from .vit import ViT
 from .mlpmixer import MLPMixer
 from .convmixer import ConvMixer
-
+from .csi_resnet18 import CSIResNet18
 from .model_utils import model_path, load_model, load_saved_model, optimizer_and_scheduler

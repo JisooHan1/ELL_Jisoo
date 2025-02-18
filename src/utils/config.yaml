@@ -13,5 +13,5 @@ train:
   oe_dataset: None
   ood_dataset: svhn
   method: msp
-
+  csi: False
 

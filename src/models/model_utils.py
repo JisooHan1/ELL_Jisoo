@@ -10,6 +10,7 @@ from .fractalnet import FractalNet
 from .vit import ViT
 from .mlpmixer import MLPMixer
 from .convmixer import ConvMixer
+from .csi_resnet18 import CSIResNet18
 
 model_path = {
     "ResNet18": {"18-pre": "logs/ResNet18/trained_model/ResNet18_CIFAR10_True_20250202_1910.pth",  # colab
@@ -21,7 +22,8 @@ model_path = {
                "oe_CIFAR10_TinyImageNet200": "logs/ResNet18/trained_model/18-pre_ood_oe_CIFAR10_TinyImageNet200.pth",
                "oe_CIFAR10_STL10": "logs/ResNet18/trained_model/18-pre_ood_oe_CIFAR10_STL10.pth",
                "oe_CIFAR10_CIFAR100": "logs/ResNet18/trained_model/18-pre_ood_oe_CIFAR10_CIFAR100.pth",
-               "moe_CIFAR10_tinyimagenet": "logs/ResNet18/trained_model/18-pre_ood_moe_cifar10_tinyimagenet.pth"},
+               "moe_CIFAR10_tinyimagenet": "logs/ResNet18/trained_model/18-pre_ood_moe_cifar10_tinyimagenet.pth",
+               "csi_CIFAR10": ""},
 
     "ResNet34": {"34-pre": "logs/ResNet34/trained_model/ResNet34_cifar10_True_20250210_1841.pth"},
 
@@ -43,13 +45,14 @@ def optimizer_and_scheduler(model, model_name, epoch):
         "ViT": {"lr": 0.0001, "optimizer": optim.Adam},
         "MLPMixer": {"lr": 0.001, "optimizer": optim.Adam, "milestones": []},
         "ConvMixer": {"lr": 0.001, "optimizer": optim.Adam, "milestones": []},
+        "CSIResNet18": {"lr": 0.001, "optimizer": optim.Adam, "milestones": []},
     }
     if model_name not in model_config:
         raise ValueError(f"Unsupported model: {model_name}")
 
     config = model_config[model_name]
 
-    if model_name in ["ViT", "MLPMixer", "ConvMixer"]:
+    if model_name in ["ViT", "MLPMixer", "ConvMixer", "CSIResNet18"]:
         optimizer = config["optimizer"](model.parameters(), lr=config["lr"])
         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=epoch)
     else:
@@ -77,6 +80,8 @@ def load_model(name, input_channels, image_size):
         return MLPMixer(input_channels, image_size)
     elif name == "ConvMixer":
         return ConvMixer(input_channels)
+    elif name == "CSIResNet18":
+        return CSIResNet18(input_channels, num_classes=4, projection_dim=128)
     else:
         raise ValueError("Invalid model name")
 
