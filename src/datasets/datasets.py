@@ -135,18 +135,18 @@ def get_data_loaders(id_dataset, oe_dataset, ood_dataset, batch_size, augment, c
     id_test_loader = DataLoader(id_testset, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=True)
 
     # OE data
-    if oe_dataset is not None:
+    if oe_dataset == "None":
+        oe_train_loader = None
+    else:
         oe_trainset, _, _, _ = get_dataset(oe_dataset, augment, csi)
         oe_train_loader = DataLoader(oe_trainset, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=True)
-    else:
-        oe_train_loader = None
 
     # OOD data
-    if ood_dataset is not None:
+    if ood_dataset == "None":
+        ood_test_loader = None
+    else:
         _, ood_testset, _, _ = get_dataset(ood_dataset, augment, csi)
         ood_test_loader = DataLoader(ood_testset, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=True)
-    else:
-        ood_test_loader = None
 
     data_loaders = {
         'id_train_loader': id_train_loader,
