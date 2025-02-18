@@ -30,7 +30,7 @@ class CSILoss(nn.Module):
         negatives = similarity_matrix[neg_mask].view(batch_size, -1)  # (8N, 8N-2)
 
         logits = torch.cat([positives, negatives], dim=1)  # (8N, 8N-1)
-        labels = torch.zeros(batch_size).to(device)  # (8N)
+        labels = torch.zeros(batch_size, dtype=torch.long).to(device)  # (8N)
 
         loss = F.cross_entropy(logits / self.temperature, labels)
         return loss
