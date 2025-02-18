@@ -26,14 +26,14 @@ def initialize_training(device):
     )
 
     # model
-    if config['train']['variant'] is not None:
+    if config['train']['variant'] == "None":
+        model = load_model(config['general']['model'], id_input_channels, id_image_size).to(device)
+    else:
         model = load_saved_model(
             config['general']['model'],
             model_path[config['general']['model']][config['train']['variant']],
             device
         )
-    else:
-        model = load_model(config['general']['model'], id_input_channels, id_image_size).to(device)
 
     # training options
     training_options = get_training_config(config['train']['method'])
