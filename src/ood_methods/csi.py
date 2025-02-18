@@ -50,16 +50,16 @@ class CSILoss(nn.Module):
 # Outlier Exposure training config
 csi_config = {
     "criterion": CSILoss,
-    "lr": 0.01,
-    "epochs": 10,
-    "weight_decay": 5e-4,
+    "lr": 0.125,
+    "epochs": 100,
+    "weight_decay": 5e-5,
     "momentum": 0.9,
     "optimizer": torch.optim.SGD,
     "scheduler_type": "cosine",
     "scheduler": torch.optim.lr_scheduler.CosineAnnealingLR,
-    "T_max": 10,
+    "T_max": 100,
     "eta_min": 0,
-    "milestones": [5, 8],
-    "gamma": 0.1,
-    "mix_op": "mixup"  # Choose between "cutmix" and "mixup"
+    "batch_size": 32,
+    "gradient_accumulation_steps": 2
 }
+
