@@ -8,10 +8,10 @@ general:
 
 # for ood_test.py/ood_train.py
 train:
-  variant: 18-pre
+  variant: None
   id_dataset: cifar10
   oe_dataset: None
-  ood_dataset: svhn
+  ood_dataset: None
   method: msp
   csi: False
 
