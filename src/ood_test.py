@@ -4,11 +4,13 @@ from models import load_saved_model, model_path
 from ood_methods import get_ood_methods
 from utils.ood_configs import posthoc_methods
 from utils.ood_metrics import evaluations
-from utils.config import config
+from utils.config import get_configs
 
+# check device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"\nUsing device: {device}")
 
+# get ood scores
 def get_ood_scores(loader, ood_method):
     scores = []
     for images, _ in loader:
@@ -17,18 +19,22 @@ def get_ood_scores(loader, ood_method):
         scores.append(batch_scores)
     return scores
 
+# run ood test
 @torch.no_grad()
 def run_ood_test():
+    model_config, ood_config = get_configs()
+    print(f"model_config: {model_config}")
+    print(f"ood_config: {ood_config}")
 
-    model_name = config['general']['model']
-    batch_size = config['general']['batch_size']
-    augment = config['general']['augment']
+    model_name = model_config['model']
+    batch_size = model_config['batch_size']
+    augment = model_config['augment']
+    model_variant = model_path[model_name][ood_config['variant']]
+    id_dataset = ood_config['id_dataset']
+    ood_dataset = ood_config['ood_dataset']
+    method = ood_config['method']
+    csi = ood_config['csi']
 
-    model_variant = model_path[model_name][config['train']['variant']]
-    id_dataset = config['train']['id_dataset']
-    ood_dataset = config['train']['ood_dataset']
-    method = config['train']['method']
-    csi = config['train']['csi']
     model = load_saved_model(model_name, model_variant, device)
     model.to(device)
 
