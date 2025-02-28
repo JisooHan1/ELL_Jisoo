@@ -17,9 +17,6 @@ def parse_args(config):
 
         main_parser.add_argument("--dataset", type=str, default=model_config["dataset"], help="Dataset name")
         main_parser.add_argument("--augment", action="store_true", default=model_config["augment"], help="Data augmentation flag")
-        main_parser.add_argument("--image_size", type=int, default=model_config["image_size"], help="Image size")
-        main_parser.add_argument("--num_classes", type=int, default=model_config["num_classes"], help="Number of classes")
-        main_parser.add_argument("--num_channels", type=int, default=model_config["num_channels"], help="Number of channels")
 
         main_parser.add_argument("--epoch", type=int, default=model_config["epoch"], help="Number of epochs")
         main_parser.add_argument("--batch_size", type=int, default=model_config["batch_size"], help="Batch size")

@@ -3,11 +3,10 @@ import torch.nn as nn
 import torch.optim as optim
 from datasets.datasets import get_dataset
 from models import LeNet, ResNet18, ResNet34, DenseNet, FractalNet, ViT, MLPMixer, ConvMixer, load_model, optimizer_and_scheduler
-from utils.config import config
+from utils.config import get_configs
 
 from torch.utils.tensorboard import SummaryWriter
 import os
-import math
 from datetime import datetime
 
 def train(model, trainloader, criterion, optimizer, epoch, writer, device):
@@ -68,13 +67,14 @@ def test(model, testloader, criterion, epoch, writer, device):
 
 def main():
     device = get_device()
+    model_config, ood_config = get_configs()
 
     # Load config
-    model_name = config['general']['model']
-    dataset_name = config['general']['dataset']
-    augment = config['general']['augment']
-    epoch = config['general']['epoch']
-    batch_size = config['general']['batch_size']
+    model_name = model_config['model']
+    dataset_name = model_config['dataset']
+    augment = model_config['augment']
+    epoch = model_config['epoch']
+    batch_size = model_config['batch_size']
 
     # Load data
     trainset, testset, input_channels, image_size = get_dataset(dataset_name, augment)

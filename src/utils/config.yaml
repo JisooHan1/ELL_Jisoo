@@ -1,23 +1,20 @@
 # for main.py/ood_test.py/ood_train.py
 # lenet
-lenet:
+LeNet:
   model: LeNet
 
-  dataset: cifar10
-  augment: True
-  image_size: 32
-  num_classes: 10
-  num_channels: 1
+  dataset: mnist
+  augment: true
 
   epoch: 100
   batch_size: 64
 
   optimizer: SGD
-  lr: 0.1
-  weight_decay: 0.0005
+  lr: 0.001
+  weight_decay: 0
   momentum: 0.9
   scheduler: MultiStepLR
-  milestones: [50, 75, 90]
+  milestones: [50, 75]
   gamma: 0.1
 
 
@@ -26,10 +23,7 @@ ResNet18:
   model: ResNet18
 
   dataset: cifar10
-  augment: True
-  image_size: 32
-  num_classes: 10
-  num_channels: 3
+  augment: true
 
   epoch: 100
   batch_size: 64
@@ -47,10 +41,7 @@ ResNet34:
   model: ResNet34
 
   dataset: cifar10
-  augment: True
-  image_size: 32
-  num_classes: 10
-  num_channels: 3
+  augment: true
 
   epoch: 200
   batch_size: 64
@@ -68,10 +59,7 @@ DenseNet:
   model: DenseNet
 
   dataset: cifar10
-  augment: True
-  image_size: 32
-  num_classes: 10
-  num_channels: 3
+  augment: true
 
   epoch: 200
   batch_size: 64
@@ -89,10 +77,7 @@ FractalNet:
   model: FractalNet
 
   dataset: cifar10
-  augment: True
-  image_size: 32
-  num_classes: 10
-  num_channels: 3
+  augment: true
 
   epoch: 200
   batch_size: 64
@@ -110,91 +95,79 @@ ViT:
   model: ViT
 
   dataset: cifar10
-  augment: True
-  image_size: 32
-  num_classes: 10
-  num_channels: 3
+  augment: true
 
   epoch: 200
   batch_size: 64
 
   optimizer: Adam
   lr: 0.0001
-  weight_decay: None
-  momentum: None
+  weight_decay: null
+  momentum: null
   scheduler: CosineAnnealingLR
-  milestones: None
-  gamma: None
+  milestones: null
+  gamma: null
 
 # mlpmixer
 MLPMixer:
   model: MLPMixer
 
   dataset: cifar10
-  augment: True
-  image_size: 32
-  num_classes: 10
-  num_channels: 3
+  augment: true
 
   epoch: 200
   batch_size: 64
 
   optimizer: Adam
   lr: 0.001
-  weight_decay: None
-  momentum: None
+  weight_decay: null
+  momentum: null
   scheduler: CosineAnnealingLR
-  milestones: None
-  gamma: None
+  milestones: null
+  gamma: null
 
 # convmixer
 ConvMixer:
   model: ConvMixer
 
   dataset: cifar10
-  augment: True
-  image_size: 32
-  num_classes: 10
-  num_channels: 3
+  augment: true
 
   epoch: 200
   batch_size: 64
 
   optimizer: Adam
   lr: 0.001
-  weight_decay: None
-  momentum: None
+  weight_decay: null
+  momentum: null
   scheduler: CosineAnnealingLR
-  milestones: None
-  gamma: None
+  milestones: null
+  gamma: null
 
 # csiresnet18
 CSIResNet18:
   model: CSIResNet18
 
   dataset: cifar10
-  augment: True
-  image_size: 32
-  num_classes: 10
-  num_channels: 3
+  augment: true
 
   epoch: 200
   batch_size: 64
 
   optimizer: Adam
   lr: 0.001
-  weight_decay: None
-  momentum: None
+  weight_decay: null
+  momentum: null
   scheduler: CosineAnnealingLR
-  milestones: None
-  gamma: None
+  milestones: null
+  gamma: null
 
 
 # for ood_test.py/ood_train.py
 ood_config:
   variant: 18-pre
   id_dataset: cifar10
-  oe_dataset: None
+  oe_dataset: null
   ood_dataset: svhn
   method: msp
-  csi: False
+  csi: false

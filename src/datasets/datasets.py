@@ -8,7 +8,7 @@ from datasets.bird import NABirds
 from datasets.butterfly import ButterflyDataset
 import torchvision.transforms as transforms
 
-class Transform:
+class CSITransform:
     def __init__(self, input_channel, image_size):
         mean = (0.5,) * input_channel
         std = mean  # normalization: (0, 1) -> (-1, 1)
@@ -58,7 +58,7 @@ def get_transforms(input_channel, image_size, augment=True, csi=False):
     std = mean  # normalization: (0, 1) -> (-1, 1)
 
     if csi:
-        transform = Transform(input_channel, image_size)
+        transform = CSITransform(input_channel, image_size)
         return transform
     else:
         augmentations = [transforms.ToTensor(), transforms.Normalize(mean, std)]
@@ -74,56 +74,89 @@ def get_transforms(input_channel, image_size, augment=True, csi=False):
 
 def get_dataset(name, augment=True, csi=False):
 
-    image_size = 32
-    input_channel = 1 if name in ["mnist"] else 3
-
-    train_transform = get_transforms(input_channel, image_size, augment=augment, csi=csi)
-    test_transform = get_transforms(input_channel, image_size, augment=False, csi=False)
-
     if name == "cifar10":
+        info = {"num_classes": 10, "num_channels": 3, "image_size": 32}
+        train_transform = get_transforms(info["num_channels"], info["image_size"], augment=augment, csi=csi)
+        test_transform = get_transforms(info["num_channels"], info["image_size"], augment=False, csi=False)
         trainset = datasets.CIFAR10(root="./data/cifar10", train=True, download=True, transform=train_transform)
         testset = datasets.CIFAR10(root="./data/cifar10", train=False, download=True, transform=test_transform)
     elif name == "cifar100":
+        info = {"num_classes": 100, "num_channels": 3, "image_size": 32}
+        train_transform = get_transforms(info["num_channels"], info["image_size"], augment=augment, csi=csi)
+        test_transform = get_transforms(info["num_channels"], info["image_size"], augment=False, csi=False)
         trainset = datasets.CIFAR100(root="./data/cifar100", train=True, download=True, transform=train_transform)
         testset = datasets.CIFAR100(root="./data/cifar100", train=False, download=True, transform=test_transform)
     elif name == "svhn":
+        info = {"num_classes": 10, "num_channels": 3, "image_size": 32}
+        train_transform = get_transforms(info["num_channels"], info["image_size"], augment=augment, csi=csi)
+        test_transform = get_transforms(info["num_channels"], info["image_size"], augment=False, csi=False)
         trainset = datasets.SVHN(root="./data/svhn", split='train', download=True, transform=train_transform)
         testset = datasets.SVHN(root="./data/svhn", split='test', download=True, transform=test_transform)
     elif name == "stl10":
+        info = {"num_classes": 10, "num_channels": 3, "image_size": 32}
+        train_transform = get_transforms(info["num_channels"], info["image_size"], augment=augment, csi=csi)
+        test_transform = get_transforms(info["num_channels"], info["image_size"], augment=False, csi=False)
         trainset = datasets.STL10(root="./data/stl10", split='train', download=True, transform=train_transform)
         testset = datasets.STL10(root="./data/stl10", split='test', download=True, transform=test_transform)
     elif name == "lsun":
+        info = {"num_classes": 10, "num_channels": 3, "image_size": 32}
+        train_transform = get_transforms(info["num_channels"], info["image_size"], augment=augment, csi=csi)
+        test_transform = get_transforms(info["num_channels"], info["image_size"], augment=False, csi=False)
         trainset = datasets.LSUN(root="./data/lsun", classes=['train'], transform=train_transform)
         testset = datasets.LSUN(root="./data/lsun", classes=['test'], transform=test_transform)
     elif name == "dtd":
+        info = {"num_classes": 47, "num_channels": 3, "image_size": 32}
+        train_transform = get_transforms(info["num_channels"], info["image_size"], augment=augment, csi=csi)
+        test_transform = get_transforms(info["num_channels"], info["image_size"], augment=False, csi=False)
         trainset = datasets.DTD(root="./data/dtd", split='train', download=True, transform=train_transform)
         testset = datasets.DTD(root="./data/dtd", split='test', download=True, transform=test_transform)
     elif name == "mnist":
+        info = {"num_classes": 10, "num_channels": 1, "image_size": 32}
+        train_transform = get_transforms(info["num_channels"], info["image_size"], augment=augment, csi=csi)
+        test_transform = get_transforms(info["num_channels"], info["image_size"], augment=False, csi=False)
         trainset = datasets.MNIST(root="./data/mnist", train=True, download=True, transform=train_transform)
         testset = datasets.MNIST(root="./data/mnist", train=False, download=True, transform=test_transform)
     elif name == "places365":
+        info = {"num_classes": 365, "num_channels": 3, "image_size": 32}
+        train_transform = get_transforms(info["num_channels"], info["image_size"], augment=augment, csi=csi)
+        test_transform = get_transforms(info["num_channels"], info["image_size"], augment=False, csi=False)
         trainset = datasets.Places365(root="./data/places365", split='train-standard', download=True, transform=train_transform)
         testset = datasets.Places365(root="./data/places365", split='val', download=True, transform=test_transform)
     elif name == "tinyimagenet":
+        info = {"num_classes": 200, "num_channels": 3, "image_size": 32}
+        train_transform = get_transforms(info["num_channels"], info["image_size"], augment=augment, csi=csi)
+        test_transform = get_transforms(info["num_channels"], info["image_size"], augment=False, csi=False)
         trainset = TinyImageNet200(root="./data/tiny-imagenet-200", split='train', transform=train_transform)
         testset = TinyImageNet200(root="./data/tiny-imagenet-200", split='val', transform=test_transform)
     elif name == "aircraft_id":
+        info = {"num_classes": 100, "num_channels": 3, "image_size": 32}
+        train_transform = get_transforms(info["num_channels"], info["image_size"], augment=augment, csi=csi)
+        test_transform = get_transforms(info["num_channels"], info["image_size"], augment=False, csi=False)
         trainset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="train", subset=0, transform=train_transform)
         testset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="test", subset=0, transform=test_transform)
     elif name == "aircraft_ood":
+        info = {"num_classes": 100, "num_channels": 3, "image_size": 32}
+        train_transform = get_transforms(info["num_channels"], info["image_size"], augment=augment, csi=csi)
+        test_transform = get_transforms(info["num_channels"], info["image_size"], augment=False, csi=False)
         trainset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="train", subset=1, transform=train_transform)
         testset = FGVC_Aircraft(root="./data/fgvc-aircraft-2013b", split="test", subset=1, transform=test_transform)
     elif name == "birds":
+        info = {"num_classes": 200, "num_channels": 3, "image_size": 32}
+        train_transform = get_transforms(info["num_channels"], info["image_size"], augment=augment, csi=csi)
+        test_transform = get_transforms(info["num_channels"], info["image_size"], augment=False, csi=False)
         trainset = NABirds(root="./data/nabirds", split="train", transform=train_transform)
         testset = NABirds(root="./data/nabirds", split="test", transform=test_transform)
     elif name == "butterfly":
+        info = {"num_classes": 200, "num_channels": 3, "image_size": 32}
+        train_transform = get_transforms(info["num_channels"], info["image_size"], augment=augment, csi=csi)
+        test_transform = get_transforms(info["num_channels"], info["image_size"], augment=False, csi=False)
         trainset = ButterflyDataset(root="./data/butterfly200", split="train", transform=train_transform)
         testset = ButterflyDataset(root="./data/butterfly200", split="test", transform=test_transform)
     else:
         raise ValueError(f"Invalid dataset name: {name}")
 
 
-    return trainset, testset, input_channel, image_size
+    return trainset, testset, info["num_channels"], info["image_size"]
 
 #////////////////////* for OOD method *////////////////////
 # load data: ID, OE, OOD
@@ -135,14 +168,14 @@ def get_data_loaders(id_dataset, oe_dataset, ood_dataset, batch_size, augment, c
     id_test_loader = DataLoader(id_testset, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=True)
 
     # OE data
-    if oe_dataset == "None":
+    if oe_dataset == None:
         oe_train_loader = None
     else:
         oe_trainset, _, _, _ = get_dataset(oe_dataset, augment, csi)
         oe_train_loader = DataLoader(oe_trainset, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=True)
 
     # OOD data
-    if ood_dataset == "None":
+    if ood_dataset == None:
         ood_test_loader = None
     else:
         _, ood_testset, _, _ = get_dataset(ood_dataset, augment, csi)
